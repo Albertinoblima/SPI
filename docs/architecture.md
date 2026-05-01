@@ -11,13 +11,13 @@ O SPI - Sistema de Pesquisa Inteligente é composto por:
 
 ## Fluxo de Dados
 
-```
+```text
 Entrevistador (Mobile) → SQLite Local → Sync Engine → Supabase → Dashboard (Web)
 ```
 
 ## Fluxo de Sincronização
 
-```
+```text
 ┌─────────────┐
 │  MOBILE APP │
 └──────┬──────┘
@@ -99,7 +99,7 @@ Entrevistador (Mobile) → SQLite Local → Sync Engine → Supabase → Dashboa
 ## Stack
 
 | Componente | Tecnologia |
-|---|---|
+| --- | --- |
 | Mobile | React Native + Expo |
 | Web | Next.js 14 (App Router) |
 | State (Mobile) | Zustand |
@@ -114,7 +114,7 @@ Entrevistador (Mobile) → SQLite Local → Sync Engine → Supabase → Dashboa
 ## Custos (Free Tier)
 
 | Componente | Tecnologia | Custo Mensal |
-|------------|-----------|-------------|
+| --- | --- | --- |
 | Backend | Supabase (Postgres + Auth + Storage) | $0 (até 500MB DB, 1GB Storage) |
 | Frontend Web | Vercel (Next.js) | $0 (Hobby tier) |
 | Mobile | Expo (APK direto) | $0 (sem publicação em stores) |

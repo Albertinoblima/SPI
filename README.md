@@ -59,7 +59,7 @@ A implantação automática da função Edge `sync-responses` no Supabase ficou 
 2. Renomeie para `supabase.exe` e coloque em uma pasta do PATH (ex: `C:\Windows` ou `C:\Users\SeuUsuario`).
 3. Execute o comando de deploy na raiz do projeto:
 
-   ```
+   ```bash
    supabase functions deploy sync-responses --no-verify-jwt
    ```
 

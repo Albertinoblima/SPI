@@ -3,7 +3,7 @@
 ## Status Atual
 
 | Recurso | Status | URL |
-|---|---|---|
+| --- | --- | --- |
 | GitHub | ✅ Concluído | <https://github.com/Albertinoblima/SPI> |
 | Vercel Deploy | ✅ Concluído | <https://spi-sistema-pesquisa-inteligente.vercel.app> |
 | Supabase | ⏳ Pendente credenciais | — |
@@ -22,7 +22,7 @@ Publicar o **SPI - Sistema de Pesquisa Inteligente** com atualização contínua
 
 Repositório criado e código enviado:
 
-```
+```text
 https://github.com/Albertinoblima/SPI
 branch: main (2 commits)
 ```
@@ -70,7 +70,7 @@ Deploy manual já realizado em:
 1. Acesse <https://vercel.com/albertinoblimas-projects/spi-sistema-pesquisa-inteligente/settings/environment-variables>  
    Adicione:
 
-   ```
+   ```env
    NEXT_PUBLIC_SUPABASE_URL   = https://SEU_REF.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY = eyJ...anon_key
    SUPABASE_SERVICE_ROLE_KEY  = eyJ...service_role_key
@@ -79,7 +79,7 @@ Deploy manual já realizado em:
 2. Configure GitHub Secrets em <https://github.com/Albertinoblima/SPI/settings/secrets/actions>  
    Adicione os 3 secrets abaixo (necessários para o workflow `.github/workflows/deploy-web.yml`):
 
-   ```
+   ```env
    VERCEL_TOKEN      = (gere em: https://vercel.com/account/tokens)
    VERCEL_ORG_ID     = team_jdz2mDGh4C3wyQL9Je7lenU8
    VERCEL_PROJECT_ID = prj_9MRLSkIfwKOIgDvMWHvAKwyQSSZA
