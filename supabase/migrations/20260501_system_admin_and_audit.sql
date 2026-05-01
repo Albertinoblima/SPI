@@ -4,6 +4,9 @@
 -- Data: 2026-05-01
 -- ============================================================================
 
+-- Garante função uuid_generate_v4() para UUIDs padrão
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- ============================================================================
 -- PARTE 1: ALTERAR TABELA USERS PARA SUPORTAR SYSTEM ADMIN
 -- ============================================================================
@@ -25,7 +28,7 @@ ALTER TABLE public.users ADD CONSTRAINT check_system_admin_tenant CHECK (
 -- Métricas gerais do sistema (não isoladas por tenant)
 
 CREATE TABLE IF NOT EXISTS public.system_analytics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Métricas contáveis
     total_tenants INTEGER DEFAULT 0,
@@ -60,7 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_system_analytics_date ON public.system_analytics(
 -- Log centralizado de erros do sistema
 
 CREATE TABLE IF NOT EXISTS public.error_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Contexto do erro
     tenant_id UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
@@ -103,7 +106,7 @@ CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON public.error_logs(resolved
 -- Sistema de tickets de suporte com chat integrado
 
 CREATE TABLE IF NOT EXISTS public.support_tickets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Relacionamento
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -149,7 +152,7 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON public.support_tickets
 -- Mensagens de chat dentro de um ticket de suporte
 
 CREATE TABLE IF NOT EXISTS public.support_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     ticket_id UUID NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
     sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -174,7 +177,7 @@ CREATE INDEX IF NOT EXISTS idx_support_messages_sender ON public.support_message
 -- Auditoria de todas as ações críticas do sistema
 
 CREATE TABLE IF NOT EXISTS public.audit_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Ator da ação
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -330,10 +333,10 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.log_error(
-    p_tenant_id UUID DEFAULT NULL,
-    p_user_id UUID DEFAULT NULL,
     p_error_code TEXT,
     p_error_message TEXT,
+    p_tenant_id UUID DEFAULT NULL,
+    p_user_id UUID DEFAULT NULL,
     p_severity VARCHAR(20) DEFAULT 'medium',
     p_http_method VARCHAR(10) DEFAULT NULL,
     p_http_path VARCHAR(500) DEFAULT NULL,
