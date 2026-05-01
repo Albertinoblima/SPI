@@ -4,7 +4,17 @@
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "postgis";
+CREATE SCHEMA IF NOT EXISTS extensions;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') THEN
+        RAISE NOTICE 'Extensao postgis ja instalada; mantendo schema atual para compatibilidade.';
+    ELSE
+        CREATE EXTENSION IF NOT EXISTS "postgis" WITH SCHEMA extensions;
+    END IF;
+END;
+$$;
 
 -- Tenants (Empresas/Organizações)
 CREATE TABLE tenants (
