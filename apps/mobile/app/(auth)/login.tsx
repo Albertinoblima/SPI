@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 
@@ -29,7 +29,12 @@ export default function LoginScreen() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>SPI - Sistema de Pesquisa Inteligente</Text>
+            <Image
+                source={require('../../assets/branding/idialog-logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+            />
+            <Text style={styles.title}>iDialog SPI</Text>
             <Text style={styles.subtitle}>Faça login para continuar</Text>
 
             <TextInput
@@ -79,6 +84,12 @@ const styles = StyleSheet.create({
         color: '#1a365d',
         textAlign: 'center',
         marginBottom: 8,
+    },
+    logo: {
+        width: 220,
+        height: 70,
+        alignSelf: 'center',
+        marginBottom: 12,
     },
     subtitle: {
         fontSize: 16,

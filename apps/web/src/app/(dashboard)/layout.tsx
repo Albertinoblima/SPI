@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     BarChart3,
@@ -39,8 +40,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Sidebar */}
             <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
                 <div className="p-6 border-b border-slate-200">
-                    <h1 className="text-xl font-bold text-slate-900">SPI</h1>
-                    <p className="text-xs text-slate-500 mt-1">Sistema de Pesquisa</p>
+                    <Image
+                        src="/branding/idialog-logo.png"
+                        alt="Logo iDialog"
+                        width={140}
+                        height={42}
+                        className="h-10 w-auto"
+                    />
+                    <p className="text-xs text-slate-500 mt-2">Sistema de Pesquisa Inteligente</p>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1">

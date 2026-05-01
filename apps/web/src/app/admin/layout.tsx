@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     BarChart3,
@@ -63,10 +64,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="w-64 bg-slate-800 border-r border-slate-700 overflow-y-auto">
                 <div className="p-6">
                     <div className="flex items-center gap-2 mb-8">
-                        <Shield className="w-8 h-8 text-blue-500" />
-                        <h1 className="text-xl font-bold text-white">
-                            SPI Admin
-                        </h1>
+                        <Image
+                            src="/branding/idialog-logo.png"
+                            alt="Logo iDialog"
+                            width={140}
+                            height={42}
+                            className="h-10 w-auto"
+                        />
                     </div>
 
                     <nav className="space-y-2">
@@ -116,7 +120,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 {/* Top Bar */}
                 <div className="h-16 bg-slate-800 border-b border-slate-700 flex items-center px-8">
                     <h2 className="text-xl font-semibold text-white">
-                        Painel Administrativo do Sistema
+                        Painel Administrativo iDialog
                     </h2>
                     <div className="ml-auto flex items-center gap-4">
                         <div className="flex items-center gap-2 text-slate-300">

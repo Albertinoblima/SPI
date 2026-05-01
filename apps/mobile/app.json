@@ -1,12 +1,14 @@
 {
     "expo": {
-        "name": "SPI - Sistema de Pesquisa Inteligente",
+        "name": "iDialog SPI",
         "slug": "spi-sistema-pesquisa-inteligente",
         "version": "1.0.0",
         "orientation": "portrait",
         "scheme": "spi-idialog",
         "userInterfaceStyle": "automatic",
+        "icon": "./assets/branding/idialog-logo.png",
         "splash": {
+            "image": "./assets/branding/idialog-logo.png",
             "backgroundColor": "#1a365d"
         },
         "assetBundlePatterns": [
@@ -24,6 +26,7 @@
         },
         "android": {
             "adaptiveIcon": {
+                "foregroundImage": "./assets/branding/idialog-logo.png",
                 "backgroundColor": "#1a365d"
             },
             "package": "com.idialog.spi",

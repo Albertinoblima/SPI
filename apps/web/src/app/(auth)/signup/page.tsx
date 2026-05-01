@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function SignupPage() {
     const router = useRouter();
@@ -57,8 +58,18 @@ export default function SignupPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
             <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+                <div className="flex justify-center mb-4">
+                    <Image
+                        src="/branding/idialog-logo.png"
+                        alt="Logo iDialog"
+                        width={180}
+                        height={54}
+                        className="h-12 w-auto"
+                        priority
+                    />
+                </div>
                 <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">Criar Conta</h1>
-                <p className="text-center text-sm text-slate-500 mb-6">Cadastre sua empresa na plataforma</p>
+                <p className="text-center text-sm text-slate-500 mb-6">Cadastre sua empresa na plataforma iDialog</p>
 
                 {error && (
                     <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">

@@ -1,11 +1,22 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function HomePage() {
     return (
         <main className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white">
             <div className="container mx-auto px-4 py-20">
                 <div className="text-center">
-                    <h1 className="text-5xl font-bold mb-6">SPI - Sistema de Pesquisa Inteligente</h1>
+                    <div className="flex justify-center mb-6">
+                        <Image
+                            src="/branding/idialog-logo.png"
+                            alt="Logo iDialog"
+                            width={260}
+                            height={80}
+                            priority
+                            className="h-16 w-auto"
+                        />
+                    </div>
+                    <h1 className="text-5xl font-bold mb-6">iDialog SPI</h1>
                     <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
                         Plataforma completa para criação, gestão e análise de pesquisas
                         políticas com coleta de dados em campo e suporte offline.

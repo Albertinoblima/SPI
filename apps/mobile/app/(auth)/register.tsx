@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 
@@ -42,7 +42,13 @@ export default function RegisterScreen() {
 
     return (
         <View style={styles.container}>
+            <Image
+                source={require('../../assets/branding/idialog-logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+            />
             <Text style={styles.title}>Criar Conta</Text>
+            <Text style={styles.subtitle}>Plataforma iDialog</Text>
 
             <TextInput
                 style={styles.input}
@@ -105,7 +111,19 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#1a365d',
         textAlign: 'center',
-        marginBottom: 32,
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#64748b',
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    logo: {
+        width: 220,
+        height: 70,
+        alignSelf: 'center',
+        marginBottom: 12,
     },
     input: {
         backgroundColor: '#fff',

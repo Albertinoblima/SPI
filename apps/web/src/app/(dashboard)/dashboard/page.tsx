@@ -1,8 +1,8 @@
 export default function DashboardPage() {
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">Bem-vindo ao SPI</h1>
-            <p className="text-slate-500 mb-8">Sistema de Pesquisa Inteligente</p>
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">Bem-vindo ao iDialog SPI</h1>
+            <p className="text-slate-500 mb-8">Sistema de Pesquisa Inteligente da iDialog</p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <a
