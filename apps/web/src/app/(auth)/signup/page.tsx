@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function SignupPage() {
-    const isSupabaseConfigured =
-        Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-        Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    const router = useRouter();
+    const [companyName, setCompanyName] = useState('');
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,11 +19,6 @@ export default function SignupPage() {
         e.preventDefault();
         setError('');
         setSuccess('');
-
-        if (!isSupabaseConfigured) {
-            setError('Configuração do Supabase ausente. Defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY em apps/web/.env.local.');
-            return;
-        }
 
         if (password !== confirmPassword) {
             setError('As senhas não coincidem.');
@@ -38,28 +33,22 @@ export default function SignupPage() {
         setLoading(true);
 
         try {
-            const supabase = createClient();
-            const { error: signUpError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                    },
-                },
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ companyName, fullName, email, password }),
             });
 
-            if (signUpError) {
-                setError(signUpError.message);
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.error || 'Erro ao criar conta.');
             } else {
-                setSuccess('Conta criada com sucesso. Faça login para continuar.');
-                setFullName('');
-                setEmail('');
-                setPassword('');
-                setConfirmPassword('');
+                setSuccess('Empresa e conta criadas com sucesso! Redirecionando para login...');
+                setTimeout(() => router.push('/login'), 2000);
             }
         } catch {
-            setError('Falha de conexão com o Supabase. Verifique se o backend está ativo e as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão corretas.');
+            setError('Falha de conexão. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -68,7 +57,8 @@ export default function SignupPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
             <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-                <h1 className="text-2xl font-bold text-center text-slate-900 mb-6">Criar Conta</h1>
+                <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">Criar Conta</h1>
+                <p className="text-center text-sm text-slate-500 mb-6">Cadastre sua empresa na plataforma</p>
 
                 {error && (
                     <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">
@@ -82,19 +72,25 @@ export default function SignupPage() {
                     </div>
                 )}
 
-                {!isSupabaseConfigured && (
-                    <div className="bg-amber-50 text-amber-700 text-sm p-3 rounded-lg mb-4">
-                        Configure o arquivo apps/web/.env.local para habilitar autenticação.
-                    </div>
-                )}
-
                 <form className="space-y-4" onSubmit={handleSignup}>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome da Empresa</label>
+                        <input
+                            type="text"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ex: Minha Empresa Ltda"
+                            required
+                        />
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nome Completo</label>
                         <input
                             type="text"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
+                            autoComplete="name"
                             className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                             placeholder="Seu nome"
                             required
@@ -106,6 +102,7 @@ export default function SignupPage() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            autoComplete="email"
                             className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                             placeholder="seu@email.com"
                             required
@@ -117,6 +114,7 @@ export default function SignupPage() {
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            autoComplete="new-password"
                             className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                             placeholder="Mínimo 8 caracteres"
                             required
@@ -128,6 +126,7 @@ export default function SignupPage() {
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
+                            autoComplete="new-password"
                             className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                             placeholder="Repita a senha"
                             required
@@ -135,7 +134,7 @@ export default function SignupPage() {
                     </div>
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || Boolean(success)}
                         className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 rounded-lg font-medium transition"
                     >
                         {loading ? 'Criando...' : 'Criar Conta'}
@@ -143,9 +142,13 @@ export default function SignupPage() {
                 </form>
 
                 <p className="text-center text-sm text-slate-500 mt-4">
-                    Já tem conta? <a href="/login" className="text-blue-600 hover:underline">Entrar</a>
+                    Já tem conta?{' '}
+                    <Link href="/login" className="text-blue-600 hover:underline">
+                        Entrar
+                    </Link>
                 </p>
             </div>
         </div>
     );
 }
+
