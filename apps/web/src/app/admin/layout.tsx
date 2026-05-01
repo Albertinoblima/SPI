@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     BarChart3,
     AlertTriangle,
@@ -12,6 +12,7 @@ import {
     LogOut,
     LogIn,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -19,6 +20,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
     const pathname = usePathname();
+    const router = useRouter();
 
     const navItems = [
         {
@@ -95,7 +97,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                 {/* Footer */}
                 <div className="absolute bottom-0 w-64 border-t border-slate-700 p-4">
-                    <button className="w-full flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors">
+                    <button
+                        onClick={async () => {
+                            const supabase = createClient();
+                            await supabase.auth.signOut();
+                            router.push('/login');
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors"
+                    >
                         <LogOut className="w-4 h-4" />
                         <span>Sair</span>
                     </button>

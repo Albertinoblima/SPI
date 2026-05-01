@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
                     `,
                     { count: 'exact' }
                 )
-                .is('deleted_at', true)
+                .is('deleted_at', null)
                 .order('created_at', { ascending: false })
                 .range(offset, offset + pageSize - 1);
         }

@@ -22,9 +22,7 @@ export async function GET(request: NextRequest) {
             .select(
                 `
                 *,
-                users:user_id (full_name, email),
                 tenants:tenant_id (name, slug),
-                assigned_user:assigned_to (full_name, email),
                 messages:support_messages (count)
                 `,
                 { count: 'exact' }
@@ -47,8 +45,33 @@ export async function GET(request: NextRequest) {
             return apiError('Erro ao buscar tickets', 500);
         }
 
+        // Enriquecer com dados de usuário da tabela public.users
+        const enrichedTickets = await Promise.all(
+            (tickets ?? []).map(async (ticket) => {
+                const [{ data: user }, { data: assignedUser }] = await Promise.all([
+                    auth.supabase
+                        .from('users')
+                        .select('full_name, email')
+                        .eq('id', ticket.user_id)
+                        .single(),
+                    ticket.assigned_to
+                        ? auth.supabase
+                            .from('users')
+                            .select('full_name, email')
+                            .eq('id', ticket.assigned_to)
+                            .single()
+                        : Promise.resolve({ data: null }),
+                ]);
+                return {
+                    ...ticket,
+                    user,
+                    assigned_user: assignedUser,
+                };
+            })
+        );
+
         return apiSuccess({
-            tickets,
+            tickets: enrichedTickets,
             pagination: {
                 page,
                 pageSize,
