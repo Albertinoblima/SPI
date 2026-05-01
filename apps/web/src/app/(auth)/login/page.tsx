@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getPostLoginRedirectUrlClient } from '@/lib/post-login-redirect';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -39,7 +40,9 @@ export default function LoginPage() {
                     setError(authError.message);
                 }
             } else {
-                router.push('/surveys');
+                // Determinar para onde redirecionar baseado no role do usuário
+                const redirectUrl = await getPostLoginRedirectUrlClient(supabase);
+                router.push(redirectUrl);
             }
         } catch {
             setError('Falha de conexão com o Supabase. Verifique se o backend está ativo e as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão corretas.');
