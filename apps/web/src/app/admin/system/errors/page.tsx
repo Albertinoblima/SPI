@@ -156,6 +156,8 @@ export default function ErrorsPage() {
                 </div>
 
                 <select
+                    title="Filtrar erros por severidade"
+                    aria-label="Filtrar erros por severidade"
                     value={severityFilter}
                     onChange={(e) => {
                         setSeverityFilter(e.target.value);
@@ -171,6 +173,8 @@ export default function ErrorsPage() {
                 </select>
 
                 <select
+                    title="Filtrar erros por resolução"
+                    aria-label="Filtrar erros por resolução"
                     value={resolvedFilter}
                     onChange={(e) => {
                         setResolvedFilter(e.target.value);

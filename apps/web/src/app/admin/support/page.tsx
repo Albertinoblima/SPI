@@ -167,6 +167,8 @@ export default function SupportPage() {
                 </div>
 
                 <select
+                    title="Filtrar tickets por status"
+                    aria-label="Filtrar tickets por status"
                     value={statusFilter}
                     onChange={(e) => {
                         setStatusFilter(e.target.value);

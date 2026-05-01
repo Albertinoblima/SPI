@@ -195,6 +195,8 @@ export default function TenantDetailsPage() {
                             Status da Empresa
                         </label>
                         <select
+                            title="Selecionar status da empresa"
+                            aria-label="Selecionar status da empresa"
                             value={newStatus || ''}
                             onChange={(e) => setNewStatus(e.target.value)}
                             disabled={updating}

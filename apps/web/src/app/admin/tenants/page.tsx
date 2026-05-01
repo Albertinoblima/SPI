@@ -121,6 +121,8 @@ export default function TenantsPage() {
                 </div>
 
                 <select
+                    title="Filtrar empresas por status"
+                    aria-label="Filtrar empresas por status"
                     value={statusFilter}
                     onChange={(e) => {
                         setStatusFilter(e.target.value);

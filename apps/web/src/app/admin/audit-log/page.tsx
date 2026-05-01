@@ -133,6 +133,8 @@ export default function AuditLogPage() {
                 </div>
 
                 <select
+                    title="Filtrar logs por ação"
+                    aria-label="Filtrar logs por ação"
                     value={actionFilter}
                     onChange={(e) => {
                         setActionFilter(e.target.value);
