@@ -1,4 +1,4 @@
-# Relatório de Resultados — SPI - Sistema de Pesquisa Inteligente
+# Relatório de Resultados — iDialog SPI - Sistema de Pesquisa Inteligente
 
 ---
 
@@ -105,4 +105,4 @@ A pesquisa revela liderança do Candidato A, com destaque para saúde e educaç�
 
 ---
 
-*Relatório gerado automaticamente pelo SPI - Sistema de Pesquisa Inteligente.*
+*Relatório gerado automaticamente pelo iDialog SPI - Sistema de Pesquisa Inteligente.*

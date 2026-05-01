@@ -1,4 +1,4 @@
-# SPI - Sistema de Pesquisa Inteligente
+# iDialog SPI - Sistema de Pesquisa Inteligente
 
 Plataforma inteligente de pesquisa com suporte offline-first para coleta de dados em campo.
 

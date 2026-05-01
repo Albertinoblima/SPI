@@ -1,4 +1,4 @@
-# Dashboard Analítico — SPI - Sistema de Pesquisa Inteligente
+# Dashboard Analítico — iDialog SPI - Sistema de Pesquisa Inteligente
 
 ---
 
@@ -6,7 +6,7 @@
 
 ## Visão Geral
 
-O dashboard do SPI - Sistema de Pesquisa Inteligente é um painel interativo e dinâmico, projetado para fornecer uma visão completa e em tempo real dos dados coletados nas pesquisas. Ele permite que administradores, supervisores e analistas acompanhem, filtrem e explorem os resultados de forma visual, intuitiva e detalhada.
+O dashboard do iDialog SPI - Sistema de Pesquisa Inteligente é um painel interativo e dinâmico, projetado para fornecer uma visão completa e em tempo real dos dados coletados nas pesquisas. Ele permite que administradores, supervisores e analistas acompanhem, filtrem e explorem os resultados de forma visual, intuitiva e detalhada.
 
 ---
 

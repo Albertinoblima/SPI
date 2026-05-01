@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O SPI - Sistema de Pesquisa Inteligente é composto por:
+O iDialog SPI - Sistema de Pesquisa Inteligente é composto por:
 
 1. **App Mobile (React Native/Expo)**: Coleta de dados em campo com suporte offline
 2. **Dashboard Web (Next.js)**: Gestão de pesquisas e análise de dados

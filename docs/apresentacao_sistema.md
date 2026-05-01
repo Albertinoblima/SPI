@@ -1,8 +1,8 @@
-# SPI - Sistema de Pesquisa Inteligente — Apresentação do Sistema
+# iDialog SPI - Sistema de Pesquisa Inteligente — Apresentação do Sistema
 
 ## Visão Geral
 
-O SPI - Sistema de Pesquisa Inteligente é uma solução robusta, multi-tenant, desenvolvida para facilitar a coleta, análise e gestão de dados de pesquisas em campo e online. O sistema integra aplicativos mobile (React Native/Expo), web (Next.js), backend Supabase, e recursos avançados de sincronização, analytics e segurança.
+O iDialog SPI - Sistema de Pesquisa Inteligente é uma solução robusta, multi-tenant, desenvolvida para facilitar a coleta, análise e gestão de dados de pesquisas em campo e online. O sistema integra aplicativos mobile (React Native/Expo), web (Next.js), backend Supabase, e recursos avançados de sincronização, analytics e segurança.
 
 ---
 

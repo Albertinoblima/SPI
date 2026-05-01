@@ -11,7 +11,7 @@ export default function HomeScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>SPI - Sistema de Pesquisa Inteligente</Text>
+                <Text style={styles.title}>iDialog SPI - Sistema de Pesquisa Inteligente</Text>
                 <View style={[styles.statusBadge, isConnected ? styles.online : styles.offline]}>
                     <Text style={styles.statusText}>
                         {isConnected ? '● Online' : '● Offline'}

@@ -1,4 +1,4 @@
-# Deployment de Produção - SPI
+# Deployment de Produção - iDialog SPI
 
 ## Status Atual
 
@@ -12,7 +12,7 @@
 
 ## Objetivo
 
-Publicar o **SPI - Sistema de Pesquisa Inteligente** com atualização contínua via GitHub.
+Publicar o **iDialog SPI - Sistema de Pesquisa Inteligente** com atualização contínua via GitHub.
 
 - Frontend: `spi.idialog.com.br` (Vercel)
 - Backend: `api.spi.idialog.com.br` (proxy para Supabase Cloud)
@@ -150,4 +150,4 @@ git commit -m "feat: descricao objetiva"
 git push
 ```
 
-Com isso, o Vercel atualiza automaticamente o frontend do SPI.
+Com isso, o Vercel atualiza automaticamente o frontend do iDialog SPI.

@@ -1,6 +1,6 @@
 // App Constants
 
-export const APP_NAME = 'SPI - Sistema de Pesquisa Inteligente';
+export const APP_NAME = 'iDialog SPI - Sistema de Pesquisa Inteligente';
 
 export const SYNC = {
     MAX_RETRIES: 5,
