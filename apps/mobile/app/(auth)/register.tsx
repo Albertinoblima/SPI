@@ -32,8 +32,9 @@ export default function RegisterScreen() {
             await signUp(email, password, fullName);
             Alert.alert('Sucesso', 'Conta criada! Faça login para continuar.');
             router.replace('/(auth)/login');
-        } catch (error) {
-            Alert.alert('Erro', 'Não foi possível criar a conta');
+        } catch (error: any) {
+            const message = error?.message ?? 'Não foi possível criar a conta';
+            Alert.alert('Erro', message);
         } finally {
             setLoading(false);
         }

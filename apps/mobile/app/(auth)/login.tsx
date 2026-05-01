@@ -19,8 +19,9 @@ export default function LoginScreen() {
         try {
             await signIn(email, password);
             router.replace('/(tabs)/home');
-        } catch (error) {
-            Alert.alert('Erro', 'Credenciais inválidas');
+        } catch (error: any) {
+            const message = error?.message ?? 'Não foi possível fazer login';
+            Alert.alert('Erro', message);
         } finally {
             setLoading(false);
         }

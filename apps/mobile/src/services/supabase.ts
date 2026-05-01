@@ -5,6 +5,18 @@ import * as SecureStore from 'expo-secure-store';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error(
+        'Supabase não configurado no mobile. Defina EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY em apps/mobile/.env.'
+    );
+}
+
+if (SUPABASE_ANON_KEY === 'your-anon-key') {
+    throw new Error(
+        'EXPO_PUBLIC_SUPABASE_ANON_KEY ainda está com valor padrão (your-anon-key). Atualize apps/mobile/.env com a chave anônima real do Supabase.'
+    );
+}
+
 const ExpoSecureStoreAdapter = {
     getItem: (key: string) => SecureStore.getItemAsync(key),
     setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
