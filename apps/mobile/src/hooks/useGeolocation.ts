@@ -257,7 +257,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
         if (!hasPermission) return;
 
         // Define a task antes de iniciar
-        TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
+        TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
             if (error) {
                 console.error('Background location error:', error);
                 return;

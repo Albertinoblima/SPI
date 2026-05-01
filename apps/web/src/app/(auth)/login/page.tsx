@@ -33,7 +33,11 @@ export default function LoginPage() {
             });
 
             if (authError) {
-                setError(authError.message);
+                if (authError.message === 'Invalid login credentials') {
+                    setError('Email ou senha incorretos. Se ainda não tiver conta, faça o cadastro.');
+                } else {
+                    setError(authError.message);
+                }
             } else {
                 router.push('/surveys');
             }

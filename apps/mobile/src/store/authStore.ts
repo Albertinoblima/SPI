@@ -1,6 +1,6 @@
 // Auth Store (Zustand)
 import { create } from 'zustand';
-import { supabase } from '@/services/supabase';
+import { supabase, getSupabaseConfigError } from '@/services/supabase';
 import type { User } from '@political-research/shared-types';
 
 interface AuthState {
@@ -19,6 +19,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     loading: true,
 
     signIn: async (email, password) => {
+        const configError = getSupabaseConfigError();
+        if (configError) throw new Error(configError);
+
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -28,6 +31,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     signUp: async (email, password, fullName) => {
+        const configError = getSupabaseConfigError();
+        if (configError) throw new Error(configError);
+
         const { error } = await supabase.auth.signUp({
             email,
             password,
@@ -42,6 +48,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     checkSession: async () => {
+        const configError = getSupabaseConfigError();
+        if (configError) {
+            set({ loading: false });
+            return;
+        }
+
         const { data } = await supabase.auth.getSession();
         set({
             session: data.session,
