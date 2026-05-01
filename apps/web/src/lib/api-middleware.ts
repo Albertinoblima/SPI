@@ -32,7 +32,7 @@ export async function requireSystemAdmin(request: NextRequest) {
 
     if (!user || authError) {
         return {
-            isAuthorized: false,
+            isAuthorized: false as const,
             error: 'Não autenticado',
             status: 401,
         };
@@ -47,14 +47,14 @@ export async function requireSystemAdmin(request: NextRequest) {
 
     if (userError || !userData?.is_system_admin) {
         return {
-            isAuthorized: false,
+            isAuthorized: false as const,
             error: 'Acesso negado. Requer privilégios de administrador do sistema.',
             status: 403,
         };
     }
 
     return {
-        isAuthorized: true,
+        isAuthorized: true as const,
         user,
         supabase,
     };
@@ -88,7 +88,7 @@ export async function requireTenantAdmin(request: NextRequest) {
 
     if (!user || authError) {
         return {
-            isAuthorized: false,
+            isAuthorized: false as const,
             error: 'Não autenticado',
             status: 401,
         };
@@ -103,7 +103,7 @@ export async function requireTenantAdmin(request: NextRequest) {
 
     if (userError || !userData) {
         return {
-            isAuthorized: false,
+            isAuthorized: false as const,
             error: 'Erro ao verificar permissões',
             status: 403,
         };
@@ -111,14 +111,14 @@ export async function requireTenantAdmin(request: NextRequest) {
 
     if (!['admin', 'manager', 'system_admin'].includes(userData.role) && !userData.is_system_admin) {
         return {
-            isAuthorized: false,
+            isAuthorized: false as const,
             error: 'Acesso negado. Requer privilégios de administrador.',
             status: 403,
         };
     }
 
     return {
-        isAuthorized: true,
+        isAuthorized: true as const,
         user,
         userData,
         supabase,

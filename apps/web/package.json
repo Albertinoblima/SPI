@@ -11,9 +11,6 @@
         "clean": "rm -rf .next"
     },
     "dependencies": {
-        "@political-research/shared-types": "*",
-        "@political-research/shared-utils": "*",
-        "@political-research/shared-validations": "*",
         "@supabase/ssr": "^0.3.0",
         "@supabase/supabase-js": "^2.43.0",
         "leaflet": "^1.9.0",

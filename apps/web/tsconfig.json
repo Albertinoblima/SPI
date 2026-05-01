@@ -21,6 +21,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@political-research/shared-types": [
+        "../../packages/shared-types/src/index.ts"
       ]
     },
     "isolatedModules": true

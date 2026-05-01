@@ -10,7 +10,7 @@ export async function GET(
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error, auth.status);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
     }
 
     try {
@@ -77,7 +77,7 @@ export async function PUT(
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error, auth.status);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
     }
 
     try {

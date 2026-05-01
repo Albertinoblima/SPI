@@ -12,7 +12,7 @@ export async function GET(
     const auth = await requireTenantAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error, auth.status);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
     }
 
     try {
@@ -70,7 +70,7 @@ export async function PUT(
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error, auth.status);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
     }
 
     try {
@@ -125,7 +125,7 @@ export async function POST(
     const auth = await requireTenantAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error, auth.status);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
     }
 
     try {
@@ -140,7 +140,7 @@ export async function POST(
         // Verificar acesso ao ticket
         const { data: ticket } = await auth.supabase
             .from('support_tickets')
-            .select('tenant_id')
+            .select('tenant_id, response_count')
             .eq('id', ticketId)
             .single();
 

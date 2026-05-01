@@ -1,6 +1,6 @@
 // Utilitária server-side para determinar redirecionamento pós-login
 // ATENÇÃO: Só pode ser importada em Server Components ou Route Handlers
-import { createClient as createServerClient } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 /**
