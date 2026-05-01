@@ -8,7 +8,6 @@ import {
     BarChart3,
     FileText,
     Users,
-    MapPin,
     Settings,
     LogOut,
 } from 'lucide-react';
@@ -25,7 +24,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const navItems = [
         { label: 'Início', href: '/dashboard', icon: BarChart3 },
         { label: 'Pesquisas', href: '/surveys', icon: FileText },
-        { label: 'Respostas', href: '/responses', icon: MapPin },
         { label: 'Equipe', href: '/team', icon: Users },
         { label: 'Configurações', href: '/settings', icon: Settings },
     ];
