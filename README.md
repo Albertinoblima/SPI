@@ -21,6 +21,7 @@ Plataforma inteligente de pesquisa com suporte offline-first para coleta de dado
 ## Documentação
 
 - Guia de identidade de marca: `docs/guia_identidade_marca.md`
+- Gerar PDFs dos documentos: `pwsh ./scripts/generate-docs-pdf.ps1`
 
 ## Pré-requisitos
 
