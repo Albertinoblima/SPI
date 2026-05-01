@@ -1,79 +1,93 @@
 # Deployment de Produção - SPI
 
+## Status Atual
+
+| Recurso | Status | URL |
+|---|---|---|
+| GitHub | ✅ Concluído | <https://github.com/Albertinoblima/SPI> |
+| Vercel Deploy | ✅ Concluído | <https://spi-sistema-pesquisa-inteligente.vercel.app> |
+| Supabase | ⏳ Pendente credenciais | — |
+| Domínio customizado | ⏳ Pendente DNS | spi.idialog.com.br |
+| GitHub → Vercel auto-deploy | ⏳ Pendente secrets | Ver Passo 3 |
+
 ## Objetivo
 
 Publicar o **SPI - Sistema de Pesquisa Inteligente** com atualização contínua via GitHub.
 
 - Frontend: `spi.idialog.com.br` (Vercel)
 - Backend: `api.spi.idialog.com.br` (proxy para Supabase Cloud)
-- Repositório: GitHub (`Albertinoblima`)
+- Repositório: <https://github.com/Albertinoblima/SPI>
 
-## Pré-requisitos
+## Passo 1 - Repositório GitHub ✅ (Concluído)
 
-```bash
-npm install -g vercel
+Repositório criado e código enviado:
+
+```
+https://github.com/Albertinoblima/SPI
+branch: main (2 commits)
 ```
 
-Opcional para automação de banco/funções:
+Fluxo de atualização:
 
 ```bash
-npm install -g supabase
-```
-
-## Passo 1 - Repositório GitHub (base para atualizações)
-
-1. Crie um repositório no GitHub, por exemplo: `spi-sistema-pesquisa-inteligente`.
-2. Na raiz do projeto local, execute:
-
-```bash
-git init
 git add .
-git commit -m "chore: inicializa SPI"
-git branch -M main
-git remote add origin https://github.com/Albertinoblima/spi-sistema-pesquisa-inteligente.git
-git push -u origin main
+git commit -m "feat: descricao"
+git push
+# → Vercel faz deploy automático após configurar secrets (Passo 3)
 ```
 
-1. Fluxo de atualização recomendado:
-   - branch de feature
-   - pull request
-   - merge em `main`
-   - deploy automático no Vercel
+## Passo 2 - Supabase Cloud ⏳ (Pendente)
 
-## Passo 2 - Supabase Cloud (backend)
-
-1. Crie o projeto no Supabase.
-2. Guarde os valores:
-   - `Project URL`
-   - `anon key`
-   - `service_role key`
-   - `project ref`
+1. Acesse <https://app.supabase.com> e crie um projeto (ou use existente).
+2. Guarde em Settings → API:
+   - **Project URL**: `https://SEU_REF.supabase.co`
+   - **anon public key**: `eyJ...`
+   - **service_role key**: `eyJ...`
+   - **Project Ref**: string de ~20 chars (ex: `abcdefghijklmnop`)
 
 3. Publique banco e funções:
 
 ```bash
-supabase login
-supabase link --project-ref <project-ref>
-supabase db push
-supabase functions deploy sync-responses --no-verify-jwt
+cd c:\DEV\Sistema_Pesquisa\political-research-platform
+npx supabase login
+npx supabase link --project-ref SEU_PROJECT_REF
+npx supabase db push
+npx supabase functions deploy sync-responses --no-verify-jwt
 ```
 
 1. Crie bucket de mídia:
-   - Storage > Create bucket > `response-media`
+   - Storage → Create bucket → nome: `response-media` → Public: **false**
 
-## Passo 3 - Frontend no Vercel
+## Passo 3 - Frontend no Vercel ✅ Deploy manual feito / ⏳ Auto-deploy pendente
 
-Conta Vercel: `vercel.com/albertinoblima`
+Deploy manual já realizado em:
 
-1. Import Project no Vercel usando o repositório GitHub.
-2. Configure:
-   - Framework: Next.js
-   - Root Directory: `apps/web`
-3. Configure variáveis de ambiente:
-   - `NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>`
-   - `SUPABASE_SERVICE_ROLE_KEY=<service-role-key>` (apenas se necessário em server-side)
-4. Faça deploy da branch `main`.
+- <https://spi-sistema-pesquisa-inteligente.vercel.app>
+- Vercel Project: `albertinoblimas-projects/spi-sistema-pesquisa-inteligente`
+
+**Para ativar auto-deploy via GitHub** (após obter credenciais Supabase):
+
+1. Acesse <https://vercel.com/albertinoblimas-projects/spi-sistema-pesquisa-inteligente/settings/environment-variables>  
+   Adicione:
+
+   ```
+   NEXT_PUBLIC_SUPABASE_URL   = https://SEU_REF.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY = eyJ...anon_key
+   SUPABASE_SERVICE_ROLE_KEY  = eyJ...service_role_key
+   ```
+
+2. Configure GitHub Secrets em <https://github.com/Albertinoblima/SPI/settings/secrets/actions>  
+   Adicione os 3 secrets abaixo (necessários para o workflow `.github/workflows/deploy-web.yml`):
+
+   ```
+   VERCEL_TOKEN      = (gere em: https://vercel.com/account/tokens)
+   VERCEL_ORG_ID     = team_jdz2mDGh4C3wyQL9Je7lenU8
+   VERCEL_PROJECT_ID = prj_9MRLSkIfwKOIgDvMWHvAKwyQSSZA
+   ```
+
+3. Conecte o repositório GitHub ao projeto Vercel:
+   - Em Vercel > Project Settings > Git, clique em **Connect Git Repository**
+   - Selecione `Albertinoblima/SPI`
 
 ## Passo 4 - Subdomínio web (`spi.idialog.com.br`)
 
