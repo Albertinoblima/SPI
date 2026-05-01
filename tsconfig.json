@@ -13,6 +13,9 @@
         "sourceMap": true
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "apps/mobile",
+        "apps/web",
+        "supabase/functions"
     ]
 }
