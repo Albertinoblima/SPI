@@ -18,9 +18,20 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_system_admin BOOLEAN DEFAUL
 CREATE INDEX IF NOT EXISTS idx_users_system_admin ON public.users(is_system_admin) WHERE is_system_admin = true;
 
 -- Constraint para garantir que system_admin não tem tenant específico ou tem tenant especial
-ALTER TABLE public.users ADD CONSTRAINT check_system_admin_tenant CHECK (
-    NOT is_system_admin OR tenant_id IS NOT NULL -- Mesmo system_admin tem tenant (pode ser 'system')
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'check_system_admin_tenant'
+          AND conrelid = 'public.users'::regclass
+    ) THEN
+        ALTER TABLE public.users ADD CONSTRAINT check_system_admin_tenant CHECK (
+            NOT is_system_admin OR tenant_id IS NOT NULL
+        );
+    END IF;
+END
+$$;
 
 -- ============================================================================
 -- PARTE 2: CRIAR TABELA SYSTEM_ANALYTICS
