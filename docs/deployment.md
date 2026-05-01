@@ -18,6 +18,17 @@ Publicar o **iDialog SPI - Sistema de Pesquisa Inteligente** com atualização c
 - Backend: `api.spi.idialog.com.br` (proxy para Supabase Cloud)
 - Repositório: <https://github.com/Albertinoblima/SPI>
 
+## Convenção de Domínios da Marca
+
+Para manter consistência de branding sem quebrar infraestrutura já ativa, adote a convenção abaixo:
+
+- **Domínio institucional da empresa:** `idialog.com.br`
+- **Domínio oficial do produto iDialog SPI (web):** `spi.idialog.com.br`
+- **Domínio de API do produto (opcional via proxy):** `api.spi.idialog.com.br`
+- **Domínio técnico temporário de deploy:** `spi-sistema-pesquisa-inteligente.vercel.app`
+
+Regra de documentação: usar o nome do produto **iDialog SPI** e, quando citar acesso web de produção, priorizar `https://spi.idialog.com.br`.
+
 ## Passo 1 - Repositório GitHub ✅ (Concluído)
 
 Repositório criado e código enviado:
