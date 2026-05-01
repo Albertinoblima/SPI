@@ -18,6 +18,10 @@ Plataforma inteligente de pesquisa com suporte offline-first para coleta de dado
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
 - **Monorepo**: Turborepo
 
+## Documentação
+
+- Guia de identidade de marca: `docs/guia_identidade_marca.md`
+
 ## Pré-requisitos
 
 - Node.js >= 18
