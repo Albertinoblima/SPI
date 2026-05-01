@@ -8,7 +8,7 @@
 -- ============================================================================
 
 -- Função: Obter tenant_id do usuário autenticado
-CREATE OR REPLACE FUNCTION auth.get_user_tenant_id()
+CREATE OR REPLACE FUNCTION public.get_user_tenant_id()
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -27,7 +27,7 @@ END;
 $$;
 
 -- Função: Verificar se usuário é admin
-CREATE OR REPLACE FUNCTION auth.is_admin()
+CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -45,7 +45,7 @@ END;
 $$;
 
 -- Função: Verificar se usuário é manager ou admin
-CREATE OR REPLACE FUNCTION auth.is_manager_or_admin()
+CREATE OR REPLACE FUNCTION public.is_manager_or_admin()
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -63,14 +63,14 @@ END;
 $$;
 
 -- Função: Verificar se usuário pertence ao tenant
-CREATE OR REPLACE FUNCTION auth.belongs_to_tenant(tenant_uuid UUID)
+CREATE OR REPLACE FUNCTION public.belongs_to_tenant(tenant_uuid UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
 AS $$
 BEGIN
-  RETURN auth.get_user_tenant_id() = tenant_uuid;
+  RETURN public.get_user_tenant_id() = tenant_uuid;
 END;
 $$;
 
@@ -100,7 +100,7 @@ DROP POLICY IF EXISTS "tenants_delete_policy" ON public.tenants;
 CREATE POLICY "tenants_select_policy" ON public.tenants
 FOR SELECT
 USING (
-  id = auth.get_user_tenant_id()
+  id = public.get_user_tenant_id()
 );
 
 -- POLICY: INSERT - Apenas via signup (service_role)
@@ -113,12 +113,12 @@ WITH CHECK (false); -- Apenas service_role pode inserir
 CREATE POLICY "tenants_update_policy" ON public.tenants
 FOR UPDATE
 USING (
-  id = auth.get_user_tenant_id() 
-  AND auth.is_admin()
+  id = public.get_user_tenant_id() 
+  AND public.is_admin()
 )
 WITH CHECK (
-  id = auth.get_user_tenant_id() 
-  AND auth.is_admin()
+  id = public.get_user_tenant_id() 
+  AND public.is_admin()
 );
 
 -- POLICY: DELETE - Soft delete apenas (via updated_at)
@@ -139,37 +139,37 @@ DROP POLICY IF EXISTS "users_delete_policy" ON public.users;
 CREATE POLICY "users_select_policy" ON public.users
 FOR SELECT
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: INSERT - Apenas admins/managers podem criar novos users
 CREATE POLICY "users_insert_policy" ON public.users
 FOR INSERT
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_manager_or_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_manager_or_admin()
 );
 
 -- POLICY: UPDATE - Usuários podem atualizar próprio perfil, admins podem atualizar todos
 CREATE POLICY "users_update_policy" ON public.users
 FOR UPDATE
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND (
     id = auth.uid() -- Próprio usuário
-    OR auth.is_admin() -- Ou é admin
+    OR public.is_admin() -- Ou é admin
   )
 )
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: DELETE - Apenas admins podem desativar users (soft delete)
 CREATE POLICY "users_delete_policy" ON public.users
 FOR DELETE
 USING (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_admin()
   AND id != auth.uid() -- Não pode deletar a si mesmo
 );
 
@@ -186,7 +186,7 @@ DROP POLICY IF EXISTS "surveys_delete_policy" ON public.surveys;
 CREATE POLICY "surveys_select_policy" ON public.surveys
 FOR SELECT
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND deleted_at IS NULL
 );
 
@@ -194,8 +194,8 @@ USING (
 CREATE POLICY "surveys_insert_policy" ON public.surveys
 FOR INSERT
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_manager_or_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_manager_or_admin()
   AND created_by = auth.uid()
 );
 
@@ -203,22 +203,22 @@ WITH CHECK (
 CREATE POLICY "surveys_update_policy" ON public.surveys
 FOR UPDATE
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND (
     created_by = auth.uid()
-    OR auth.is_admin()
+    OR public.is_admin()
   )
 )
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: DELETE - Apenas admin pode deletar (soft)
 CREATE POLICY "surveys_delete_policy" ON public.surveys
 FOR DELETE
 USING (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_admin()
 );
 
 -- ============================================================================
@@ -234,19 +234,19 @@ DROP POLICY IF EXISTS "questions_delete_policy" ON public.questions;
 CREATE POLICY "questions_select_policy" ON public.questions
 FOR SELECT
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: INSERT - Apenas managers/admins criam questions
 CREATE POLICY "questions_insert_policy" ON public.questions
 FOR INSERT
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_manager_or_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_manager_or_admin()
   AND EXISTS (
     SELECT 1 FROM public.surveys
     WHERE id = survey_id
-    AND tenant_id = auth.get_user_tenant_id()
+    AND tenant_id = public.get_user_tenant_id()
   )
 );
 
@@ -254,14 +254,14 @@ WITH CHECK (
 CREATE POLICY "questions_update_policy" ON public.questions
 FOR UPDATE
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND (
     EXISTS (
       SELECT 1 FROM public.surveys
       WHERE id = survey_id
       AND created_by = auth.uid()
     )
-    OR auth.is_admin()
+    OR public.is_admin()
   )
 );
 
@@ -269,8 +269,8 @@ USING (
 CREATE POLICY "questions_delete_policy" ON public.questions
 FOR DELETE
 USING (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_admin()
 );
 
 -- ============================================================================
@@ -286,7 +286,7 @@ DROP POLICY IF EXISTS "responses_delete_policy" ON public.responses;
 CREATE POLICY "responses_select_policy" ON public.responses
 FOR SELECT
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND deleted_at IS NULL
 );
 
@@ -295,12 +295,12 @@ USING (
 CREATE POLICY "responses_insert_policy" ON public.responses
 FOR INSERT
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND interviewer_id = auth.uid()
   AND EXISTS (
     SELECT 1 FROM public.surveys
     WHERE id = survey_id
-    AND tenant_id = auth.get_user_tenant_id()
+    AND tenant_id = public.get_user_tenant_id()
     AND status = 'active'
   )
 );
@@ -309,22 +309,22 @@ WITH CHECK (
 CREATE POLICY "responses_update_policy" ON public.responses
 FOR UPDATE
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND (
     interviewer_id = auth.uid() -- Próprio entrevistador
-    OR auth.is_manager_or_admin() -- Ou manager/admin
+    OR public.is_manager_or_admin() -- Ou manager/admin
   )
 )
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: DELETE - Apenas admin pode deletar
 CREATE POLICY "responses_delete_policy" ON public.responses
 FOR DELETE
 USING (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_admin()
 );
 
 -- ============================================================================
@@ -340,18 +340,18 @@ DROP POLICY IF EXISTS "answers_delete_policy" ON public.response_answers;
 CREATE POLICY "answers_select_policy" ON public.response_answers
 FOR SELECT
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: INSERT - Entrevistador que criou a response
 CREATE POLICY "answers_insert_policy" ON public.response_answers
 FOR INSERT
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND EXISTS (
     SELECT 1 FROM public.responses
     WHERE id = response_id
-    AND tenant_id = auth.get_user_tenant_id()
+    AND tenant_id = public.get_user_tenant_id()
     AND interviewer_id = auth.uid()
   )
 );
@@ -360,14 +360,14 @@ WITH CHECK (
 CREATE POLICY "answers_update_policy" ON public.response_answers
 FOR UPDATE
 USING (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND (
     EXISTS (
       SELECT 1 FROM public.responses
       WHERE id = response_id
       AND interviewer_id = auth.uid()
     )
-    OR auth.is_manager_or_admin()
+    OR public.is_manager_or_admin()
   )
 );
 
@@ -375,8 +375,8 @@ USING (
 CREATE POLICY "answers_delete_policy" ON public.response_answers
 FOR DELETE
 USING (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_admin()
 );
 
 -- ============================================================================
@@ -390,15 +390,15 @@ DROP POLICY IF EXISTS "sync_log_insert_policy" ON public.sync_log;
 CREATE POLICY "sync_log_select_policy" ON public.sync_log
 FOR SELECT
 USING (
-  tenant_id = auth.get_user_tenant_id()
-  AND auth.is_manager_or_admin()
+  tenant_id = public.get_user_tenant_id()
+  AND public.is_manager_or_admin()
 );
 
 -- POLICY: INSERT - Qualquer usuário autenticado pode logar sync
 CREATE POLICY "sync_log_insert_policy" ON public.sync_log
 FOR INSERT
 WITH CHECK (
-  tenant_id = auth.get_user_tenant_id()
+  tenant_id = public.get_user_tenant_id()
   AND (user_id = auth.uid() OR user_id IS NULL)
 );
 
@@ -406,7 +406,7 @@ WITH CHECK (
 -- PARTE 10: INDICES PARA PERFORMANCE DE RLS
 -- ============================================================================
 
--- Índice para auth.get_user_tenant_id()
+-- Índice para public.get_user_tenant_id()
 CREATE INDEX IF NOT EXISTS idx_users_auth_uid 
 ON public.users(id) 
 WHERE id IS NOT NULL;
@@ -538,3 +538,5 @@ SELECT * FROM responses WHERE tenant_id = '<tenant-b-id>'; -- Retorna vazio
 -- Tentativa de insert em outro tenant (deve falhar)
 INSERT INTO responses (tenant_id, ...) VALUES ('<tenant-b-id>', ...); -- Erro
 */
+
+
