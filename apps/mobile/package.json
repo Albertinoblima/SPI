@@ -1,0 +1,52 @@
+{
+    "name": "mobile",
+    "version": "0.1.0",
+    "private": true,
+    "main": "expo-router/entry",
+    "scripts": {
+        "dev": "expo start",
+        "android": "expo start --android",
+        "ios": "expo start --ios",
+        "build": "expo export",
+        "lint": "eslint .",
+        "typecheck": "tsc --noEmit",
+        "clean": "rm -rf .expo dist"
+    },
+    "dependencies": {
+        "@political-research/shared-types": "*",
+        "@political-research/shared-utils": "*",
+        "@political-research/shared-validations": "*",
+        "@react-native-community/netinfo": "^12.0.1",
+        "@supabase/auth-helpers-nextjs": "^0.15.0",
+        "@supabase/ssr": "^0.3.0",
+        "@supabase/supabase-js": "^2.43.0",
+        "drizzle-orm": "^0.30.0",
+        "expo": "~51.0.0",
+        "expo-background-fetch": "^55.0.10",
+        "expo-camera": "~15.0.0",
+        "expo-file-system": "~17.0.0",
+        "expo-image-manipulator": "~12.0.0",
+        "expo-image-picker": "^55.0.13",
+        "expo-location": "~17.0.0",
+        "expo-router": "~3.5.0",
+        "expo-secure-store": "~13.0.0",
+        "expo-sqlite": "~14.0.0",
+        "expo-status-bar": "~1.12.0",
+        "expo-task-manager": "^55.0.10",
+        "lucide-react": "^0.577.0",
+        "next": "^16.1.7",
+        "react": "^18.2.0",
+        "react-beautiful-dnd": "^13.1.1",
+        "react-native": "^0.74.0",
+        "react-native-safe-area-context": "4.10.0",
+        "react-native-screens": "~3.31.0",
+        "zod": "^3.23.0",
+        "zustand": "^4.5.0"
+    },
+    "devDependencies": {
+        "@types/react": "~18.2.0",
+        "@types/react-beautiful-dnd": "^13.1.8",
+        "@types/react-native": "^0.72.8",
+        "typescript": "^5.4.0"
+    }
+}

@@ -1,0 +1,45 @@
+{
+    "expo": {
+        "name": "SPI - Sistema de Pesquisa Inteligente",
+        "slug": "spi-sistema-pesquisa-inteligente",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "scheme": "spi-idialog",
+        "userInterfaceStyle": "automatic",
+        "splash": {
+            "backgroundColor": "#1a365d"
+        },
+        "assetBundlePatterns": [
+            "**/*"
+        ],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.idialog.spi",
+            "infoPlist": {
+                "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para registrar onde a pesquisa foi realizada.",
+                "NSLocationAlwaysAndWhenInUseUsageDescription": "Precisamos da sua localização para registrar onde a pesquisa foi realizada.",
+                "NSCameraUsageDescription": "Precisamos da câmera para capturar fotos durante a pesquisa.",
+                "NSMicrophoneUsageDescription": "Precisamos do microfone para gravar áudio durante a pesquisa."
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "backgroundColor": "#1a365d"
+            },
+            "package": "com.idialog.spi",
+            "permissions": [
+                "ACCESS_COARSE_LOCATION",
+                "ACCESS_FINE_LOCATION",
+                "CAMERA",
+                "RECORD_AUDIO"
+            ]
+        },
+        "plugins": [
+            "expo-router",
+            "expo-location",
+            "expo-camera",
+            "expo-secure-store",
+            "expo-sqlite"
+        ]
+    }
+}
