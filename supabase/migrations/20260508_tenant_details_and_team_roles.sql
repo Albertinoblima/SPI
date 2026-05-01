@@ -4,24 +4,26 @@
 -- Data: 2026-05-08
 -- ============================================================================
 
+-- Garante extensão uuid padrão
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- ============================================================================
 -- PARTE 1: CAMPOS DE DETALHES DA EMPRESA
 -- ============================================================================
 
-ALTER TABLE public.tenants
-    ADD COLUMN IF NOT EXISTS cnpj            VARCHAR(18),
-    ADD COLUMN IF NOT EXISTS phone           VARCHAR(20),
-    ADD COLUMN IF NOT EXISTS email           VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS website         VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS logo_url        TEXT,
-    ADD COLUMN IF NOT EXISTS address         VARCHAR(255),
-    ADD COLUMN IF NOT EXISTS address_number  VARCHAR(20),
-    ADD COLUMN IF NOT EXISTS address_complement VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS neighborhood    VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS city            VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS state           VARCHAR(2),
-    ADD COLUMN IF NOT EXISTS zip_code        VARCHAR(9),
-    ADD COLUMN IF NOT EXISTS responsavel_tecnico VARCHAR(255);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS website VARCHAR(255);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS address VARCHAR(255);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS address_number VARCHAR(20);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS address_complement VARCHAR(100);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(100);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS state VARCHAR(2);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS zip_code VARCHAR(9);
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS responsavel_tecnico VARCHAR(255);
 
 -- ============================================================================
 -- PARTE 2: EXPANDIR ROLES DE USUÁRIO
