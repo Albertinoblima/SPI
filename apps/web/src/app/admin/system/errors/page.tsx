@@ -215,8 +215,8 @@ export default function ErrorsPage() {
                                 <div
                                     key={err.id}
                                     className={`rounded-lg border transition ${err.resolved
-                                            ? 'bg-slate-800/50 border-slate-700'
-                                            : 'bg-slate-800 border-slate-700'
+                                        ? 'bg-slate-800/50 border-slate-700'
+                                        : 'bg-slate-800 border-slate-700'
                                         }`}
                                 >
                                     <button
@@ -287,8 +287,8 @@ export default function ErrorsPage() {
                                                     handleResolveError(err.id, err.resolved)
                                                 }
                                                 className={`w-full px-4 py-2 rounded-lg font-medium transition ${err.resolved
-                                                        ? 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                                                        : 'bg-green-600 hover:bg-green-700 text-white'
+                                                    ? 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                                                    : 'bg-green-600 hover:bg-green-700 text-white'
                                                     }`}
                                             >
                                                 {err.resolved

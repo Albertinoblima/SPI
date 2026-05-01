@@ -197,8 +197,8 @@ export default function AuditLogPage() {
                                         )
                                     }
                                     className={`w-full text-left p-4 rounded-lg border transition ${log.is_critical
-                                            ? 'bg-red-900/10 border-red-700/30'
-                                            : 'bg-slate-800 border-slate-700'
+                                        ? 'bg-red-900/10 border-red-700/30'
+                                        : 'bg-slate-800 border-slate-700'
                                         } hover:border-blue-500/30`}
                                 >
                                     <div className="flex items-start justify-between gap-4">
