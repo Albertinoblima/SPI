@@ -16,10 +16,9 @@ BEGIN
             ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;
 
             IF NOT EXISTS (
-                SELECT 1
-                FROM pg_policies
+                SELECT 1 FROM pg_policies
                 WHERE schemaname = 'public'
-                  AND tablename = 'spatial_ref_sys'
+                  AND tablename  = 'spatial_ref_sys'
                   AND policyname = 'spatial_ref_sys_read_all'
             ) THEN
                 CREATE POLICY spatial_ref_sys_read_all
