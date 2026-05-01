@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Building2,
     Search,
@@ -36,11 +36,7 @@ export default function TenantsPage() {
     const [statusFilter, setStatusFilter] = useState('all');
     const [page, setPage] = useState(1);
 
-    useEffect(() => {
-        fetchTenants();
-    }, [statusFilter, page]);
-
-    const fetchTenants = async () => {
+    const fetchTenants = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
@@ -64,7 +60,11 @@ export default function TenantsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, statusFilter]);
+
+    useEffect(() => {
+        fetchTenants();
+    }, [fetchTenants]);
 
     const filteredTenants = tenants.filter((tenant) =>
         tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

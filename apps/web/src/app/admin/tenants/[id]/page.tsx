@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
     Building2,
@@ -68,11 +68,7 @@ export default function TenantDetailsPage() {
     const [updating, setUpdating] = useState(false);
     const [newStatus, setNewStatus] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchTenant();
-    }, [tenantId]);
-
-    const fetchTenant = async () => {
+    const fetchTenant = useCallback(async () => {
         try {
             setLoading(true);
             const response = await fetch(`/api/admin/tenants/${tenantId}`);
@@ -89,7 +85,11 @@ export default function TenantDetailsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [tenantId]);
+
+    useEffect(() => {
+        fetchTenant();
+    }, [fetchTenant]);
 
     const handleStatusChange = async () => {
         if (!newStatus || newStatus === data?.tenant.status) return;

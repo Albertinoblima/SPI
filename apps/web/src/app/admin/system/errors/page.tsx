@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     AlertTriangle,
     Search,
@@ -34,11 +34,7 @@ export default function ErrorsPage() {
     const [page, setPage] = useState(1);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchErrors();
-    }, [severityFilter, resolvedFilter, page]);
-
-    const fetchErrors = async () => {
+    const fetchErrors = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
@@ -66,7 +62,11 @@ export default function ErrorsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, severityFilter, resolvedFilter]);
+
+    useEffect(() => {
+        fetchErrors();
+    }, [fetchErrors]);
 
     const handleResolveError = async (errorId: string, currentResolved: boolean) => {
         try {

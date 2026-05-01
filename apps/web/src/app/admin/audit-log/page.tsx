@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Shield,
     Search,
@@ -37,11 +37,7 @@ export default function AuditLogPage() {
     const [page, setPage] = useState(1);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchLogs();
-    }, [actionFilter, criticalOnly, page]);
-
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
@@ -69,7 +65,11 @@ export default function AuditLogPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, actionFilter, criticalOnly]);
+
+    useEffect(() => {
+        fetchLogs();
+    }, [fetchLogs]);
 
     const filteredLogs = logs.filter(
         (log) =>

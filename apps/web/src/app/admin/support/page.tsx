@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     MessageSquare,
     Search,
@@ -37,11 +37,7 @@ export default function SupportPage() {
     const [statusFilter, setStatusFilter] = useState('open');
     const [page, setPage] = useState(1);
 
-    useEffect(() => {
-        fetchTickets();
-    }, [statusFilter, page]);
-
-    const fetchTickets = async () => {
+    const fetchTickets = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
@@ -62,7 +58,11 @@ export default function SupportPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, statusFilter]);
+
+    useEffect(() => {
+        fetchTickets();
+    }, [fetchTickets]);
 
     const filteredTickets = tickets.filter(
         (ticket) =>
