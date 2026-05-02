@@ -1,4 +1,4 @@
-// Supabase Server Client
+// Supabase Server Client - @supabase/ssr v0.3.0 usa get/set/remove
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -10,14 +10,19 @@ export function createClient() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                getAll() {
-                    return cookieStore.getAll();
+                get(name: string) {
+                    return cookieStore.get(name)?.value;
                 },
-                setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+                set(name: string, value: string, options: Record<string, unknown>) {
                     try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        );
+                        cookieStore.set(name, value, options);
+                    } catch {
+                        // Server Component - ignore
+                    }
+                },
+                remove(name: string, options: Record<string, unknown>) {
+                    try {
+                        cookieStore.delete({ name, ...options });
                     } catch {
                         // Server Component - ignore
                     }

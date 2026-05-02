@@ -1,13 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { getPostLoginRedirectUrlClient } from '@/lib/post-login-redirect';
 
 export default function LoginPage() {
-    const router = useRouter();
     const isSupabaseConfigured =
         Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
         Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -43,7 +41,9 @@ export default function LoginPage() {
             } else {
                 // Determinar para onde redirecionar baseado no role do usuário
                 const redirectUrl = await getPostLoginRedirectUrlClient(supabase);
-                router.push(redirectUrl);
+                // Usar window.location para forçar reload completo e garantir
+                // que os cookies do Supabase estejam disponíveis no middleware SSR
+                window.location.href = redirectUrl;
             }
         } catch {
             setError('Falha de conexão com o Supabase. Verifique se o backend está ativo e as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY estão corretas.');
