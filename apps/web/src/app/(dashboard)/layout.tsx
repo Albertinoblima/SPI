@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         onClick={async () => {
                             const supabase = createClient();
                             await supabase.auth.signOut();
-                            router.push('/login');
+                            window.location.href = '/login';
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors"
                     >
