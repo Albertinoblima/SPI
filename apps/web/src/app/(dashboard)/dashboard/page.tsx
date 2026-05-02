@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -189,6 +189,14 @@ function SurveyRow({ survey }: { survey: Survey }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+    return (
+        <Suspense>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+function DashboardContent() {
     const searchParams = useSearchParams();
     const showWelcome = searchParams.get('welcome') === '1';
 

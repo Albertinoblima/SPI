@@ -2,6 +2,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { apiError, apiSuccess } from '@/lib/api-middleware';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const supabase = createClient();

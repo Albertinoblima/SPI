@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Building2, Save, CheckCircle, AlertCircle, Loader2, Image as ImageIcon, PartyPopper } from 'lucide-react';
 
@@ -54,6 +54,14 @@ function formatZip(value: string): string {
 }
 
 export default function SettingsPage() {
+    return (
+        <Suspense>
+            <SettingsContent />
+        </Suspense>
+    );
+}
+
+function SettingsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const isOnboarding = searchParams.get('onboarding') === '1';
