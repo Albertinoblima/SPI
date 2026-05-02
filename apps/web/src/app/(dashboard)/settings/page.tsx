@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
-import { Building2, Save, CheckCircle, AlertCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Building2, Save, CheckCircle, AlertCircle, Loader2, Image as ImageIcon, PartyPopper } from 'lucide-react';
 
 interface TenantData {
     id: string;
@@ -53,6 +54,10 @@ function formatZip(value: string): string {
 }
 
 export default function SettingsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const isOnboarding = searchParams.get('onboarding') === '1';
+
     const [tenant, setTenant] = useState<TenantData | null>(null);
     const [form, setForm] = useState<Partial<TenantData>>({});
     const [loading, setLoading] = useState(true);
@@ -103,6 +108,11 @@ export default function SettingsPage() {
             });
             const json = await res.json();
             if (res.ok) {
+                if (isOnboarding) {
+                    // Onboarding concluído — ir para o dashboard
+                    router.push('/dashboard?welcome=1');
+                    return;
+                }
                 showAlert('success', 'Dados da empresa salvos com sucesso!');
                 fetchTenant();
             } else {
@@ -153,13 +163,41 @@ export default function SettingsPage() {
 
     return (
         <div className="p-6 max-w-4xl">
+            {/* Banner de boas-vindas no onboarding */}
+            {isOnboarding && (
+                <div className="mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                            <PartyPopper className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold mb-1">Bem-vindo ao iDialog SPI! 🎉</h2>
+                            <p className="text-blue-100 text-sm leading-relaxed">
+                                Antes de começar, precisamos configurar os dados da sua empresa.
+                                Essas informações aparecerão nos cabeçalhos e rodapés de todos os relatórios de pesquisa.
+                                Leva menos de 2 minutos!
+                            </p>
+                            <div className="mt-3 flex items-center gap-2 text-sm text-blue-200">
+                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                                <span>Preencha os dados abaixo</span>
+                                <span className="mx-1">→</span>
+                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                                <span>Clique em Salvar e ir para Início</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Cabeçalho */}
             <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Configurações da Empresa</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">
+                        {isOnboarding ? 'Configure sua Empresa' : 'Configurações da Empresa'}
+                    </h1>
                     <p className="text-sm text-slate-500">Dados utilizados nos relatórios de pesquisa</p>
                 </div>
             </div>
@@ -403,7 +441,11 @@ export default function SettingsPage() {
                                 ) : (
                                     <Save className="w-4 h-4" />
                                 )}
-                                {saving ? 'Salvando...' : 'Salvar Dados'}
+                                {saving
+                                    ? 'Salvando...'
+                                    : isOnboarding
+                                        ? 'Salvar e ir para Início →'
+                                        : 'Salvar Dados'}
                             </button>
                         </div>
                     </form>

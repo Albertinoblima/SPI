@@ -32,12 +32,36 @@ export async function getPostLoginRedirectUrlClient(supabase: any): Promise<stri
             return '/admin';
         }
 
+        // Verificar se o onboarding da empresa foi concluído (apenas para admin/manager)
+        if (userProfile.role === 'admin' || userProfile.role === 'manager') {
+            try {
+                const { data: tenantData } = await supabase
+                    .from('users')
+                    .select('tenant_id')
+                    .eq('id', user.id)
+                    .single();
+
+                if (tenantData?.tenant_id) {
+                    const { data: tenant } = await supabase
+                        .from('tenants')
+                        .select('cnpj, city')
+                        .eq('id', tenantData.tenant_id)
+                        .single();
+
+                    // Se dados mínimos ausentes, redirecionar para onboarding
+                    if (!tenant?.cnpj || !tenant?.city) {
+                        return '/settings?onboarding=1';
+                    }
+                }
+            } catch {
+                // Em caso de erro, seguir para dashboard normalmente
+            }
+            return '/dashboard';
+        }
+
         switch (userProfile.role) {
-            case 'admin':
-            case 'manager':
-                return '/dashboard';
             case 'interviewer':
-                return '/dashboard/surveys';
+                return '/dashboard';
             default:
                 return '/dashboard';
         }

@@ -299,7 +299,7 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
                             )}
                             {q.question_type === 'rating' && (
                                 <div className="flex gap-2">
-                                    {[1,2,3,4,5].map(i => (
+                                    {[1, 2, 3, 4, 5].map(i => (
                                         <button key={i} type="button" disabled className="text-2xl text-slate-300">★</button>
                                     ))}
                                 </div>
