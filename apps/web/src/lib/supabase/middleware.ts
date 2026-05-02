@@ -14,14 +14,14 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.get(name)?.value;
                 },
                 set(name: string, value: string, options: Record<string, unknown>) {
-                    request.cookies.set(name, value, options as Parameters<typeof request.cookies.set>[2]);
+                    request.cookies.set({ name, value, ...options });
                     supabaseResponse = NextResponse.next({ request });
-                    supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2]);
+                    supabaseResponse.cookies.set({ name, value, ...options });
                 },
                 remove(name: string, options: Record<string, unknown>) {
-                    request.cookies.set(name, '', options as Parameters<typeof request.cookies.set>[2]);
+                    request.cookies.set({ name, value: '', ...options });
                     supabaseResponse = NextResponse.next({ request });
-                    supabaseResponse.cookies.set(name, '', options as Parameters<typeof supabaseResponse.cookies.set>[2]);
+                    supabaseResponse.cookies.set({ name, value: '', ...options });
                 },
             },
         }
