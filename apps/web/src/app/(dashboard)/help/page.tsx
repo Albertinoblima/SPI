@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { HELP_TOPICS } from '@/lib/help-topics';
 
-export default function HelpPage() {
+function HelpPageContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -181,7 +181,7 @@ export default function HelpPage() {
                     {filteredTopics.length === 0 && (
                         <section className="bg-white border border-slate-200 rounded-xl p-6 text-center">
                             <h2 className="text-lg font-semibold text-slate-700">Nenhum resultado para sua busca</h2>
-                            <p className="text-sm text-slate-500 mt-2">Tente palavras diferentes, como "amostragem", "questionario" ou "premissas".</p>
+                            <p className="text-sm text-slate-500 mt-2">Tente palavras diferentes, como &quot;amostragem&quot;, &quot;questionario&quot; ou &quot;premissas&quot;.</p>
                         </section>
                     )}
 
@@ -203,5 +203,13 @@ export default function HelpPage() {
                 </main>
             </div>
         </div>
+    );
+}
+
+export default function HelpPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-slate-500">Carregando ajuda...</div>}>
+            <HelpPageContent />
+        </Suspense>
     );
 }
