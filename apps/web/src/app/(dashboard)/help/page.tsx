@@ -14,6 +14,7 @@ export default function HelpPage() {
 
     const [query, setQuery] = useState('');
     const [activeTopicId, setActiveTopicId] = useState<string>(HELP_TOPICS[0]?.id ?? '');
+    const [highlightedTopicId, setHighlightedTopicId] = useState('');
 
     useEffect(() => {
         if (queryFromUrl !== query) {
@@ -77,9 +78,39 @@ export default function HelpPage() {
         }
 
         const queryString = params.toString();
-        const url = queryString ? `${pathname}?${queryString}` : pathname;
+        const hash = typeof window !== 'undefined' ? window.location.hash : '';
+        const url = queryString ? `${pathname}?${queryString}${hash}` : `${pathname}${hash}`;
         router.replace(url, { scroll: false });
     }, [query, pathname, router, searchParams]);
+
+    useEffect(() => {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+        const focusHashTarget = () => {
+            const rawHash = typeof window !== 'undefined' ? window.location.hash : '';
+            const targetId = rawHash.replace('#', '').trim();
+            if (!targetId) return;
+
+            const section = document.getElementById(targetId);
+            if (!section) return;
+
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setActiveTopicId(targetId);
+            setHighlightedTopicId(targetId);
+
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => setHighlightedTopicId(''), 1800);
+        };
+
+        const rafId = requestAnimationFrame(focusHashTarget);
+        window.addEventListener('hashchange', focusHashTarget);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            window.removeEventListener('hashchange', focusHashTarget);
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+    }, [filteredTopics]);
 
     return (
         <div className="p-6 max-w-6xl mx-auto">
@@ -126,7 +157,14 @@ export default function HelpPage() {
 
                 <main className="space-y-4">
                     {filteredTopics.map((topic) => (
-                        <section key={topic.id} id={topic.id} className="bg-white border border-slate-200 rounded-xl p-5 scroll-mt-24">
+                        <section
+                            key={topic.id}
+                            id={topic.id}
+                            className={`bg-white border rounded-xl p-5 scroll-mt-24 transition-all duration-500 ${highlightedTopicId === topic.id
+                                ? 'border-blue-400 ring-4 ring-blue-100 shadow-md'
+                                : 'border-slate-200'
+                                }`}
+                        >
                             <h2 className="text-lg font-bold text-slate-900">{topic.title}</h2>
                             <p className="text-slate-700 mt-2">{topic.short}</p>
                             <ul className="mt-3 space-y-2">
