@@ -94,13 +94,21 @@ export function SurveyWizard() {
 
             const surveyId = json.data?.survey?.id;
 
-            // Salvar questões se houver
-            if (surveyId && data.questions.length > 0) {
-                await fetch(`/api/surveys/${surveyId}`, {
+            // Salvar localidades, premissas e questões
+            if (surveyId) {
+                const putRes = await fetch(`/api/surveys/${surveyId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ questions: data.questions }),
+                    body: JSON.stringify({
+                        localities: data.localities,
+                        premises: data.premises,
+                        questions: data.questions,
+                    }),
                 });
+                if (!putRes.ok) {
+                    const putJson = await putRes.json();
+                    throw new Error(putJson.error || 'Erro ao salvar dados da pesquisa');
+                }
             }
 
             setAlert({ type: 'success', message: 'Pesquisa salva como rascunho!' });
