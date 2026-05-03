@@ -9,6 +9,7 @@ import {
     FileText,
     Users,
     Settings,
+    CircleHelp,
     LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -25,6 +26,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { label: 'Início', href: '/dashboard', icon: BarChart3 },
         { label: 'Pesquisas', href: '/surveys', icon: FileText },
         { label: 'Equipe', href: '/team', icon: Users },
+        { label: 'Ajuda', href: '/help', icon: CircleHelp },
         { label: 'Configurações', href: '/settings', icon: Settings },
     ];
 

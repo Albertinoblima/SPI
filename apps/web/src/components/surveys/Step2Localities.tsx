@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, HelpCircle, Calculator } from 'lucide-react';
+import Link from 'next/link';
 import { shouldUseStatisticalSampling } from './Step1TechnicalData';
+import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 
 export interface Locality {
     id: string;
@@ -22,12 +24,32 @@ interface Props {
     surveyType: string;
 }
 
-function Tooltip({ text }: { text: string }) {
+function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
+    const topic = helpId ? HELP_TOPICS_BY_ID[helpId] : undefined;
+    const href = topic ? `/help#${topic.id}` : '/help';
+
+    const handleMouseEnter = () => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent(HELP_HOVER_EVENT, {
+            detail: {
+                id: topic?.id,
+                title: topic?.title ?? 'Ajuda rapida',
+                text: topic?.short ?? text,
+                href,
+            },
+        }));
+    };
+
     return (
-        <span className="relative group inline-flex items-center ml-1.5">
+        <span className="relative group inline-flex items-center ml-1.5" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={15} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                {text}
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <span>{text}</span>
+                <span className="mt-2 block">
+                    <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">
+                        Saber mais...
+                    </Link>
+                </span>
             </span>
         </span>
     );
@@ -147,7 +169,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
             <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-slate-50">
                 <h3 className="text-sm font-semibold text-slate-700 mb-4">
                     Adicionar localidade
-                    <Tooltip text="Cada localidade terá sua cota de entrevistas calculada proporcionalmente à população." />
+                    <Tooltip text="Cada localidade terá sua cota de entrevistas calculada proporcionalmente à população ou meta definida pela gestão." helpId="localities-method" />
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -167,7 +189,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     <div>
                         <label htmlFor="loc-zone" className="text-sm font-medium text-slate-700 block mb-1">
                             Zona
-                            <Tooltip text="Urbana: área citadina. Rural: zona rural. Misto: ambas as zonas." />
+                            <Tooltip text="Urbana: área citadina. Rural: zona rural. Misto: ambas as zonas." helpId="localities-zone" />
                         </label>
                         <select
                             id="loc-zone"
@@ -185,7 +207,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     <div>
                         <label htmlFor="loc-pop" className="text-sm font-medium text-slate-700 block mb-1">
                             Quantidade
-                            <Tooltip text="Número de eleitores ou habitantes da localidade. Base para o cálculo amostral." />
+                            <Tooltip text="Número de eleitores ou habitantes da localidade. Base para o cálculo amostral." helpId="localities-population" />
                         </label>
                         <input
                             id="loc-pop"
@@ -201,7 +223,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     <div>
                         <label htmlFor="loc-pop-type" className="text-sm font-medium text-slate-700 block mb-1">
                             Tipo de população
-                            <Tooltip text="Eleitores: total de eleitores registrados. Habitantes: total de residentes." />
+                            <Tooltip text="Eleitores: total de eleitores registrados. Habitantes: total de residentes." helpId="localities-population" />
                         </label>
                         <select
                             id="loc-pop-type"
@@ -219,7 +241,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                         <div>
                             <label htmlFor="loc-interviews" className="text-sm font-medium text-slate-700 block mb-1">
                                 Entrevistas planejadas
-                                <Tooltip text="Meta operacional definida pela gestão para esta localidade." />
+                                <Tooltip text="Meta operacional definida pela gestão para esta localidade." helpId="localities-manual-target" />
                             </label>
                             <input
                                 id="loc-interviews"

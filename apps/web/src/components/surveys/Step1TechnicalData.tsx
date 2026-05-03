@@ -1,6 +1,8 @@
 'use client';
 
 import { HelpCircle } from 'lucide-react';
+import Link from 'next/link';
+import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 
 export interface SurveyTechData {
     title: string;
@@ -28,22 +30,55 @@ interface Props {
     onChange: (data: SurveyTechData) => void;
 }
 
-function Tooltip({ text }: { text: string }) {
+function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
+    const topic = helpId ? HELP_TOPICS_BY_ID[helpId] : undefined;
+    const href = topic ? `/help#${topic.id}` : '/help';
+
+    const handleMouseEnter = () => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent(HELP_HOVER_EVENT, {
+            detail: {
+                id: topic?.id,
+                title: topic?.title ?? 'Ajuda rapida',
+                text: topic?.short ?? text,
+                href,
+            },
+        }));
+    };
+
     return (
-        <span className="relative group inline-flex items-center ml-1.5">
+        <span className="relative group inline-flex items-center ml-1.5" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={15} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                {text}
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <span>{text}</span>
+                <span className="mt-2 block">
+                    <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">
+                        Saber mais...
+                    </Link>
+                </span>
             </span>
         </span>
     );
 }
 
 function Label({ htmlFor, children, tooltip }: { htmlFor: string; children: React.ReactNode; tooltip?: string }) {
+    const helpByField: Record<string, string> = {
+        title: 'survey-title',
+        survey_type: 'survey-type',
+        target_audience: 'target-audience',
+        margin_of_error: 'margin-error',
+        confidence_interval: 'confidence-interval',
+        started_at: 'survey-period',
+        ended_at: 'survey-period',
+        objective: 'survey-objective',
+        methodology: 'survey-methodology',
+        description: 'survey-internal-notes',
+    };
+
     return (
         <label htmlFor={htmlFor} className="flex items-center text-sm font-medium text-slate-700 mb-1.5">
             {children}
-            {tooltip && <Tooltip text={tooltip} />}
+            {tooltip && <Tooltip text={tooltip} helpId={helpByField[htmlFor]} />}
         </label>
     );
 }
@@ -304,6 +339,7 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             className="accent-blue-600 w-4 h-4"
                         />
                         Pesquisa registrada em órgão de classe oficial
+                        <Tooltip text="Quando houver exigencia regulatoria, identifique o responsavel tecnico e seus dados de registro." helpId="registered-research" />
                     </label>
                     {data.is_registered_research && (
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -336,15 +372,15 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                     <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-1">
                         Recursos da coleta
-                        <Tooltip text="Define quais dados adicionais serão coletados durante as entrevistas pelo app mobile." />
+                        <Tooltip text="Define quais dados adicionais serão coletados durante as entrevistas pelo app mobile." helpId="collection-resources" />
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                            { key: 'requires_geolocation', label: '📍 Geolocalização', tip: 'Captura as coordenadas GPS no momento da entrevista.' },
-                            { key: 'requires_photo', label: '📷 Foto', tip: 'Permite tirar foto do entrevistado ou local.' },
-                            { key: 'requires_signature', label: '✍️ Assinatura', tip: 'Coleta assinatura digital do entrevistado.' },
-                            { key: 'allow_offline', label: '📵 Modo offline', tip: 'Permite coletar sem internet e sincronizar depois.' },
-                        ].map(({ key, label, tip }) => (
+                            { key: 'requires_geolocation', label: '📍 Geolocalização', tip: 'Captura as coordenadas GPS no momento da entrevista.', helpId: 'collection-resources' },
+                            { key: 'requires_photo', label: '📷 Foto', tip: 'Permite tirar foto do entrevistado ou local.', helpId: 'collection-resources' },
+                            { key: 'requires_signature', label: '✍️ Assinatura', tip: 'Coleta assinatura digital do entrevistado.', helpId: 'collection-resources' },
+                            { key: 'allow_offline', label: '📵 Modo offline', tip: 'Permite coletar sem internet e sincronizar depois.', helpId: 'collection-resources' },
+                        ].map(({ key, label, tip, helpId }) => (
                             <label key={key} className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:border-blue-300 transition">
                                 <input
                                     type="checkbox"
@@ -353,7 +389,7 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                                     className="accent-blue-600 w-4 h-4"
                                 />
                                 <span className="text-sm text-slate-700">{label}</span>
-                                <Tooltip text={tip} />
+                                <Tooltip text={tip} helpId={helpId} />
                             </label>
                         ))}
                     </div>
