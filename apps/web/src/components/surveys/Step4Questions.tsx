@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
 import { Plus, Trash2, GripVertical, HelpCircle, X, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 import type { Question } from '@political-research/shared-types';
+import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 
 interface Props {
     questions: Question[];
@@ -11,12 +13,32 @@ interface Props {
     surveyTitle?: string;
 }
 
-function Tooltip({ text }: { text: string }) {
+function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
+    const topic = helpId ? HELP_TOPICS_BY_ID[helpId] : undefined;
+    const href = topic ? `/help#${topic.id}` : '/help';
+
+    const handleMouseEnter = () => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent(HELP_HOVER_EVENT, {
+            detail: {
+                id: topic?.id,
+                title: topic?.title ?? 'Ajuda rapida',
+                text: topic?.short ?? text,
+                href,
+            },
+        }));
+    };
+
     return (
-        <span className="relative group inline-flex items-center ml-1.5">
+        <span className="relative group inline-flex items-center ml-1.5" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={15} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                {text}
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <span>{text}</span>
+                <span className="mt-2 block">
+                    <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">
+                        Saber mais...
+                    </Link>
+                </span>
             </span>
         </span>
     );
@@ -76,6 +98,7 @@ function QuestionCard({
                                 className="accent-blue-600"
                             />
                             Obrigatória
+                            <Tooltip text="Marque como obrigatoria somente quando a resposta for essencial para os indicadores da pesquisa." helpId="question-required" />
                         </label>
                     </div>
 
@@ -261,6 +284,9 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
             </div>
             <p className="text-sm text-slate-500 mb-6">
                 Crie as perguntas da pesquisa. Arraste para reordenar. Cada pergunta pode ter condições de exibição configuradas depois.
+                <span className="inline-flex ml-1 align-middle">
+                    <Tooltip text="A estrutura e a ordem das perguntas influenciam qualidade de resposta e taxa de conclusao." helpId="questionnaire-overview" />
+                </span>
             </p>
 
             {preview ? (
@@ -317,7 +343,7 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-slate-700 mb-3">
                             Adicionar pergunta
-                            <Tooltip text="Clique em um tipo de pergunta para adicioná-la ao final do questionário." />
+                            <Tooltip text="Clique em um tipo de pergunta para adicioná-la ao final do questionário." helpId="question-type" />
                         </h3>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {TYPE_OPTIONS.map(type => (
@@ -379,6 +405,9 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
                         <div className="text-sm text-slate-500 text-center">
                             {questions.length} pergunta{questions.length !== 1 ? 's' : ''} •{' '}
                             {questions.filter(q => q.is_required).length} obrigatória{questions.filter(q => q.is_required).length !== 1 ? 's' : ''}
+                            <span className="inline-flex ml-1 align-middle">
+                                <Tooltip text="Revise a ordem final para evitar vies de priming e manter fluxo logico da entrevista." helpId="question-order" />
+                            </span>
                         </div>
                     )}
                 </div>

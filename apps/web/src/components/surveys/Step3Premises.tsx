@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, GripVertical, HelpCircle, X } from 'lucide-react';
+import Link from 'next/link';
+import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 
 export interface PremiseOption {
     label: string;
@@ -24,12 +26,32 @@ interface Props {
     onChange: (premises: Premise[]) => void;
 }
 
-function Tooltip({ text }: { text: string }) {
+function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
+    const topic = helpId ? HELP_TOPICS_BY_ID[helpId] : undefined;
+    const href = topic ? `/help#${topic.id}` : '/help';
+
+    const handleMouseEnter = () => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent(HELP_HOVER_EVENT, {
+            detail: {
+                id: topic?.id,
+                title: topic?.title ?? 'Ajuda rapida',
+                text: topic?.short ?? text,
+                href,
+            },
+        }));
+    };
+
     return (
-        <span className="relative group inline-flex items-center ml-1.5">
+        <span className="relative group inline-flex items-center ml-1.5" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={15} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                {text}
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <span>{text}</span>
+                <span className="mt-2 block">
+                    <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">
+                        Saber mais...
+                    </Link>
+                </span>
             </span>
         </span>
     );
@@ -131,7 +153,7 @@ function PremiseCard({ premise, onRemove, onUpdate }: {
                     <div>
                         <label className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">
                             Rótulo da premissa
-                            <Tooltip text="Nome que aparecerá no questionário e nos relatórios." />
+                            <Tooltip text="Nome que aparecerá no questionário e nos relatórios." helpId="premises-label" />
                         </label>
                         <input
                             type="text"
@@ -144,6 +166,7 @@ function PremiseCard({ premise, onRemove, onUpdate }: {
                     <div>
                         <label className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">
                             Categoria (chave interna)
+                            <Tooltip text="Identificador tecnico da premissa usado para integracoes e analises." helpId="premises-category-key" />
                         </label>
                         <input
                             type="text"
@@ -169,7 +192,7 @@ function PremiseCard({ premise, onRemove, onUpdate }: {
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                         Opções de resposta
-                        <Tooltip text="Cada opção define um segmento do público-alvo. A cota % é opcional e indica a proporção esperada." />
+                        <Tooltip text="Cada opção define um segmento do público-alvo. A cota % é opcional e indica a proporção esperada." helpId="premises-options-quotas" />
                     </span>
                     <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
                         <input
@@ -179,6 +202,7 @@ function PremiseCard({ premise, onRemove, onUpdate }: {
                             className="accent-blue-600"
                         />
                         Múltipla seleção
+                        <Tooltip text="Ative somente quando a regra da premissa permitir resposta em mais de uma opcao." helpId="premises-multi-select" />
                     </label>
                 </div>
 
@@ -284,13 +308,16 @@ export function Step3Premises({ premises, onChange }: Props) {
             <p className="text-sm text-slate-500 mb-6">
                 Defina as cotas e o perfil esperado do entrevistado. As premissas garantem que a amostra represente
                 adequadamente diferentes segmentos da população.
+                <span className="inline-flex ml-1 align-middle">
+                    <Tooltip text="Use premissas para controlar composicao da coleta e manter aderencia ao desenho metodologico." helpId="premises-overview" />
+                </span>
             </p>
 
             {/* Atalhos de premissas comuns */}
             <div className="mb-6">
                 <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
                     Premissas rápidas (clique para adicionar)
-                    <Tooltip text="Adiciona premissas pré-configuradas com as opções mais comuns. Você poderá editar as opções após adicionar." />
+                    <Tooltip text="Adiciona premissas pré-configuradas com as opções mais comuns. Você poderá editar as opções após adicionar." helpId="premises-overview" />
                 </h3>
                 <div className="flex flex-wrap gap-2">
                     {PRESET_CATEGORIES.map(preset => (

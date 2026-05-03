@@ -156,6 +156,106 @@ export const HELP_TOPICS: HelpTopic[] = [
             'Esse historico melhora a reproducao de ondas futuras.',
         ],
     },
+    {
+        id: 'premises-overview',
+        title: 'Premissas e Cotas',
+        short: 'Premissas ajudam a equilibrar o perfil dos entrevistados e melhorar a representatividade da coleta.',
+        content: [
+            'Use premissas para controlar segmentos como sexo, idade, renda e territorio.',
+            'Defina cotas quando houver meta percentual por segmento.',
+            'Revise as cotas com base na populacao de referencia e no objetivo da pesquisa.',
+        ],
+    },
+    {
+        id: 'premises-label',
+        title: 'Rotulo da Premissa',
+        short: 'O rotulo e o nome exibido para o entrevistador e nos relatorios analiticos.',
+        content: [
+            'Use nomes claros e sem ambiguidade.',
+            'Exemplos: Faixa etaria, Renda familiar, Escolaridade.',
+            'Evite abreviacoes internas que prejudiquem leitura do time de campo.',
+        ],
+    },
+    {
+        id: 'premises-category-key',
+        title: 'Categoria (Chave Interna)',
+        short: 'A chave interna identifica tecnicamente a premissa no banco e em integracoes.',
+        content: [
+            'Padrao recomendado: minusculo com underscore.',
+            'Evite acentos e espacos para reduzir erros de integracao.',
+            'Mantenha consistencia entre ondas da mesma pesquisa.',
+        ],
+    },
+    {
+        id: 'premises-options-quotas',
+        title: 'Opcoes e Cota Percentual',
+        short: 'Cada opcao representa um segmento; a cota percentual define meta esperada para aquele grupo.',
+        content: [
+            'A cota pode ser opcional em pesquisas exploratorias.',
+            'Quando usada, o ideal e que a soma se aproxime de 100%.',
+            'Monitore desvios durante a coleta para corrigir distribuicao de campo.',
+        ],
+    },
+    {
+        id: 'premises-multi-select',
+        title: 'Multipla Selecao em Premissas',
+        short: 'Ative apenas quando o respondente puder pertencer legitimamente a mais de um grupo ao mesmo tempo.',
+        content: [
+            'Exemplo valido: bairros frequentados, canais de informacao.',
+            'Exemplo nao recomendado: sexo biologico em recortes exclusivos.',
+            'Multipla selecao altera leitura estatistica e deve ser planejada previamente.',
+        ],
+    },
+    {
+        id: 'questionnaire-overview',
+        title: 'Construcao do Questionario',
+        short: 'A ordem e o tipo das perguntas impactam qualidade da resposta e taxa de conclusao.',
+        content: [
+            'Comece com perguntas simples para aquecimento do entrevistado.',
+            'Agrupe blocos tematicos para manter fluidez cognitiva.',
+            'Deixe perguntas sensiveis para momentos posteriores quando houver rapport.',
+        ],
+    },
+    {
+        id: 'question-type',
+        title: 'Tipo de Pergunta',
+        short: 'Escolha o tipo conforme a natureza da informacao: opiniao, fato, escala, registro ou evidencias.',
+        content: [
+            'Escolha unica: decisao entre alternativas excludentes.',
+            'Multipla escolha: permite combinacao de alternativas.',
+            'Texto livre: captura justificativas e nuances qualitativas.',
+        ],
+    },
+    {
+        id: 'question-required',
+        title: 'Pergunta Obrigatoria',
+        short: 'Marque como obrigatoria apenas o que for essencial para o objetivo analitico.',
+        content: [
+            'Excesso de obrigatoriedade aumenta abandono e atrito de coleta.',
+            'Perguntas criticas para filtros e indicadores devem ser obrigatorias.',
+            'Tenha estrategia para dados faltantes em perguntas opcionais.',
+        ],
+    },
+    {
+        id: 'question-options',
+        title: 'Opcoes de Resposta',
+        short: 'Opcoes bem definidas melhoram comparabilidade e reduzem erro de interpretacao.',
+        content: [
+            'Evite sobreposicao semantica entre alternativas.',
+            'Use linguagem do publico alvo e nao jargoes internos.',
+            'Inclua opcoes de escape quando apropriado (nao sabe, nao respondeu).',
+        ],
+    },
+    {
+        id: 'question-order',
+        title: 'Ordem das Perguntas',
+        short: 'A sequencia pode introduzir vies de priming; organize do geral para o especifico.',
+        content: [
+            'Use drag and drop para montar fluxo coerente.',
+            'Evite alternar temas de forma brusca.',
+            'Revise a ordem final em modo de pre-visualizacao.',
+        ],
+    },
 ];
 
 export const HELP_TOPICS_BY_ID = Object.fromEntries(HELP_TOPICS.map((topic) => [topic.id, topic])) as Record<string, HelpTopic>;
