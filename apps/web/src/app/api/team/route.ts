@@ -64,7 +64,17 @@ export async function POST(request: NextRequest) {
             return apiError('A senha deve ter no mínimo 8 caracteres', 400);
         }
 
-        const validRoles = ['admin', 'manager', 'coordinator', 'interviewer', 'fiscal', 'driver'];
+        const validRoles = [
+            'admin',
+            'manager',
+            'coordinator_general',
+            'coordinator_field',
+            'supervisor_quality',
+            'interviewer',
+            'driver',
+            'coordinator',
+            'fiscal',
+        ];
         if (!validRoles.includes(role)) {
             return apiError('Cargo inválido', 400);
         }

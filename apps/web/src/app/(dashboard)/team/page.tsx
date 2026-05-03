@@ -20,10 +20,13 @@ interface Member {
 const ROLES: Record<string, { label: string; color: string }> = {
     admin: { label: 'Administrador', color: 'bg-purple-100 text-purple-700' },
     manager: { label: 'Gerente', color: 'bg-blue-100 text-blue-700' },
-    coordinator: { label: 'Coordenador', color: 'bg-indigo-100 text-indigo-700' },
-    fiscal: { label: 'Fiscal', color: 'bg-amber-100 text-amber-700' },
-    interviewer: { label: 'Pesquisador', color: 'bg-green-100 text-green-700' },
+    coordinator_general: { label: 'Coordenador Geral', color: 'bg-indigo-100 text-indigo-700' },
+    coordinator_field: { label: 'Coordenador de Campo', color: 'bg-cyan-100 text-cyan-700' },
+    supervisor_quality: { label: 'Supervisor de Coleta e Qualidade', color: 'bg-amber-100 text-amber-700' },
+    interviewer: { label: 'Entrevistador', color: 'bg-green-100 text-green-700' },
     driver: { label: 'Motorista', color: 'bg-slate-100 text-slate-700' },
+    coordinator: { label: 'Coordenador Geral', color: 'bg-indigo-100 text-indigo-700' },
+    fiscal: { label: 'Supervisor de Coleta e Qualidade', color: 'bg-amber-100 text-amber-700' },
 };
 
 function formatPhone(value: string): string {
@@ -230,7 +233,7 @@ export default function TeamPage() {
                 {[
                     { label: 'Total', value: members.length, color: 'text-slate-800' },
                     { label: 'Ativos', value: activeCount, color: 'text-green-600' },
-                    { label: 'Pesquisadores', value: interviewerCount, color: 'text-blue-600' },
+                    { label: 'Entrevistadores', value: interviewerCount, color: 'text-blue-600' },
                     { label: 'Inativos', value: members.length - activeCount, color: 'text-slate-400' },
                 ].map(card => (
                     <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-4">
@@ -464,7 +467,7 @@ export default function TeamPage() {
                                 {form.role === 'interviewer' && (
                                     <p className="mt-1 text-xs text-blue-600 flex items-center gap-1">
                                         <ShieldCheck className="w-3.5 h-3.5" />
-                                        Pesquisadores usarão este login no aplicativo móvel
+                                        Entrevistadores usarão este login no aplicativo móvel
                                     </p>
                                 )}
                             </div>

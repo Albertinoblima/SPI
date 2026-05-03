@@ -11,6 +11,10 @@ export interface SurveyTechData {
     objective: string;
     methodology: string;
     target_audience: string;
+    is_registered_research: boolean;
+    registered_responsible_name: string;
+    registered_responsible_registry: string;
+    registered_responsible_body: string;
     requires_geolocation: boolean;
     requires_photo: boolean;
     requires_signature: boolean;
@@ -48,9 +52,43 @@ function Field({ children }: { children: React.ReactNode }) {
     return <div className="flex flex-col">{children}</div>;
 }
 
+const SURVEY_TYPE_OPTIONS = [
+    { value: 'eleitoral', label: 'Eleitoral (quantitativa amostral)' },
+    { value: 'opiniao_publica', label: 'Opinião pública (quantitativa amostral)' },
+    { value: 'satisfacao', label: 'Satisfação com gestão/serviço (quantitativa amostral)' },
+    { value: 'avaliacao_servicos', label: 'Avaliação de serviços (quantitativa amostral)' },
+    { value: 'mercado_quantitativa', label: 'Mercado e consumo (quantitativa amostral)' },
+    { value: 'censo', label: 'Censo / cadastro (cobertura total)' },
+    { value: 'qualitativa_grupo_focal', label: 'Qualitativa - Grupo focal' },
+    { value: 'qualitativa_profundidade', label: 'Qualitativa - Entrevista em profundidade' },
+    { value: 'quali_quanti', label: 'Mista (quali-quanti)' },
+    { value: 'outros', label: 'Outros' },
+];
+
+export function shouldUseStatisticalSampling(surveyType: string): boolean {
+    return ['eleitoral', 'opiniao_publica', 'satisfacao', 'avaliacao_servicos', 'mercado_quantitativa'].includes(surveyType);
+}
+
+function getMethodologyHint(surveyType: string): string {
+    if (shouldUseStatisticalSampling(surveyType)) {
+        return 'Pesquisa quantitativa amostral: utilize margem de erro e intervalo de confiança para dimensionar entrevistas.';
+    }
+    if (surveyType === 'censo') {
+        return 'Levantamento censitário: cobertura total do universo. A quantidade por localidade deve ser definida manualmente.';
+    }
+    if (surveyType === 'qualitativa_grupo_focal' || surveyType === 'qualitativa_profundidade') {
+        return 'Pesquisa qualitativa: não utiliza margem de erro estatística. Defina metas de entrevistas por critério técnico na etapa de localidades.';
+    }
+    if (surveyType === 'quali_quanti') {
+        return 'Pesquisa mista: use amostragem apenas na fase quantitativa. Metas qualitativas devem ser definidas manualmente.';
+    }
+    return 'Defina o tipo para habilitar recomendações metodológicas e regras automáticas de amostragem.';
+}
+
 export function Step1TechnicalData({ data, onChange }: Props) {
     const set = (key: keyof SurveyTechData, value: string | number | boolean) =>
         onChange({ ...data, [key]: value });
+    const usesSampling = shouldUseStatisticalSampling(data.survey_type);
 
     return (
         <div>
@@ -90,12 +128,9 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="">Selecione...</option>
-                            <option value="eleitoral">Eleitoral</option>
-                            <option value="satisfacao">Satisfação com gestão</option>
-                            <option value="opiniao">Opinião pública</option>
-                            <option value="censo">Censo / Cadastro</option>
-                            <option value="avaliacao">Avaliação de serviços</option>
-                            <option value="outros">Outros</option>
+                            {SURVEY_TYPE_OPTIONS.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                         </select>
                     </Field>
 
@@ -114,64 +149,74 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     </Field>
                 </div>
 
-                {/* Margem de erro + Intervalo de confiança */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field>
-                        <Label
-                            htmlFor="margin_of_error"
-                            tooltip="Margem de erro aceitável na pesquisa. Quanto menor, maior a amostra necessária. Valores comuns: 3% a 5%."
-                        >
-                            Margem de Erro (%)
-                        </Label>
-                        <div className="flex items-center gap-4">
-                            <input
-                                id="margin_of_error"
-                                type="range"
-                                min={1}
-                                max={10}
-                                step={0.5}
-                                value={data.margin_of_error}
-                                onChange={e => set('margin_of_error', parseFloat(e.target.value))}
-                                className="flex-1 accent-blue-600"
-                                aria-label="Margem de erro em porcentagem"
-                            />
-                            <span className="w-14 text-center border border-slate-300 rounded-lg px-2 py-1 text-sm font-bold text-blue-700">
-                                {data.margin_of_error}%
-                            </span>
-                        </div>
-                        <div className="flex justify-between text-xs text-slate-400 mt-1">
-                            <span>1% (precisão alta, amostra maior)</span>
-                            <span>10% (amostra menor)</span>
-                        </div>
-                    </Field>
-
-                    <Field>
-                        <Label
-                            htmlFor="confidence_interval"
-                            tooltip="Probabilidade de que o intervalo de confiança contém o valor real. 95% é o padrão na maioria das pesquisas."
-                        >
-                            Intervalo de Confiança
-                        </Label>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                            {[90, 95, 99].map(ic => (
-                                <button
-                                    key={ic}
-                                    type="button"
-                                    onClick={() => set('confidence_interval', ic)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition
-                                        ${data.confidence_interval === ic
-                                            ? 'bg-blue-600 text-white border-blue-600'
-                                            : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600'}`}
-                                >
-                                    {ic}%
-                                </button>
-                            ))}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-2">
-                            Z: {data.confidence_interval === 90 ? '1,645' : data.confidence_interval === 95 ? '1,960' : '2,576'} (normal padrão)
-                        </p>
-                    </Field>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+                    {getMethodologyHint(data.survey_type)}
                 </div>
+
+                {/* Margem de erro + Intervalo de confiança */}
+                {usesSampling ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <Field>
+                            <Label
+                                htmlFor="margin_of_error"
+                                tooltip="Margem de erro aceitável na pesquisa. Quanto menor, maior a amostra necessária. Valores comuns: 3% a 5%."
+                            >
+                                Margem de Erro (%)
+                            </Label>
+                            <div className="flex items-center gap-4">
+                                <input
+                                    id="margin_of_error"
+                                    type="range"
+                                    min={1}
+                                    max={10}
+                                    step={0.5}
+                                    value={data.margin_of_error}
+                                    onChange={e => set('margin_of_error', Number(e.target.value) || 1)}
+                                    className="flex-1 accent-blue-600"
+                                    aria-label="Margem de erro em porcentagem"
+                                />
+                                <span className="w-14 text-center border border-slate-300 rounded-lg px-2 py-1 text-sm font-bold text-blue-700">
+                                    {data.margin_of_error}%
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-xs text-slate-400 mt-1">
+                                <span>1% (precisão alta, amostra maior)</span>
+                                <span>10% (amostra menor)</span>
+                            </div>
+                        </Field>
+
+                        <Field>
+                            <Label
+                                htmlFor="confidence_interval"
+                                tooltip="Probabilidade de que o intervalo de confiança contém o valor real. 95% é o padrão na maioria das pesquisas."
+                            >
+                                Intervalo de Confiança
+                            </Label>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {[90, 95, 99].map(ic => (
+                                    <button
+                                        key={ic}
+                                        type="button"
+                                        onClick={() => set('confidence_interval', ic)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-semibold border transition
+                                            ${data.confidence_interval === ic
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600'}`}
+                                    >
+                                        {ic}%
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-2">
+                                Z: {data.confidence_interval === 90 ? '1,645' : data.confidence_interval === 95 ? '1,960' : '2,576'} (normal padrão)
+                            </p>
+                        </Field>
+                    </div>
+                ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900">
+                        Para este tipo de pesquisa, a quantidade de entrevistas será definida manualmente por localidade na Etapa 2.
+                    </div>
+                )}
 
                 {/* Período */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -231,7 +276,61 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                         className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 resize-none"
                         placeholder="Ex: Entrevista domiciliar face-a-face com questionário estruturado."
                     />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {[
+                            'Amostragem probabilística estratificada por localidade',
+                            'Entrevistas presenciais domiciliares com questionário estruturado',
+                            'Grupo focal moderado com roteiro semiestruturado',
+                            'Entrevistas em profundidade com análise temática',
+                        ].map(template => (
+                            <button
+                                key={template}
+                                type="button"
+                                onClick={() => set('methodology', template)}
+                                className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-700"
+                            >
+                                {template}
+                            </button>
+                        ))}
+                    </div>
                 </Field>
+
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <label className="flex items-center gap-2 mb-3 text-sm font-medium text-slate-700">
+                        <input
+                            type="checkbox"
+                            checked={data.is_registered_research}
+                            onChange={e => set('is_registered_research', e.target.checked)}
+                            className="accent-blue-600 w-4 h-4"
+                        />
+                        Pesquisa registrada em órgão de classe oficial
+                    </label>
+                    {data.is_registered_research && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <input
+                                type="text"
+                                value={data.registered_responsible_name}
+                                onChange={e => set('registered_responsible_name', e.target.value)}
+                                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                placeholder="Responsável técnico"
+                            />
+                            <input
+                                type="text"
+                                value={data.registered_responsible_registry}
+                                onChange={e => set('registered_responsible_registry', e.target.value)}
+                                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                placeholder="Número do cadastro"
+                            />
+                            <input
+                                type="text"
+                                value={data.registered_responsible_body}
+                                onChange={e => set('registered_responsible_body', e.target.value)}
+                                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                placeholder="Órgão de classe"
+                            />
+                        </div>
+                    )}
+                </div>
 
                 {/* Opções da coleta */}
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">

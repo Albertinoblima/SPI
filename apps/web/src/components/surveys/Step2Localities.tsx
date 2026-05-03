@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, HelpCircle, Calculator } from 'lucide-react';
+import { shouldUseStatisticalSampling } from './Step1TechnicalData';
 
 export interface Locality {
     id: string;
@@ -18,6 +19,7 @@ interface Props {
     onChange: (localities: Locality[]) => void;
     marginOfError: number;
     confidenceInterval: number;
+    surveyType: string;
 }
 
 function Tooltip({ text }: { text: string }) {
@@ -54,14 +56,16 @@ const ZONE_LABELS: Record<string, string> = {
     mixed: 'Misto',
 };
 
-export function Step2Localities({ localities, onChange, marginOfError, confidenceInterval }: Props) {
-    const [form, setForm] = useState<Omit<Locality, 'id' | 'interviews_required' | 'interviews_weight'>>({
+export function Step2Localities({ localities, onChange, marginOfError, confidenceInterval, surveyType }: Props) {
+    const [form, setForm] = useState<Omit<Locality, 'id' | 'interviews_weight'> & { interviews_required: number }>({
         name: '',
         zone: 'urban',
         population: 0,
         population_type: 'voters',
+        interviews_required: 0,
     });
     const [error, setError] = useState('');
+    const usesSampling = shouldUseStatisticalSampling(surveyType);
 
     const totalInterviews = localities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
 
@@ -70,7 +74,13 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
         if (form.population <= 0) { setError('A população deve ser maior que zero.'); return; }
         setError('');
 
-        const interviews = calcInterviews(form.population, marginOfError, confidenceInterval);
+        const interviews = usesSampling
+            ? calcInterviews(form.population, marginOfError, confidenceInterval)
+            : form.interviews_required;
+        if (!usesSampling && interviews <= 0) {
+            setError('Informe a quantidade planejada de entrevistas para esta localidade.');
+            return;
+        }
         const newLoc: Locality = {
             id: `loc_${Date.now()}`,
             ...form,
@@ -85,7 +95,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
             interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0,
         }));
         onChange(withWeights);
-        setForm({ name: '', zone: 'urban', population: 0, population_type: 'voters' });
+        setForm({ name: '', zone: 'urban', population: 0, population_type: 'voters', interviews_required: 0 });
     };
 
     const handleRemove = (id: string) => {
@@ -95,6 +105,12 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
     };
 
     const handleRecalcAll = () => {
+        if (!usesSampling) {
+            const total = localities.reduce((s, l) => s + (l.interviews_required ?? 0), 0);
+            onChange(localities.map(l => ({ ...l, interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0 })));
+            return;
+        }
+
         const recalc = localities.map(l => ({
             ...l,
             interviews_required: calcInterviews(l.population, marginOfError, confidenceInterval),
@@ -107,18 +123,25 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
         <div>
             <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 — Localidades</h2>
             <p className="text-sm text-slate-500 mb-2">
-                Informe os municípios, zonas e população. O sistema calculará automaticamente o número de entrevistas
-                necessárias com base na margem de erro <strong>{marginOfError}%</strong> e intervalo de confiança <strong>{confidenceInterval}%</strong>.
+                {usesSampling
+                    ? 'Informe os municípios, zonas e população. O sistema calculará automaticamente o número de entrevistas necessárias com base na margem de erro e no intervalo de confiança definidos na etapa anterior.'
+                    : 'Informe os municípios e defina manualmente a quantidade planejada de entrevistas por localidade.'}
             </p>
 
             {/* Fórmula explicada */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-800 flex items-start gap-2">
-                <Calculator size={15} className="mt-0.5 shrink-0 text-blue-600" />
-                <span>
-                    <strong>Fórmula amostral para populações finitas:</strong>{' '}
-                    n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
-                </span>
-            </div>
+            {usesSampling ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-800 flex items-start gap-2">
+                    <Calculator size={15} className="mt-0.5 shrink-0 text-blue-600" />
+                    <span>
+                        <strong>Fórmula amostral para populações finitas:</strong>{' '}
+                        n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
+                    </span>
+                </div>
+            ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-xs text-amber-900">
+                    Para esta tipologia metodológica, não há cálculo amostral automático. A empresa define a meta operacional por localidade.
+                </div>
+            )}
 
             {/* Formulário de adição */}
             <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-slate-50">
@@ -191,9 +214,27 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                             <option value="inhabitants">Habitantes</option>
                         </select>
                     </div>
+
+                    {!usesSampling && (
+                        <div>
+                            <label htmlFor="loc-interviews" className="text-sm font-medium text-slate-700 block mb-1">
+                                Entrevistas planejadas
+                                <Tooltip text="Meta operacional definida pela gestão para esta localidade." />
+                            </label>
+                            <input
+                                id="loc-interviews"
+                                type="number"
+                                min={1}
+                                value={form.interviews_required || ''}
+                                onChange={e => setForm(f => ({ ...f, interviews_required: parseInt(e.target.value) || 0 }))}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ex: 120"
+                            />
+                        </div>
+                    )}
                 </div>
 
-                {form.population > 0 && marginOfError > 0 && (
+                {usesSampling && form.population > 0 && marginOfError > 0 && (
                     <p className="mt-3 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
                         📊 Estimativa: <strong className="text-blue-700">
                             {calcInterviews(form.population, marginOfError, confidenceInterval)} entrevistas
@@ -226,7 +267,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                             className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition"
                         >
                             <Calculator size={14} />
-                            Recalcular todas
+                            {usesSampling ? 'Recalcular todas' : 'Atualizar pesos'}
                         </button>
                     </div>
 

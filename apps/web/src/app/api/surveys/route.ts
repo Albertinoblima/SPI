@@ -55,7 +55,9 @@ export async function POST(request: NextRequest) {
         const { title, description, survey_type, margin_of_error, confidence_interval,
             objective, methodology, target_audience, requires_geolocation,
             requires_photo, requires_signature, allow_offline,
-            started_at, ended_at } = body;
+            started_at, ended_at, is_registered_research,
+            registered_responsible_name, registered_responsible_registry,
+            registered_responsible_body } = body;
 
         if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400);
 
@@ -74,6 +76,10 @@ export async function POST(request: NextRequest) {
                 objective: objective?.trim() || null,
                 methodology: methodology?.trim() || null,
                 target_audience: target_audience?.trim() || null,
+                is_registered_research: is_registered_research ?? false,
+                registered_responsible_name: registered_responsible_name?.trim() || null,
+                registered_responsible_registry: registered_responsible_registry?.trim() || null,
+                registered_responsible_body: registered_responsible_body?.trim() || null,
                 requires_geolocation: requires_geolocation ?? true,
                 requires_photo: requires_photo ?? false,
                 requires_signature: requires_signature ?? false,

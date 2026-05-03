@@ -33,6 +33,10 @@ const initialWizardData: WizardData = {
         objective: '',
         methodology: '',
         target_audience: '',
+        is_registered_research: false,
+        registered_responsible_name: '',
+        registered_responsible_registry: '',
+        registered_responsible_body: '',
         requires_geolocation: true,
         requires_photo: false,
         requires_signature: false,
@@ -200,6 +204,7 @@ export function SurveyWizard() {
                         onChange={updateLocalities}
                         marginOfError={data.tech.margin_of_error}
                         confidenceInterval={data.tech.confidence_interval}
+                        surveyType={data.tech.survey_type}
                     />
                 )}
                 {currentStep === 3 && (

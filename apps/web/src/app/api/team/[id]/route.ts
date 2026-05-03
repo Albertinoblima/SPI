@@ -65,7 +65,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const body = await request.json();
         const { full_name, phone, role, is_active, password } = body;
 
-        const validRoles = ['admin', 'manager', 'coordinator', 'interviewer', 'fiscal', 'driver'];
+        const validRoles = [
+            'admin',
+            'manager',
+            'coordinator_general',
+            'coordinator_field',
+            'supervisor_quality',
+            'interviewer',
+            'driver',
+            'coordinator',
+            'fiscal',
+        ];
         if (role && !validRoles.includes(role)) {
             return apiError('Cargo inválido', 400);
         }
