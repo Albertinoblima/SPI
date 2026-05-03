@@ -3,11 +3,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { HELP_TOPICS } from '@/lib/help-topics';
 
 export default function HelpPage() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const queryFromUrl = searchParams.get('q') ?? '';
+
     const [query, setQuery] = useState('');
     const [activeTopicId, setActiveTopicId] = useState<string>(HELP_TOPICS[0]?.id ?? '');
+
+    useEffect(() => {
+        if (queryFromUrl !== query) {
+            setQuery(queryFromUrl);
+        }
+    }, [queryFromUrl, query]);
 
     const filteredTopics = useMemo(() => {
         const normalized = query.trim().toLowerCase();
@@ -54,6 +66,21 @@ export default function HelpPage() {
         return () => observer.disconnect();
     }, [filteredTopics, activeTopicId]);
 
+    useEffect(() => {
+        const params = new URLSearchParams(Array.from(searchParams.entries()));
+        const normalized = query.trim();
+
+        if (normalized) {
+            params.set('q', normalized);
+        } else {
+            params.delete('q');
+        }
+
+        const queryString = params.toString();
+        const url = queryString ? `${pathname}?${queryString}` : pathname;
+        router.replace(url, { scroll: false });
+    }, [query, pathname, router, searchParams]);
+
     return (
         <div className="p-6 max-w-6xl mx-auto">
             <div className="mb-8">
@@ -84,8 +111,8 @@ export default function HelpPage() {
                                 href={`#${topic.id}`}
                                 onClick={() => setActiveTopicId(topic.id)}
                                 className={`block text-sm rounded-lg px-2 py-1.5 transition ${activeTopicId === topic.id
-                                        ? 'bg-blue-100 text-blue-800 font-semibold'
-                                        : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
+                                    ? 'bg-blue-100 text-blue-800 font-semibold'
+                                    : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
                                     }`}
                             >
                                 {topic.title}

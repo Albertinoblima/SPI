@@ -26,7 +26,7 @@ interface Props {
 
 function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
     const topic = helpId ? HELP_TOPICS_BY_ID[helpId] : undefined;
-    const href = topic ? `/help#${topic.id}` : '/help';
+    const href = topic ? `/help?q=${encodeURIComponent(topic.title)}#${topic.id}` : '/help';
 
     const handleMouseEnter = () => {
         if (typeof window === 'undefined') return;
