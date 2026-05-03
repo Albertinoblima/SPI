@@ -246,7 +246,7 @@ function SettingsContent() {
                             <p className="text-xs text-slate-500 text-center">
                                 {uploadingLogo ? 'Enviando...' : 'Clique para fazer upload'}
                             </p>
-                            <p className="text-xs text-slate-400 text-center">PNG, JPG, SVG · max 2MB</p>
+                            <p className="text-xs text-slate-400 text-center">PNG, JPG, WebP, SVG · redimensionado automaticamente</p>
                         </div>
                         <input
                             ref={fileInputRef}
