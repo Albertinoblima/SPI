@@ -506,8 +506,8 @@ export default function ChatWidget() {
                                     ) : messages.length === 0 ? (
                                         <p className="text-center text-slate-400 text-sm">Nenhuma mensagem ainda.</p>
                                     ) : (
-                                        {
-                                            messages.map((msg) => (
+                                        <>
+                                            {messages.map((msg) => (
                                                 <div key={msg.id} className={`flex ${msg.is_from_admin ? 'justify-start' : 'justify-end'}`}>
                                                     <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${msg.is_from_admin
                                                         ? 'bg-slate-100 text-slate-800 rounded-tl-sm'
@@ -526,8 +526,7 @@ export default function ChatWidget() {
                                                     </div>
                                                 </div>
                                             ))
-                                        }
-                                    )}
+                                            }                                        </>)}
 
                                     {isClosed && (
                                         <div className="flex items-center gap-2 text-green-600 text-xs bg-green-50 rounded-lg p-2 mt-2">
