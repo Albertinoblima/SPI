@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, HelpCircle, Calculator } from 'lucide-react';
+import { Plus, Trash2, HelpCircle, Calculator, Users } from 'lucide-react';
 import Link from 'next/link';
 import { shouldUseStatisticalSampling } from './Step1TechnicalData';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
@@ -90,6 +90,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
     const usesSampling = shouldUseStatisticalSampling(surveyType);
 
     const totalInterviews = localities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
+    const totalPopulation = localities.reduce((acc, l) => acc + (l.population ?? 0), 0);
 
     const handleAdd = () => {
         if (!form.name.trim()) { setError('Informe o nome da localidade.'); return; }
@@ -349,6 +350,41 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                             </tfoot>
                         </table>
                     </div>
+
+                    {/* Banner de resumo amostral */}
+                    {usesSampling && (
+                        <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Users size={18} className="text-emerald-600 shrink-0" />
+                                <div>
+                                    <p className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">
+                                        Universo total pesquisado
+                                    </p>
+                                    <p className="text-lg font-extrabold text-emerald-800">
+                                        {totalPopulation.toLocaleString('pt-BR')}
+                                        <span className="text-xs font-normal text-emerald-600 ml-1">pessoas / eleitores</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="h-px sm:h-10 w-full sm:w-px bg-emerald-200" />
+                            <div className="flex items-center gap-3">
+                                <Calculator size={18} className="text-blue-600 shrink-0" />
+                                <div>
+                                    <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide">
+                                        Total de entrevistas (Etapa 2)
+                                    </p>
+                                    <p className="text-lg font-extrabold text-blue-800">
+                                        {totalInterviews.toLocaleString('pt-BR')}
+                                        <span className="text-xs font-normal text-blue-600 ml-1">entrevistas</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-xs text-slate-500 max-w-xs">
+                                Este é o total definitivo — calculado pela fórmula de população finita para cada município individualmente.
+                                Atualizado automaticamente na Etapa 1.
+                            </div>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="text-center text-slate-400 py-10 border-2 border-dashed border-slate-200 rounded-xl">

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
-import { Step1TechnicalData, type SurveyTechData } from './Step1TechnicalData';
+import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
 import { Step2Localities, type Locality } from './Step2Localities';
 import { Step3Premises, type Premise } from './Step3Premises';
 import { Step4Questions } from './Step4Questions';
@@ -64,8 +64,39 @@ export function SurveyWizard() {
         setData(prev => ({ ...prev, tech }));
     }, []);
 
+    // Quando localidades mudam, recalcula population_size (soma das populações)
+    // e atualiza total_interviews no modo auto (mantendo deff e p do usuário).
     const updateLocalities = useCallback((localities: Locality[]) => {
-        setData(prev => ({ ...prev, localities }));
+        setData(prev => {
+            const totalPop = localities.reduce((s, l) => s + (l.population ?? 0), 0);
+            const tech = prev.tech;
+            if (tech.stats_mode !== 'auto') {
+                return { ...prev, localities };
+            }
+            const usesSampling = shouldUseStatisticalSampling(tech.survey_type);
+            if (!usesSampling) {
+                return { ...prev, localities };
+            }
+            const Z: Record<number, number> = { 90: 1.645, 95: 1.96, 99: 2.576 };
+            const z = Z[tech.confidence_interval] ?? 1.96;
+            const E = tech.margin_of_error / 100;
+            const p = tech.p_proportion ?? 0.5;
+            const n0 = (z * z * p * (1 - p)) / (E * E);
+            const popForCalc = totalPop > 0 ? totalPop : null;
+            const nWithPop = popForCalc && popForCalc > 0
+                ? n0 / (1 + (n0 - 1) / popForCalc)
+                : n0;
+            const total_interviews = Math.ceil(nWithPop * (tech.deff ?? 1));
+            return {
+                ...prev,
+                localities,
+                tech: {
+                    ...tech,
+                    population_size: totalPop > 0 ? totalPop : null,
+                    total_interviews,
+                },
+            };
+        });
     }, []);
 
     const updatePremises = useCallback((premises: Premise[]) => {

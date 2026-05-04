@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp, Calculator, PenLine, RefreshCw } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronUp, Calculator, PenLine, RefreshCw, MapPin } from 'lucide-react';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 import Link from 'next/link';
 
@@ -137,6 +137,8 @@ export function StatisticsCalculator({ value, onChange }: Props) {
     );
 
     const isOverridden = value.stats_mode === 'auto' && value.total_interviews !== calculatedN;
+    const hasPopulation = value.population_size != null && value.population_size > 0;
+    const populationIsLarge = hasPopulation && value.population_size! >= 100_000;
 
     return (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 flex flex-col gap-4">
@@ -285,7 +287,7 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                             {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                             Configurações avançadas
                             <Tip
-                                text="Ajuste o valor de p, o tamanho da população (para correção de população finita) e o Efeito de Delineamento (Deff)."
+                                text="Ajuste o valor de p (estimativa de proporção) e o Efeito de Delineamento (Deff). O tamanho da população é calculado automaticamente a partir das localidades definidas na Etapa 2."
                                 helpId="sampling-advanced"
                             />
                         </button>
@@ -319,35 +321,6 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                                     {value.p_proportion === 0.5 && (
                                         <p className="text-[11px] text-slate-400 mt-1">
                                             ✓ Variância máxima — padrão conservador (recomendado)
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* population_size */}
-                                <div>
-                                    <label className="flex items-center text-xs font-semibold text-slate-700 mb-1.5" htmlFor="pop_size">
-                                        Tamanho da população (N)
-                                        <Tip
-                                            text="Deixe vazio para populações grandes (acima de 100.000). Para populações menores, o fator de correção reduz o tamanho de amostra necessário."
-                                            helpId="population-size"
-                                        />
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            id="pop_size"
-                                            type="number"
-                                            min={0}
-                                            value={value.population_size ?? ''}
-                                            onChange={e => set('population_size', e.target.value ? Number(e.target.value) : null)}
-                                            className="w-40 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500"
-                                            placeholder="ex: 120.000"
-                                            aria-label="Tamanho da população"
-                                        />
-                                        <span className="text-xs text-slate-500">eleitores / pessoas</span>
-                                    </div>
-                                    {value.population_size && value.population_size > 0 && value.population_size < 1_000_000 && (
-                                        <p className="text-[11px] text-emerald-600 mt-1">
-                                            ✓ Fator de correção de pop. finita aplicado
                                         </p>
                                     )}
                                 </div>
@@ -387,19 +360,47 @@ export function StatisticsCalculator({ value, onChange }: Props) {
 
                     {/* Resultado do cálculo */}
                     <div className={`rounded-xl border-2 p-4 ${isOverridden ? 'border-amber-400 bg-amber-50' : 'border-blue-400 bg-white'}`}>
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Tamanho de amostra calculado</p>
-                                <p className="text-3xl font-extrabold text-blue-700 tabular-nums">
-                                    {calculatedN.toLocaleString('pt-BR')}
-                                    <span className="text-base font-normal text-slate-500 ml-1">entrevistas</span>
-                                </p>
-                                <p className="text-[11px] text-slate-400 mt-1 font-mono">
-                                    {buildFormula(value.confidence_interval, value.margin_of_error, value.p_proportion)} ≈ {calculatedN.toLocaleString('pt-BR')}
-                                    {value.deff !== 1 && ` × Deff ${value.deff.toFixed(1)}`}
-                                    {value.population_size ? ` (pop. finita N=${value.population_size.toLocaleString('pt-BR')})` : ''}
-                                </p>
-                            </div>
+                        <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">
+                                {hasPopulation ? 'Tamanho de amostra calculado' : 'Estimativa de amostra'}
+                            </p>
+                            <p className="text-3xl font-extrabold text-blue-700 tabular-nums">
+                                {calculatedN.toLocaleString('pt-BR')}
+                                <span className="text-base font-normal text-slate-500 ml-1">entrevistas</span>
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                                {buildFormula(value.confidence_interval, value.margin_of_error, value.p_proportion)} ≈ {calculatedN.toLocaleString('pt-BR')}
+                                {value.deff !== 1 && ` × Deff ${value.deff.toFixed(1)}`}
+                                {hasPopulation ? ` (pop. finita N=${value.population_size!.toLocaleString('pt-BR')})` : ''}
+                            </p>
+
+                            {/* Status da população */}
+                            {!hasPopulation ? (
+                                <div className="mt-3 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600">
+                                    <MapPin size={13} className="mt-0.5 shrink-0 text-slate-400" />
+                                    <span>
+                                        <strong>Estimativa preliminar</strong> — calculada assumindo população grande (&gt; 100.000 pessoas).
+                                        O valor será <strong>recalculado automaticamente</strong> quando você adicionar as localidades na{' '}
+                                        <strong>Etapa 2</strong>, aplicando a correção de população finita por município.
+                                    </span>
+                                </div>
+                            ) : populationIsLarge ? (
+                                <div className="mt-3 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-700">
+                                    <MapPin size={13} className="mt-0.5 shrink-0" />
+                                    <span>
+                                        ✓ População total (Etapa 2): <strong>{value.population_size!.toLocaleString('pt-BR')}</strong> pessoas.
+                                        Para este universo, a correção de pop. finita tem impacto mínimo.
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="mt-3 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-700">
+                                    <MapPin size={13} className="mt-0.5 shrink-0" />
+                                    <span>
+                                        ✓ Fator de correção de pop. finita aplicado —
+                                        população total (Etapa 2): <strong>{value.population_size!.toLocaleString('pt-BR')}</strong> pessoas.
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Campo de total_interviews (editável manualmente) */}
