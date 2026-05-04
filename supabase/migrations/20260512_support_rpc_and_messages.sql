@@ -1,8 +1,8 @@
 -- ============================================================================
--- Suporte: função RPC para incrementar response_count e rota de mensagens admin
+-- Suporte: funÃ§Ã£o RPC para incrementar response_count e rota de mensagens admin
 -- ============================================================================
 
--- Função: incrementar contador de respostas de um ticket
+-- FunÃ§Ã£o: incrementar contador de respostas de um ticket
 CREATE OR REPLACE FUNCTION public.increment_ticket_response_count(ticket_uuid UUID)
 RETURNS void
 LANGUAGE plpgsql
@@ -17,3 +17,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.increment_ticket_response_count(UUID) TO authenticated;
+

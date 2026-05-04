@@ -104,6 +104,7 @@ DROP POLICY IF EXISTS "support_tickets_select_system_admin" ON public.support_ti
 DROP POLICY IF EXISTS "support_tickets_insert_policy" ON public.support_tickets;
 DROP POLICY IF EXISTS "support_tickets_update_own" ON public.support_tickets;
 DROP POLICY IF EXISTS "support_tickets_update_assigned" ON public.support_tickets;
+DROP POLICY IF EXISTS "support_tickets_update_system_admin" ON public.support_tickets;
 DROP POLICY IF EXISTS "support_tickets_delete_policy" ON public.support_tickets;
 
 -- POLICY: SELECT - Usuário vê seus próprios tickets

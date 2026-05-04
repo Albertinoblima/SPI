@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (surveyError || !survey) {
-            console.error('Survey creation error:', surveyError);
-            return apiError('Erro ao criar pesquisa', 500);
+            console.error('Survey creation error:', JSON.stringify(surveyError));
+            return apiError(`Erro ao criar pesquisa: ${surveyError?.message ?? 'desconhecido'} [${surveyError?.code ?? ''}]`, 500);
         }
 
         return apiSuccess({ survey }, 201);

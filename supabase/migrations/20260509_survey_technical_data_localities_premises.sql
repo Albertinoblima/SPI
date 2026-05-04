@@ -1,13 +1,13 @@
 -- ============================================================================
 -- MIGRATION: 20260509_survey_technical_data_localities_premises.sql
--- Descrição: Campos técnicos da pesquisa, tabelas de localidades e premissas
+-- DescriÃ§Ã£o: Campos tÃ©cnicos da pesquisa, tabelas de localidades e premissas
 -- Data: 2026-05-09
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
--- PARTE 1: CAMPOS TÉCNICOS NA TABELA SURVEYS
+-- PARTE 1: CAMPOS TÃ‰CNICOS NA TABELA SURVEYS
 -- ============================================================================
 
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS survey_type VARCHAR(50);
@@ -22,15 +22,15 @@ ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
 
 COMMENT ON COLUMN public.surveys.survey_type IS 'Tipo: eleitoral, satisfacao, censo, opiniao, outros';
 COMMENT ON COLUMN public.surveys.margin_of_error IS 'Margem de erro em % (ex: 3.5)';
-COMMENT ON COLUMN public.surveys.confidence_interval IS 'Intervalo de confiança em % (ex: 95)';
-COMMENT ON COLUMN public.surveys.total_interviews IS 'Total calculado de entrevistas necessárias';
+COMMENT ON COLUMN public.surveys.confidence_interval IS 'Intervalo de confianÃ§a em % (ex: 95)';
+COMMENT ON COLUMN public.surveys.total_interviews IS 'Total calculado de entrevistas necessÃ¡rias';
 
 -- ============================================================================
 -- PARTE 2: TABELA DE LOCALIDADES DA PESQUISA
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS public.survey_localities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     survey_id UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
 
@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_survey_localities_tenant ON public.survey_localit
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS public.survey_premises (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     survey_id UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
 
@@ -71,5 +71,6 @@ CREATE TABLE IF NOT EXISTS public.survey_premises (
 CREATE INDEX IF NOT EXISTS idx_survey_premises_survey ON public.survey_premises(survey_id, order_index);
 CREATE INDEX IF NOT EXISTS idx_survey_premises_tenant ON public.survey_premises(tenant_id);
 
-COMMENT ON TABLE public.survey_premises IS 'Premissas/cotas do entrevistado: faixa etária, sexo, escolaridade, etc.';
-COMMENT ON COLUMN public.survey_premises.options IS 'Array de opções: [{"label":"Masculino","value":"M","quota_pct":50}]';
+COMMENT ON TABLE public.survey_premises IS 'Premissas/cotas do entrevistado: faixa etÃ¡ria, sexo, escolaridade, etc.';
+COMMENT ON COLUMN public.survey_premises.options IS 'Array de opÃ§Ãµes: [{"label":"Masculino","value":"M","quota_pct":50}]';
+

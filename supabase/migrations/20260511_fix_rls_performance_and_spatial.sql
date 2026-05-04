@@ -1,19 +1,13 @@
 -- ============================================================================
 -- FIX: RLS Performance (Auth Initialization Plan) + spatial_ref_sys
 -- Substitui auth.uid() direto por (select auth.uid()) nas policies RLS
--- para permitir que o Postgres faça cache do valor e melhore performance.
+-- para permitir que o Postgres faÃ§a cache do valor e melhore performance.
 -- Habilita RLS na tabela PostGIS spatial_ref_sys (read-only para todos).
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. spatial_ref_sys: habilitar RLS + policy de leitura pública
---    (tabela de referência PostGIS, somente leitura, sem dados sensíveis)
+-- 1. spatial_ref_sys: RLS - skipped (requires superuser/owner permission)
 -- ----------------------------------------------------------------------------
-ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "spatial_ref_sys_read" ON public.spatial_ref_sys;
-CREATE POLICY "spatial_ref_sys_read" ON public.spatial_ref_sys
-FOR SELECT USING (true);
 
 -- ----------------------------------------------------------------------------
 -- 2. USERS - recriar policies usando (select auth.uid())
@@ -141,7 +135,7 @@ WITH CHECK (
 );
 
 -- ----------------------------------------------------------------------------
--- 7. Funções auxiliares: usar (select auth.uid()) internamente para cache
+-- 7. FunÃ§Ãµes auxiliares: usar (select auth.uid()) internamente para cache
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_user_tenant_id()
 RETURNS UUID
@@ -190,3 +184,4 @@ BEGIN
   RETURN user_role IN ('admin', 'manager');
 END;
 $$;
+
