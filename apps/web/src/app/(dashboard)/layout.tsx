@@ -68,13 +68,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         {collapsed ? (
                             /* Logo reduzida quando colapsado */
                             <div className="w-8 h-8 rounded-md overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-700 flex-shrink-0">
-                                <Image
-                                    src={companyLogo || '/branding/idialog-logo.png'}
-                                    alt="Logo"
-                                    width={32}
-                                    height={32}
-                                    className="object-contain w-8 h-8"
-                                />
+                                {companyLogo ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={companyLogo}
+                                        alt="Logo"
+                                        className="object-contain w-8 h-8"
+                                    />
+                                ) : (
+                                    <Image
+                                        src="/branding/idialog-logo.png"
+                                        alt="Logo"
+                                        width={32}
+                                        height={32}
+                                        className="object-contain w-8 h-8"
+                                    />
+                                )}
                             </div>
                         ) : (
                             <div className="flex-1 min-w-0">
@@ -159,11 +168,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <div className="flex items-center gap-2 ml-2">
                                 {companyLogo && (
                                     <div className="w-7 h-7 rounded overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-700 flex-shrink-0">
-                                        <Image
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
                                             src={companyLogo}
                                             alt={companyName || 'Logo'}
-                                            width={28}
-                                            height={28}
                                             className="object-contain w-7 h-7"
                                         />
                                     </div>
