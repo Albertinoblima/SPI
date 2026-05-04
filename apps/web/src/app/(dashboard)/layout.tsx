@@ -14,6 +14,7 @@ import {
     LifeBuoy,
 } from 'lucide-react';
 import ChatWidget from '@/components/support/ChatWidget';
+import TenantNotificationBell from '@/components/notifications/TenantNotificationBell';
 import { createClient } from '@/lib/supabase/client';
 
 interface DashboardLayoutProps {
@@ -93,8 +94,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto">
-                {children}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-end px-6 flex-shrink-0">
+                    <TenantNotificationBell />
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                    {children}
+                </div>
             </div>
 
             {/* Chat de Suporte - flutuante */}

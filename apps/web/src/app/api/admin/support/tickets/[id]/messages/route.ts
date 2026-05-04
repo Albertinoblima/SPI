@@ -19,7 +19,7 @@ export async function POST(
     // Verificar ticket
     const { data: ticket } = await auth.supabase
         .from('support_tickets')
-        .select('id, status')
+        .select('id, status, title, user_id, tenant_id')
         .eq('id', ticketId)
         .single();
 
@@ -57,6 +57,17 @@ export async function POST(
 
     // Incrementar contador
     await auth.supabase.rpc('increment_ticket_response_count', { ticket_uuid: ticketId });
+
+    // Criar notificação para o usuário dono do ticket
+    if (ticket.user_id) {
+        await auth.supabase.rpc('create_ticket_reply_notification', {
+            p_ticket_id: ticketId,
+            p_ticket_title: ticket.title,
+            p_user_id: ticket.user_id,
+            p_tenant_id: ticket.tenant_id,
+            p_admin_id: auth.user.id,
+        });
+    }
 
     return apiSuccess({ message: newMsg }, 201);
 }

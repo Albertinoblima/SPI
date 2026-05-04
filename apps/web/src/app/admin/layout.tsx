@@ -14,6 +14,7 @@ import {
     LogIn,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import AdminNotificationBell from '@/components/notifications/AdminNotificationBell';
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -122,7 +123,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <h2 className="text-xl font-semibold text-white">
                         Painel Administrativo iDialog
                     </h2>
-                    <div className="ml-auto flex items-center gap-4">
+                    <div className="ml-auto flex items-center gap-3">
+                        <AdminNotificationBell />
                         <div className="flex items-center gap-2 text-slate-300">
                             <LogIn className="w-4 h-4" />
                             <span className="text-sm">Sistema Admin</span>

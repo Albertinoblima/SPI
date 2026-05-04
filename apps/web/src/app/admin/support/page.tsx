@@ -7,6 +7,10 @@ import {
     AlertTriangle,
     Loader,
     ChevronRight,
+    Megaphone,
+    Send,
+    Building2,
+    CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -37,6 +41,17 @@ export default function SupportPage() {
     const [statusFilter, setStatusFilter] = useState('open');
     const [page, setPage] = useState(1);
 
+    // Broadcast
+    const [showBroadcast, setShowBroadcast] = useState(false);
+    const [tenants, setTenants] = useState<{ id: string; name: string }[]>([]);
+    const [broadcastTitle, setBroadcastTitle] = useState('');
+    const [broadcastMessage, setBroadcastMessage] = useState('');
+    const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'tenant'>('all');
+    const [broadcastTenantId, setBroadcastTenantId] = useState('');
+    const [broadcastSending, setBroadcastSending] = useState(false);
+    const [broadcastSuccess, setBroadcastSuccess] = useState(false);
+    const [broadcastError, setBroadcastError] = useState<string | null>(null);
+
     const fetchTickets = useCallback(async () => {
         try {
             setLoading(true);
@@ -63,6 +78,49 @@ export default function SupportPage() {
     useEffect(() => {
         fetchTickets();
     }, [fetchTickets]);
+
+    // Carregar tenants para o broadcast
+    useEffect(() => {
+        fetch('/api/admin/tenants/list')
+            .then((r) => r.json())
+            .then(({ data }) => setTenants(data?.tenants ?? []))
+            .catch(() => { });
+    }, []);
+
+    async function sendBroadcast() {
+        if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+            setBroadcastError('Preencha título e mensagem');
+            return;
+        }
+        setBroadcastSending(true);
+        setBroadcastError(null);
+        try {
+            const res = await fetch('/api/admin/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: broadcastTitle,
+                    message: broadcastMessage,
+                    target_type: broadcastTarget,
+                    tenant_id: broadcastTarget === 'tenant' ? broadcastTenantId : undefined,
+                }),
+            });
+            if (!res.ok) {
+                const { error: e } = await res.json();
+                throw new Error(e ?? 'Erro ao enviar');
+            }
+            setBroadcastSuccess(true);
+            setBroadcastTitle('');
+            setBroadcastMessage('');
+            setBroadcastTarget('all');
+            setBroadcastTenantId('');
+            setTimeout(() => setBroadcastSuccess(false), 4000);
+        } catch (err) {
+            setBroadcastError(err instanceof Error ? err.message : 'Erro ao enviar');
+        } finally {
+            setBroadcastSending(false);
+        }
+    }
 
     const filteredTickets = tickets.filter(
         (ticket) =>
@@ -142,14 +200,118 @@ export default function SupportPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-white mb-2">
-                    Suporte e Tickets
-                </h1>
-                <p className="text-slate-400">
-                    Gerencie tickets de suporte dos clientes
-                </p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Suporte e Tickets
+                    </h1>
+                    <p className="text-slate-400">
+                        Gerencie tickets de suporte dos clientes
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowBroadcast((v) => !v)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition
+                        ${showBroadcast
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-700 text-slate-200 hover:bg-purple-600 hover:text-white'}`}
+                >
+                    <Megaphone className="w-4 h-4" />
+                    Enviar Mensagem às Empresas
+                </button>
             </div>
+
+            {/* Painel Broadcast */}
+            {showBroadcast && (
+                <div className="p-6 rounded-xl bg-slate-800 border border-purple-500/30 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Megaphone className="w-5 h-5 text-purple-400" />
+                        <h2 className="font-semibold text-white">Enviar notificação para empresas</h2>
+                    </div>
+
+                    {broadcastSuccess && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-900/30 border border-green-700/40 text-green-300 text-sm">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Notificação enviada com sucesso!
+                        </div>
+                    )}
+                    {broadcastError && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-900/30 border border-red-700/40 text-red-300 text-sm">
+                            <AlertTriangle className="w-4 h-4" />
+                            {broadcastError}
+                        </div>
+                    )}
+
+                    {/* Destinatário */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setBroadcastTarget('all')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition
+                                ${broadcastTarget === 'all'
+                                    ? 'bg-purple-600/30 border-purple-500 text-purple-200'
+                                    : 'border-slate-600 text-slate-400 hover:border-purple-500/50'}`}
+                        >
+                            <Megaphone className="w-4 h-4" />
+                            Todas as empresas
+                        </button>
+                        <button
+                            onClick={() => setBroadcastTarget('tenant')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition
+                                ${broadcastTarget === 'tenant'
+                                    ? 'bg-blue-600/30 border-blue-500 text-blue-200'
+                                    : 'border-slate-600 text-slate-400 hover:border-blue-500/50'}`}
+                        >
+                            <Building2 className="w-4 h-4" />
+                            Empresa específica
+                        </button>
+                    </div>
+
+                    {broadcastTarget === 'tenant' && (
+                        <select
+                            aria-label="Selecionar empresa"
+                            value={broadcastTenantId}
+                            onChange={(e) => setBroadcastTenantId(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm focus:outline-none focus:border-purple-500"
+                        >
+                            <option value="">Selecione uma empresa…</option>
+                            {tenants.map((t) => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
+                    )}
+
+                    <input
+                        type="text"
+                        placeholder="Título da notificação"
+                        value={broadcastTitle}
+                        onChange={(e) => setBroadcastTitle(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500"
+                    />
+
+                    <textarea
+                        placeholder="Escreva a mensagem para as empresas…"
+                        value={broadcastMessage}
+                        onChange={(e) => setBroadcastMessage(e.target.value)}
+                        rows={4}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 resize-none"
+                    />
+
+                    <div className="flex justify-end">
+                        <button
+                            onClick={sendBroadcast}
+                            disabled={broadcastSending || !broadcastTitle.trim() || !broadcastMessage.trim()}
+                            className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition"
+                        >
+                            {broadcastSending ? (
+                                <Loader className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Send className="w-4 h-4" />
+                            )}
+                            {broadcastSending ? 'Enviando…' : 'Enviar Notificação'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="flex gap-4 flex-wrap">
