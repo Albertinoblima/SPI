@@ -45,7 +45,7 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
     return (
         <span className="relative group inline-flex items-center ml-1.5" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={15} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
                 <span>{text}</span>
                 <span className="mt-2 block">
                     <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">
