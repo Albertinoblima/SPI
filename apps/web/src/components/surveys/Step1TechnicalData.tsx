@@ -100,7 +100,7 @@ function Field({ children }: { children: React.ReactNode }) {
 }
 
 const QUANTITATIVE_TYPES: { value: string; label: string }[] = [
-    { value: 'eleitoral', label: 'Eleitoral' },
+    { value: 'eleitoral', label: 'Pesquisa Política' },
     { value: 'opiniao_publica', label: 'Pesquisa de Opinião Pública' },
     { value: 'satisfacao', label: 'Pesquisa Sobre Satisfação do Atendimento' },
     { value: 'avaliacao_servicos', label: 'Pesquisa de Avaliação de Serviços' },
@@ -119,6 +119,7 @@ const QUANTITATIVE_TYPES: { value: string; label: string }[] = [
 ];
 
 const QUALITATIVE_TYPES: { value: string; label: string }[] = [
+    { value: 'qualitativa_motivacional', label: 'Pesquisa Motivacional' },
     { value: 'qualitativa_grupo_focal', label: 'Grupo Focal' },
     { value: 'qualitativa_profundidade', label: 'Entrevista em Profundidade' },
 ];
@@ -165,6 +166,11 @@ const METHODOLOGY_TEMPLATES: Record<string, string[]> = {
         'Levantamento censitário de cobertura total do universo pesquisado, realizado por entrevistadores com dispositivos móveis, com geolocalização obrigatória de cada domicílio visitado e sincronização online/offline.',
         'Cadastramento integral da população-alvo por meio de visitas domiciliares sistemáticas por setor, com formulário estruturado digital e supervisão remota em tempo real.',
         'Censo socioeconômico conduzido com questionário padronizado aplicado a todos os domicílios da área delimitada, com revisão de consistência automática e supervisão de campo.',
+    ],
+    qualitativa_motivacional: [
+        'Pesquisa motivacional qualitativa conduzida por meio de entrevistas em profundidade ou grupos focais, com uso de técnicas projetivas para identificar motivações, atitudes e valores que influenciam o comportamento dos entrevistados.',
+        'Investigação qualitativa de natureza motivacional com roteiro projetivo semiestruturado, voltada à compreensão dos fatores emocionais e simbólicos que orientam as decisões e percepções do público pesquisado.',
+        'Pesquisa motivacional com técnicas de associação livre, complementação de frases e roleplay, conduzida em ambiente controlado por psicólogo ou pesquisador qualificado, com análise interpretativa aprofundada.',
     ],
     qualitativa_grupo_focal: [
         'Pesquisa qualitativa realizada por meio de grupos focais compostos por 8 a 10 participantes recrutados por perfil específico, conduzidos por moderador treinado com roteiro semiestruturado e análise temática dos resultados.',
