@@ -313,9 +313,8 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             value={data.ended_at}
                             min={data.started_at || undefined}
                             onChange={e => handleEndDate(e.target.value)}
-                            className={`border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 ${
-                                dateError ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-slate-300'
-                            }`}
+                            className={`border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 ${dateError ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-slate-300'
+                                }`}
                             aria-label="Data de encerramento da coleta"
                         />
                         {dateError && (
@@ -363,11 +362,10 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                                         key={i}
                                         type="button"
                                         onClick={() => set('methodology', template)}
-                                        className={`text-xs text-left px-3 py-2 rounded-lg border transition ${
-                                            data.methodology === template
+                                        className={`text-xs text-left px-3 py-2 rounded-lg border transition ${data.methodology === template
                                                 ? 'border-blue-400 bg-blue-50 text-blue-700'
                                                 : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
-                                        }`}
+                                            }`}
                                     >
                                         {template}
                                     </button>

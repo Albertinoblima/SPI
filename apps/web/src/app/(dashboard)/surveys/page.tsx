@@ -113,17 +113,15 @@ export default function SurveysPage() {
                     <button
                         key={key}
                         onClick={() => setFilter(key)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-                            filter === key
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${filter === key
                                 ? 'bg-blue-600 text-white border-blue-600'
                                 : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-700'
-                        }`}
+                            }`}
                     >
                         {label}
                         {counts[key] > 0 && (
-                            <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
-                                filter === key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                            }`}>
+                            <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${filter === key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                                }`}>
                                 {counts[key]}
                             </span>
                         )}
