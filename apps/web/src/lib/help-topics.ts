@@ -256,6 +256,75 @@ export const HELP_TOPICS: HelpTopic[] = [
             'Revise a ordem final em modo de pre-visualizacao.',
         ],
     },
+    // ── Calculadora de Amostragem ────────────────────────────────────────────
+    {
+        id: 'sampling-calculator',
+        title: 'Calculadora de Amostragem',
+        short: 'Calcula o tamanho minimo de amostra necessario com base em parametros estatisticos padrao de mercado.',
+        content: [
+            'Usa a formula n = z² × p(1-p) / E² da estatistica inferencial.',
+            'Modo automatico: ajuste nivel de confianca e margem para obter o n sugerido.',
+            'Modo manual: voce insere diretamente os parametros e o total de entrevistas.',
+            'O valor calculado pode ser ajustado manualmente para adequar capacidade operacional.',
+            'Use configuracoes avancadas para populacoes finitas ou pesquisas por conglomerados.',
+        ],
+    },
+    {
+        id: 'total-interviews',
+        title: 'Total de Entrevistas',
+        short: 'Quantidade total de entrevistados necessarios para atingir a precisao estatistica declarada.',
+        content: [
+            'No modo automatico, e calculado pela formula padrao de amostragem.',
+            'Pode ser ajustado manualmente para adequar ao orcamento ou capacidade de campo.',
+            'Este numero e distribuido entre as localidades na Etapa 2 (Localidades).',
+            'Arredondar para cima mantem ou melhora a precisao estatistica.',
+        ],
+    },
+    {
+        id: 'p-proportion',
+        title: 'Estimativa de Proporcao (p)',
+        short: 'Proporcao esperada do parametro na populacao. Usar p = 0,50 garante a maior margem possivel.',
+        content: [
+            'p = 0,50 e o valor padrao conservador adotado pelo mercado (variancia maxima).',
+            'Se voce tem dados historicos indicando que o resultado sera bem diferente de 50%, pode ajustar.',
+            'Matematicamente: p × (1-p) e maximizado em p = 0,5, logo qualquer outro valor reduz o n necessario.',
+            'Em eleicoes disputadas sem candidato claramente liderando, mantenha 0,5.',
+        ],
+    },
+    {
+        id: 'population-size',
+        title: 'Tamanho da Populacao (N)',
+        short: 'Para populacoes acima de 100.000 pessoas, o fator de correcao e proximo de 1 e pode ser ignorado.',
+        content: [
+            'Quando informado, aplica o fator de correcao de populacao finita: n / (1 + (n-1)/N).',
+            'Para eleicoes estaduais ou nacionais, deixe em branco (populacao infinita).',
+            'Para cidades pequenas (< 50.000 eleitores), informar N reduz o tamanho de amostra necessario.',
+            'Exemplo: em cidade com 20.000 eleitores e margem de 3%, a amostra cai de 1.067 para ~830.',
+        ],
+    },
+    {
+        id: 'deff',
+        title: 'Efeito de Delineamento (Deff)',
+        short: 'Fator multiplicador da variancia quando a amostra nao e puramente aleatoria.',
+        content: [
+            'Deff = 1,0: amostra aleatoria simples (AAS). Formula classica sem ajuste.',
+            'Deff > 1,0: amostras por conglomerados ou cotas perdem precisao relativa a AAS.',
+            'Institutos como Datafolha e Quaest usam Deff estimado entre 1,2 e 2,0.',
+            'Para pesquisas por cotas sem ponderacao, use Deff entre 1,3 e 1,5 como referencia.',
+            'O TSE aceita metodologia por cotas desde que o plano amostral seja detalhado no registro.',
+        ],
+    },
+    {
+        id: 'sampling-advanced',
+        title: 'Configuracoes Avancadas de Amostragem',
+        short: 'Parametros opcionais para ajustar o calculo a realidade da sua pesquisa.',
+        content: [
+            'p: estimativa de proporcao. Use 0,5 para maxima precisao conservadora.',
+            'N (populacao): para correcao de populacao finita em universos menores.',
+            'Deff: fator de delineamento para amostras nao-probabilisticas (cotas, conglomerados).',
+            'Esses parametros sao opcionais; os defaults ja seguem o padrao de mercado brasileiro.',
+        ],
+    },
 ];
 
 export const HELP_TOPICS_BY_ID = Object.fromEntries(HELP_TOPICS.map((topic) => [topic.id, topic])) as Record<string, HelpTopic>;

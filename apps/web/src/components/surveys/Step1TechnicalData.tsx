@@ -3,13 +3,21 @@
 import { HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
+import { StatisticsCalculator, type SamplingStats } from './StatisticsCalculator';
 
 export interface SurveyTechData {
     title: string;
     description: string;
     survey_type: string;
+    // ── Estatísticas amostrais ──
     margin_of_error: number;
     confidence_interval: number;
+    total_interviews: number;
+    population_size: number | null;
+    deff: number;
+    p_proportion: number;
+    stats_mode: 'auto' | 'manual';
+    // ── Demais campos ──
     objective: string;
     methodology: string;
     target_audience: string;
@@ -188,65 +196,20 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     {getMethodologyHint(data.survey_type)}
                 </div>
 
-                {/* Margem de erro + Intervalo de confiança */}
+                {/* Calculadora de Amostragem */}
                 {usesSampling ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <Field>
-                            <Label
-                                htmlFor="margin_of_error"
-                                tooltip="Margem de erro aceitável na pesquisa. Quanto menor, maior a amostra necessária. Valores comuns: 3% a 5%."
-                            >
-                                Margem de Erro (%)
-                            </Label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    id="margin_of_error"
-                                    type="range"
-                                    min={1}
-                                    max={10}
-                                    step={0.5}
-                                    value={data.margin_of_error}
-                                    onChange={e => set('margin_of_error', Number(e.target.value) || 1)}
-                                    className="flex-1 accent-blue-600"
-                                    aria-label="Margem de erro em porcentagem"
-                                />
-                                <span className="w-14 text-center border border-slate-300 rounded-lg px-2 py-1 text-sm font-bold text-blue-700">
-                                    {data.margin_of_error}%
-                                </span>
-                            </div>
-                            <div className="flex justify-between text-xs text-slate-400 mt-1">
-                                <span>1% (precisão alta, amostra maior)</span>
-                                <span>10% (amostra menor)</span>
-                            </div>
-                        </Field>
-
-                        <Field>
-                            <Label
-                                htmlFor="confidence_interval"
-                                tooltip="Probabilidade de que o intervalo de confiança contém o valor real. 95% é o padrão na maioria das pesquisas."
-                            >
-                                Intervalo de Confiança
-                            </Label>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                                {[90, 95, 99].map(ic => (
-                                    <button
-                                        key={ic}
-                                        type="button"
-                                        onClick={() => set('confidence_interval', ic)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-semibold border transition
-                                            ${data.confidence_interval === ic
-                                                ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600'}`}
-                                    >
-                                        {ic}%
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-xs text-slate-400 mt-2">
-                                Z: {data.confidence_interval === 90 ? '1,645' : data.confidence_interval === 95 ? '1,960' : '2,576'} (normal padrão)
-                            </p>
-                        </Field>
-                    </div>
+                    <StatisticsCalculator
+                        value={{
+                            margin_of_error: data.margin_of_error,
+                            confidence_interval: data.confidence_interval,
+                            total_interviews: data.total_interviews,
+                            population_size: data.population_size,
+                            deff: data.deff,
+                            p_proportion: data.p_proportion,
+                            stats_mode: data.stats_mode,
+                        }}
+                        onChange={(stats: SamplingStats) => onChange({ ...data, ...stats })}
+                    />
                 ) : (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900">
                         Para este tipo de pesquisa, a quantidade de entrevistas será definida manualmente por localidade na Etapa 2.

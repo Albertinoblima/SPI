@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const { title, description, survey_type, margin_of_error, confidence_interval,
+            total_interviews, population_size, deff, p_proportion, stats_mode,
             objective, methodology, target_audience, requires_geolocation,
             requires_photo, requires_signature, allow_offline,
             started_at, ended_at, is_registered_research,
@@ -73,6 +74,11 @@ export async function POST(request: NextRequest) {
                 survey_type: survey_type || null,
                 margin_of_error: margin_of_error || null,
                 confidence_interval: confidence_interval || null,
+                total_interviews: total_interviews || null,
+                population_size: population_size || null,
+                deff: deff ?? 1.0,
+                p_proportion: p_proportion ?? 0.5,
+                stats_mode: stats_mode || 'auto',
                 objective: objective?.trim() || null,
                 methodology: methodology?.trim() || null,
                 target_audience: target_audience?.trim() || null,
