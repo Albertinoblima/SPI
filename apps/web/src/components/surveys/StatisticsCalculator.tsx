@@ -24,7 +24,10 @@ interface Props {
 
 // ─── Helpers estatísticos ────────────────────────────────────────────────────
 
-const Z_VALUES: Record<number, number> = { 90: 1.645, 95: 1.96, 99: 2.576 };
+const Z_VALUES: Record<number, number> = {
+    90: 1.645, 91: 1.695, 92: 1.751, 93: 1.812, 94: 1.880,
+    95: 1.960, 96: 2.054, 97: 2.170, 98: 2.326, 99: 2.576,
+};
 
 function calcSampleSize(
     confidence: number,
@@ -195,24 +198,49 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                                 helpId="confidence-interval"
                             />
                         </label>
-                        <div className="flex gap-2">
-                            {[90, 95, 99].map(ic => (
-                                <button
-                                    key={ic}
-                                    type="button"
-                                    onClick={() => set('confidence_interval', ic)}
-                                    className={`flex-1 py-2 rounded-lg text-sm font-bold border transition
-                                        ${value.confidence_interval === ic
-                                            ? 'bg-blue-600 text-white border-blue-600'
-                                            : 'bg-white border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-700'}`}
-                                >
-                                    {ic}%
-                                    <span className={`block text-[10px] font-normal mt-0.5 ${value.confidence_interval === ic ? 'text-blue-100' : 'text-slate-400'}`}>
-                                        z = {Z_VALUES[ic].toFixed(3).replace('.', ',')}
-                                    </span>
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => set('confidence_interval', Math.max(90, value.confidence_interval - 1))}
+                                disabled={value.confidence_interval <= 90}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-30 transition"
+                                aria-label="Diminuir nível de confiança"
+                            >
+                                −
+                            </button>
+                            <div className="flex-1">
+                                <input
+                                    type="range"
+                                    min={90}
+                                    max={99}
+                                    step={1}
+                                    value={value.confidence_interval}
+                                    onChange={e => set('confidence_interval', Number(e.target.value))}
+                                    className="w-full accent-blue-600"
+                                    aria-label="Nível de confiança"
+                                />
+                                <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                                    <span>90%</span>
+                                    <span>95%</span>
+                                    <span>99%</span>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => set('confidence_interval', Math.min(99, value.confidence_interval + 1))}
+                                disabled={value.confidence_interval >= 99}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-30 transition"
+                                aria-label="Aumentar nível de confiança"
+                            >
+                                +
+                            </button>
+                            <span className="min-w-[52px] text-center text-sm font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1">
+                                {value.confidence_interval}%
+                            </span>
                         </div>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                            z = {(Z_VALUES[value.confidence_interval] ?? 1.96).toFixed(3).replace('.', ',')}
+                        </p>
                     </div>
 
                     {/* Margem de erro */}

@@ -25,6 +25,7 @@ export interface SurveyTechData {
     registered_responsible_name: string;
     registered_responsible_registry: string;
     registered_responsible_body: string;
+    non_registered_disclaimer: string;
     requires_geolocation: boolean;
     requires_photo: boolean;
     requires_signature: boolean;
@@ -95,21 +96,59 @@ function Field({ children }: { children: React.ReactNode }) {
     return <div className="flex flex-col">{children}</div>;
 }
 
-const SURVEY_TYPE_OPTIONS = [
-    { value: 'eleitoral', label: 'Eleitoral (quantitativa amostral)' },
-    { value: 'opiniao_publica', label: 'Opinião pública (quantitativa amostral)' },
-    { value: 'satisfacao', label: 'Satisfação com gestão/serviço (quantitativa amostral)' },
-    { value: 'avaliacao_servicos', label: 'Avaliação de serviços (quantitativa amostral)' },
-    { value: 'mercado_quantitativa', label: 'Mercado e consumo (quantitativa amostral)' },
-    { value: 'censo', label: 'Censo / cadastro (cobertura total)' },
-    { value: 'qualitativa_grupo_focal', label: 'Qualitativa - Grupo focal' },
-    { value: 'qualitativa_profundidade', label: 'Qualitativa - Entrevista em profundidade' },
-    { value: 'quali_quanti', label: 'Mista (quali-quanti)' },
-    { value: 'outros', label: 'Outros' },
+const SURVEY_TYPE_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
+    {
+        label: 'Quantitativa',
+        options: [
+            { value: 'eleitoral', label: 'Eleitoral' },
+            { value: 'opiniao_publica', label: 'Pesquisa de Opinião Pública' },
+            { value: 'satisfacao', label: 'Pesquisa Sobre Satisfação do Atendimento' },
+            { value: 'avaliacao_servicos', label: 'Pesquisa de Avaliação de Serviços' },
+            { value: 'avaliacao_administrativa', label: 'Pesquisa de Avaliação Administrativa' },
+            { value: 'avaliacao_empresarial', label: 'Pesquisa de Avaliação Empresarial' },
+            { value: 'consumo_produtos', label: 'Pesquisa Sobre Consumo de Produtos' },
+            { value: 'otimizacao_produto', label: 'Pesquisa de Otimização de Produto' },
+            { value: 'recall', label: 'Pesquisa de Recall' },
+            { value: 'marca', label: 'Pesquisa de Marca' },
+            { value: 'criacao_posicionamento_marca', label: 'Pesquisa para Criação e Posicionamento de Marca' },
+            { value: 'mercado_quantitativa', label: 'Estudo de Mercado Alvo (Território)' },
+            { value: 'segmentacao_mercado', label: 'Estudo de Segmentação de Mercado' },
+            { value: 'publico_alvo', label: 'Estudo Estratégico de Público Alvo' },
+            { value: 'ponto_investimento', label: 'Estudo de Avaliação de Ponto de Investimento' },
+            { value: 'censo', label: 'Estudo Censitário (Censo)' },
+        ],
+    },
+    {
+        label: 'Qualitativa',
+        options: [
+            { value: 'qualitativa_grupo_focal', label: 'Grupo Focal' },
+            { value: 'qualitativa_profundidade', label: 'Entrevista em Profundidade' },
+        ],
+    },
+    {
+        label: 'Mista',
+        options: [
+            { value: 'quali_quanti', label: 'Quali-Quanti' },
+        ],
+    },
+    {
+        label: 'Outros',
+        options: [
+            { value: 'outros', label: 'Outros' },
+        ],
+    },
 ];
 
+// Lista plana usada em outras partes do código
+const SURVEY_TYPE_OPTIONS = SURVEY_TYPE_GROUPS.flatMap(g => g.options);
+
 export function shouldUseStatisticalSampling(surveyType: string): boolean {
-    return ['eleitoral', 'opiniao_publica', 'satisfacao', 'avaliacao_servicos', 'mercado_quantitativa'].includes(surveyType);
+    return [
+        'eleitoral', 'opiniao_publica', 'satisfacao', 'avaliacao_servicos',
+        'avaliacao_administrativa', 'avaliacao_empresarial', 'consumo_produtos',
+        'otimizacao_produto', 'recall', 'marca', 'criacao_posicionamento_marca',
+        'mercado_quantitativa', 'segmentacao_mercado', 'publico_alvo', 'ponto_investimento',
+    ].includes(surveyType);
 }
 
 const METHODOLOGY_TEMPLATES: Record<string, string[]> = {
@@ -227,19 +266,23 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                 {/* Tipo + Objetivo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Field>
-                        <Label htmlFor="survey_type" tooltip="Classifica a natureza da pesquisa para fins de relatório e análise.">
-                            Tipo de Pesquisa
+                        <Label htmlFor="survey_type" tooltip="Classifica a natureza e o foco específico da pesquisa para fins de relatório e análise.">
+                            Foco Específico
                         </Label>
                         <select
                             id="survey_type"
                             value={data.survey_type}
                             onChange={e => set('survey_type', e.target.value)}
-                            aria-label="Tipo de pesquisa"
+                            aria-label="Foco específico da pesquisa"
                             className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="">Selecione...</option>
-                            {SURVEY_TYPE_OPTIONS.map(option => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                            {SURVEY_TYPE_GROUPS.map(group => (
+                                <optgroup key={group.label} label={`── ${group.label} ──`}>
+                                    {group.options.map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </optgroup>
                             ))}
                         </select>
                     </Field>
@@ -363,8 +406,8 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                                         type="button"
                                         onClick={() => set('methodology', template)}
                                         className={`text-xs text-left px-3 py-2 rounded-lg border transition ${data.methodology === template
-                                                ? 'border-blue-400 bg-blue-50 text-blue-700'
-                                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                                            ? 'border-blue-400 bg-blue-50 text-blue-700'
+                                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
                                             }`}
                                     >
                                         {template}
@@ -411,6 +454,27 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                                 onChange={e => set('registered_responsible_body', e.target.value)}
                                 className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                                 placeholder="Órgão de classe"
+                            />
+                        </div>
+                    )}
+                    {!data.is_registered_research && (
+                        <div className="mt-2">
+                            <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 mb-2">
+                                <span className="text-amber-600 font-bold text-lg leading-none mt-0.5">⚠</span>
+                                <p className="text-xs text-amber-800">
+                                    <strong>Sem responsável técnico registrado.</strong> Você pode inserir abaixo um Termo de Responsabilidade ou Comunicado que constará em destaque no relatório, indicando que a pesquisa <strong>não será divulgada pelo Contratante</strong>, com as disposições legais e penalidades aplicáveis.
+                                </p>
+                            </div>
+                            <label className="text-xs font-semibold text-slate-600 mb-1 block">
+                                Termo de Responsabilidade / Comunicado de Restrição (opcional)
+                                <Tooltip text="Texto que aparecerá em destaque no relatório quando não há responsável técnico registrado. Recomenda-se incluir base legal e penalidades pela divulgação indevida." />
+                            </label>
+                            <textarea
+                                rows={4}
+                                value={data.non_registered_disclaimer}
+                                onChange={e => set('non_registered_disclaimer', e.target.value)}
+                                className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 bg-white resize-y"
+                                placeholder={`COMUNICADO DE RESTRIÇÃO DE DIVULGAÇÃO\n\nA presente pesquisa não possui responsável técnico registrado em órgão de classe. O CONTRATANTE compromete-se a não divulgar, publicar ou tornar público, por qualquer meio, os resultados desta pesquisa, sob pena de responsabilidade civil e criminal, nos termos da Lei nº 9.504/1997 (Art. 33 e seguintes), Lei nº 12.965/2014 (Marco Civil da Internet) e demais normas aplicáveis.`}
                             />
                         </div>
                     )}

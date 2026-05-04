@@ -73,9 +73,9 @@ function calcInterviews(population: number, marginError: number, confidenceInter
 }
 
 const ZONE_LABELS: Record<string, string> = {
-    urban: 'Urbana',
-    rural: 'Rural',
-    mixed: 'Misto',
+    urban: 'Sede ou Urbana',
+    rural: 'Interior ou Rural',
+    mixed: 'Misto (Urbana + Rural)',
 };
 
 export function Step2Localities({ localities, onChange, marginOfError, confidenceInterval, surveyType }: Props) {
@@ -199,9 +199,9 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                             aria-label="Zona da localidade"
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="urban">Urbana</option>
-                            <option value="rural">Rural</option>
-                            <option value="mixed">Misto (urbana + rural)</option>
+                            <option value="urban">Sede ou Urbana</option>
+                            <option value="rural">Interior ou Rural</option>
+                            <option value="mixed">Misto (Urbana + Rural)</option>
                         </select>
                     </div>
 
