@@ -39,7 +39,7 @@ export async function GET(
 
     const { data: messages } = await supabase
         .from('support_messages')
-        .select('id, message, is_from_admin, created_at, sender_id')
+        .select('id, message, is_from_admin, created_at, sender_id, attachments')
         .eq('ticket_id', params.id)
         .order('created_at', { ascending: true });
 
@@ -55,8 +55,10 @@ export async function POST(
     if (!user || authError) return apiError('Não autenticado', 401);
 
     const body = await request.json();
-    const { message } = body;
-    if (!message?.trim()) return apiError('Mensagem é obrigatória', 400);
+    const { message, attachments } = body;
+    if (!message?.trim() && (!attachments || attachments.length === 0)) {
+        return apiError('Mensagem ou anexo é obrigatório', 400);
+    }
 
     // Verificar posse do ticket
     const { data: ticket } = await supabase
@@ -74,8 +76,9 @@ export async function POST(
         .insert({
             ticket_id: params.id,
             sender_id: user.id,
-            message: message.trim(),
+            message: (message ?? '').trim() || '📎 Arquivo anexado',
             is_from_admin: false,
+            attachments: attachments ?? null,
         })
         .select()
         .single();
