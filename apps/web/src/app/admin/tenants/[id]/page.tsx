@@ -78,6 +78,10 @@ export default function TenantDetailsPage() {
             }
 
             const { data: tenantData } = await response.json();
+            // Garantir arrays mesmo que a API retorne null
+            tenantData.users = tenantData.users ?? [];
+            tenantData.surveys = tenantData.surveys ?? [];
+            tenantData.recentErrors = tenantData.recentErrors ?? [];
             setData(tenantData);
             setNewStatus(tenantData.tenant.status);
         } catch (err) {

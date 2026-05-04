@@ -60,9 +60,9 @@ export async function GET(
         return apiSuccess({
             tenant,
             stats,
-            users,
-            surveys,
-            recentErrors,
+            users: users ?? [],
+            surveys: surveys ?? [],
+            recentErrors: recentErrors ?? [],
         });
     } catch (error) {
         console.error('Erro ao buscar tenant:', error);
