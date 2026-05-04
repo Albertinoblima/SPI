@@ -28,7 +28,7 @@ const initialWizardData: WizardData = {
         title: '',
         description: '',
         research_category: '' as const,
-        survey_type: '',,
+        survey_type: '',
         margin_of_error: 3,
         confidence_interval: 95,
         total_interviews: 1067,
