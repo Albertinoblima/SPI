@@ -122,14 +122,14 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
     color: string;
 }) {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-start gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex items-start gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
                 <Icon className="w-5 h-5" />
             </div>
             <div>
-                <p className="text-sm text-slate-500 font-medium">{label}</p>
-                <p className="text-2xl font-bold text-slate-900 leading-tight">{value}</p>
-                {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{label}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{value}</p>
+                {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
             </div>
         </div>
     );
@@ -142,28 +142,28 @@ function SurveyRow({ survey }: { survey: Survey }) {
     return (
         <Link
             href={`/surveys/${survey.id}/monitor`}
-            className="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+            className="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
         >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}>
                 <StatusIcon className={`w-3.5 h-3.5 ${cfg.color}`} />
             </div>
 
             <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                <p className="font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 transition-colors">
                     {survey.title}
                 </p>
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                     {survey.survey_type && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-400 dark:text-slate-500">
                             {SURVEY_TYPE_LABELS[survey.survey_type] ?? survey.survey_type}
                         </span>
                     )}
-                    <span className="text-xs text-slate-300">•</span>
-                    <span className="text-xs text-slate-400">Criada em {formatDate(survey.created_at)}</span>
+                    <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">Criada em {formatDate(survey.created_at)}</span>
                     {survey.ended_at && (
                         <>
-                            <span className="text-xs text-slate-300">•</span>
-                            <span className="text-xs text-slate-400">Encerra {formatDate(survey.ended_at)}</span>
+                            <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500">Encerra {formatDate(survey.ended_at)}</span>
                         </>
                     )}
                 </div>
@@ -231,7 +231,7 @@ function DashboardContent() {
         return (
             <div className="p-8 flex flex-col items-center justify-center h-96 gap-3">
                 <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-                <p className="text-slate-500 text-sm">Carregando painel...</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Carregando painel...</p>
             </div>
         );
     }
@@ -286,10 +286,10 @@ function DashboardContent() {
             {/* ── Cabeçalho com saudação ── */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                         {greeting}{tenant?.name ? `, ${tenant.name}` : ''}
                     </h1>
-                    <p className="text-slate-500 mt-0.5 text-sm">
+                    <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">
                         {new Intl.DateTimeFormat('pt-BR', {
                             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                         }).format(new Date())}
@@ -342,7 +342,7 @@ function DashboardContent() {
             {/* ── Pesquisas ativas em destaque ── */}
             {activeSurveys.length > 0 && (
                 <div>
-                    <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">
+                    <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
                         Em andamento agora
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -350,33 +350,33 @@ function DashboardContent() {
                             <Link
                                 key={survey.id}
                                 href={`/surveys/${survey.id}/monitor`}
-                                className="bg-white rounded-xl border border-emerald-200 p-5 hover:border-emerald-400 hover:shadow-md transition-all group"
+                                className="bg-white dark:bg-slate-800 rounded-xl border border-emerald-200 dark:border-emerald-900 p-5 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Ativa</span>
+                                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Ativa</span>
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
                                 </div>
-                                <p className="font-bold text-slate-900 text-base leading-tight group-hover:text-emerald-700 transition-colors">
+                                <p className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                                     {survey.title}
                                 </p>
                                 {survey.survey_type && (
-                                    <p className="text-xs text-slate-400 mt-1">
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                                         {SURVEY_TYPE_LABELS[survey.survey_type] ?? survey.survey_type}
                                     </p>
                                 )}
                                 {survey.total_interviews !== null && (
-                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-sm">
-                                        <span className="text-slate-500">Total previsto</span>
-                                        <span className="font-bold text-slate-800">
+                                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-sm">
+                                        <span className="text-slate-500 dark:text-slate-400">Total previsto</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-200">
                                             {survey.total_interviews.toLocaleString('pt-BR')} entrevistas
                                         </span>
                                     </div>
                                 )}
                                 {survey.ended_at && (
-                                    <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
+                                    <div className="mt-1 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
                                         <span>Encerra em</span>
                                         <span className="font-medium">{formatDate(survey.ended_at)}</span>
                                     </div>
@@ -388,12 +388,12 @@ function DashboardContent() {
             )}
 
             {/* ── Tabela de todas as pesquisas ── */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-slate-400" />
-                        <h2 className="font-semibold text-slate-900 text-sm">Todas as pesquisas</h2>
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
+                        <h2 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Todas as pesquisas</h2>
+                        <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full font-medium">
                             {surveys.length}
                         </span>
                     </div>
@@ -406,7 +406,7 @@ function DashboardContent() {
                                 className={`px-3 py-1 rounded-full text-xs font-medium transition
                                     ${filterStatus === status
                                         ? 'bg-blue-600 text-white'
-                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
                             >
                                 {status === 'all' ? 'Todas' : STATUS_CONFIG[status].label}
                             </button>
@@ -421,11 +421,11 @@ function DashboardContent() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-                        <FileSearch className="w-12 h-12 text-slate-200" />
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500 gap-3">
+                        <FileSearch className="w-12 h-12 text-slate-200 dark:text-slate-700" />
                         {filterStatus === 'all' ? (
                             <>
-                                <p className="font-medium text-slate-600">Nenhuma pesquisa criada ainda</p>
+                                <p className="font-medium text-slate-600 dark:text-slate-400">Nenhuma pesquisa criada ainda</p>
                                 <p className="text-sm">Comece criando sua primeira pesquisa de campo</p>
                                 <Link
                                     href="/surveys/new"
@@ -447,34 +447,34 @@ function DashboardContent() {
 
             {/* ── Atalhos rápidos ── */}
             <div>
-                <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">
+                <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
                     Acesso rápido
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Link
                         href="/surveys/new"
-                        className="bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-md transition-all flex items-center gap-4"
+                        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all flex items-center gap-4"
                     >
-                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
-                            <Plus className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center shrink-0">
+                            <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Nova Pesquisa</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Iniciar wizard de criação</p>
+                            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Nova Pesquisa</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Iniciar wizard de criação</p>
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300 ml-auto" />
                     </Link>
 
                     <Link
                         href="/team"
-                        className="bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-md transition-all flex items-center gap-4"
+                        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all flex items-center gap-4"
                     >
-                        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0">
-                            <Users className="w-5 h-5 text-purple-600" />
+                        <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center shrink-0">
+                            <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Gerenciar Equipe</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Gerenciar Equipe</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                                 {metrics.active_team} membro{metrics.active_team !== 1 ? 's' : ''} ativo{metrics.active_team !== 1 ? 's' : ''}
                             </p>
                         </div>
@@ -483,14 +483,14 @@ function DashboardContent() {
 
                     <Link
                         href="/settings"
-                        className="bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-md transition-all flex items-center gap-4"
+                        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all flex items-center gap-4"
                     >
-                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center shrink-0">
-                            <BarChart3 className="w-5 h-5 text-slate-500" />
+                        <div className="w-10 h-10 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
+                            <BarChart3 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         </div>
                         <div>
-                            <p className="font-semibold text-slate-800 text-sm">Configurações</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Dados da empresa e plano</p>
+                            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Configurações</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Dados da empresa e plano</p>
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300 ml-auto" />
                     </Link>
