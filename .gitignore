@@ -32,6 +32,12 @@ Thumbs.db
 
 # Supabase
 supabase/.temp/
+supabase.exe
+supabase_cli.tar.gz
+
+# Temp files
+body.json
+result.txt
 
 # Mobile
 *.apk
