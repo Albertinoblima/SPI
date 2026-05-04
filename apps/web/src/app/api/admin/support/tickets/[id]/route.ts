@@ -18,21 +18,15 @@ export async function GET(
     try {
         const ticketId = params.id;
 
-        // Buscar ticket
+        // Buscar ticket sem joins (FKs apontam para auth.users, não public.users)
         const { data: ticket, error: ticketError } = await auth.supabase
             .from('support_tickets')
-            .select(
-                `
-                *,
-                users:user_id (full_name, email),
-                tenants:tenant_id (name, slug),
-                assigned_user:assigned_to (full_name, email)
-                `
-            )
+            .select('*')
             .eq('id', ticketId)
             .single();
 
         if (ticketError || !ticket) {
+            console.error('Ticket fetch error:', ticketError);
             return apiError('Ticket não encontrado', 404);
         }
 
@@ -41,20 +35,36 @@ export async function GET(
             return apiError('Acesso negado', 403);
         }
 
-        // Buscar mensagens
-        const { data: messages } = await auth.supabase
+        // Buscar dados do usuário dono do ticket
+        const [{ data: ticketUser }, { data: tenant }, { data: assignedUser }] = await Promise.all([
+            auth.supabase.from('users').select('full_name, email').eq('id', ticket.user_id).single(),
+            auth.supabase.from('tenants').select('name, slug').eq('id', ticket.tenant_id).single(),
+            ticket.assigned_to
+                ? auth.supabase.from('users').select('full_name, email').eq('id', ticket.assigned_to).single()
+                : Promise.resolve({ data: null }),
+        ]);
+
+        // Buscar mensagens com dados do remetente
+        const { data: rawMessages } = await auth.supabase
             .from('support_messages')
-            .select(
-                `
-                *,
-                users:sender_id (full_name, email, avatar_url)
-                `
-            )
+            .select('*')
             .eq('ticket_id', ticketId)
             .order('created_at', { ascending: true });
 
+        // Enriquecer mensagens com dados do remetente
+        const messages = await Promise.all(
+            (rawMessages ?? []).map(async (msg) => {
+                const { data: sender } = await auth.supabase
+                    .from('users')
+                    .select('full_name, email')
+                    .eq('id', msg.sender_id)
+                    .single();
+                return { ...msg, users: sender };
+            })
+        );
+
         return apiSuccess({
-            ticket,
+            ticket: { ...ticket, users: ticketUser, tenants: tenant, assigned_user: assignedUser },
             messages,
         });
     } catch (error) {
