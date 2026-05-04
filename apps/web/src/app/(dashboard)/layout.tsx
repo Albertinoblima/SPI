@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -14,6 +14,7 @@ import {
     LifeBuoy,
     Sun,
     Moon,
+    Menu,
 } from 'lucide-react';
 import ChatWidget from '@/components/support/ChatWidget';
 import TenantNotificationBell from '@/components/notifications/TenantNotificationBell';
@@ -28,6 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
     const { theme, toggle } = useTheme();
     const isDark = theme === 'dark';
+    const [collapsed, setCollapsed] = useState(false);
 
     const navItems = [
         { label: 'Início', href: '/dashboard', icon: BarChart3 },
@@ -47,19 +49,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className={`flex h-screen ${isDark ? 'dark' : ''}`}>
             <div className="flex h-screen w-full bg-slate-100 dark:bg-slate-900 transition-colors duration-200">
                 {/* Sidebar */}
-                <div className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 transition-colors duration-200">
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                        <Image
-                            src="/branding/idialog-logo.png"
-                            alt="Logo iDialog"
-                            width={140}
-                            height={42}
-                            className="h-10 w-auto"
-                        />
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Sistema de Pesquisa Inteligente</p>
+                <div className={`${collapsed ? 'w-16' : 'w-64'} bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 transition-all duration-200 overflow-hidden`}>
+                    <div className={`p-4 border-b border-slate-200 dark:border-slate-700 flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+                        {!collapsed && (
+                            <div className="flex-1 min-w-0">
+                                <Image
+                                    src="/branding/idialog-logo.png"
+                                    alt="Logo iDialog"
+                                    width={120}
+                                    height={36}
+                                    className="h-8 w-auto"
+                                />
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">Sistema de Pesquisa Inteligente</p>
+                            </div>
+                        )}
                     </div>
 
-                    <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                    <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.href);
@@ -67,31 +73,33 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    title={collapsed ? item.label : undefined}
                                     className={`
-                                        flex items-center gap-3 px-4 py-2.5 rounded-lg
+                                        flex items-center gap-3 px-3 py-2.5 rounded-lg
                                         transition-colors duration-200 text-sm font-medium
+                                        ${collapsed ? 'justify-center' : ''}
                                         ${active
                                             ? 'bg-blue-600 text-white'
                                             : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                                         }
                                     `}
                                 >
-                                    <Icon className="w-4 h-4" />
-                                    {item.label}
+                                    <Icon className="w-4 h-4 flex-shrink-0" />
+                                    {!collapsed && item.label}
                                 </Link>
                             );
                         })}
                     </nav>
 
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-1">
-                        {/* Toggle de tema no menu lateral */}
+                    <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1">
                         <button
                             onClick={toggle}
-                            className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            title={isDark ? 'Tema claro' : 'Tema escuro'}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${collapsed ? 'justify-center' : ''}`}
                         >
                             {isDark
-                                ? <><Sun className="w-4 h-4 text-yellow-400" /> Tema claro</>
-                                : <><Moon className="w-4 h-4 text-slate-500" /> Tema escuro</>
+                                ? <><Sun className="w-4 h-4 text-yellow-400 flex-shrink-0" />{!collapsed && 'Tema claro'}</>
+                                : <><Moon className="w-4 h-4 text-slate-500 flex-shrink-0" />{!collapsed && 'Tema escuro'}</>
                             }
                         </button>
                         <button
@@ -100,10 +108,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                 await supabase.auth.signOut();
                                 window.location.href = '/login';
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            title="Sair"
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${collapsed ? 'justify-center' : ''}`}
                         >
-                            <LogOut className="w-4 h-4" />
-                            Sair
+                            <LogOut className="w-4 h-4 flex-shrink-0" />
+                            {!collapsed && 'Sair'}
                         </button>
                     </div>
                 </div>
@@ -111,7 +120,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Header */}
-                    <div className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-end px-6 flex-shrink-0 gap-2 transition-colors duration-200">
+                    <div className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center px-4 flex-shrink-0 gap-2 transition-colors duration-200">
+                        {/* Botão hamburguer */}
+                        <button
+                            onClick={() => setCollapsed(c => !c)}
+                            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+                            className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                        >
+                            <Menu className="w-5 h-5" />
+                        </button>
+                        <div className="flex-1" />
                         {/* Toggle de tema no header */}
                         <button
                             onClick={toggle}
