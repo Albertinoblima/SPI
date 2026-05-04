@@ -67,7 +67,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .select('id, title, status')
             .single();
 
-        if (updateError) return apiError('Erro ao atualizar pesquisa', 500);
+        if (updateError) {
+            console.error('Supabase updateError:', JSON.stringify(updateError));
+            return apiError(`Erro ao atualizar pesquisa: ${updateError.message}`, 500);
+        }
 
         // Substituir localidades
         if (localities !== undefined) {
