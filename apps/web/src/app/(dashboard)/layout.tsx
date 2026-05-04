@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -30,6 +30,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const { theme, toggle } = useTheme();
     const isDark = theme === 'dark';
     const [collapsed, setCollapsed] = useState(false);
+    const [companyName, setCompanyName] = useState<string>('');
+    const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetch('/api/settings/company')
+            .then(r => r.ok ? r.json() : null)
+            .then(json => {
+                if (json?.data?.tenant) {
+                    setCompanyName(json.data.tenant.name ?? '');
+                    setCompanyLogo(json.data.tenant.logo_url ?? null);
+                }
+            })
+            .catch(() => { });
+    }, []);
 
     const navItems = [
         { label: 'Início', href: '/dashboard', icon: BarChart3 },
@@ -51,7 +65,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Sidebar */}
                 <div className={`${collapsed ? 'w-16' : 'w-64'} bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 transition-all duration-200 overflow-hidden`}>
                     <div className={`p-4 border-b border-slate-200 dark:border-slate-700 flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-                        {!collapsed && (
+                        {collapsed ? (
+                            /* Logo reduzida quando colapsado */
+                            <div className="w-8 h-8 rounded-md overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                                <Image
+                                    src={companyLogo || '/branding/idialog-logo.png'}
+                                    alt="Logo"
+                                    width={32}
+                                    height={32}
+                                    className="object-contain w-8 h-8"
+                                />
+                            </div>
+                        ) : (
                             <div className="flex-1 min-w-0">
                                 <Image
                                     src="/branding/idialog-logo.png"
@@ -129,6 +154,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         >
                             <Menu className="w-5 h-5" />
                         </button>
+                        {/* Logo e nome da empresa no header */}
+                        {(companyLogo || companyName) && (
+                            <div className="flex items-center gap-2 ml-2">
+                                {companyLogo && (
+                                    <div className="w-7 h-7 rounded overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                                        <Image
+                                            src={companyLogo}
+                                            alt={companyName || 'Logo'}
+                                            width={28}
+                                            height={28}
+                                            className="object-contain w-7 h-7"
+                                        />
+                                    </div>
+                                )}
+                                {companyName && (
+                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">{companyName}</span>
+                                )}
+                            </div>
+                        )}
                         <div className="flex-1" />
                         {/* Toggle de tema no header */}
                         <button
