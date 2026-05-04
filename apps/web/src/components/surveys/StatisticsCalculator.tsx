@@ -547,20 +547,32 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                                 Intervalo de Confiança (%)
                                 <Tip text="Nível de confiança estatística declarado. Consta no relatório." helpId="confidence-interval" />
                             </label>
-                            <div className="flex gap-2">
-                                {[90, 95, 99].map(ic => (
-                                    <button
-                                        key={ic}
-                                        type="button"
-                                        onClick={() => set('confidence_interval', ic)}
-                                        className={`flex-1 py-2 rounded-lg text-sm font-bold border transition
-                                            ${value.confidence_interval === ic
-                                                ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'bg-white border-slate-300 text-slate-600 hover:border-blue-400'}`}
-                                    >
-                                        {ic}%
-                                    </button>
-                                ))}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => set('confidence_interval', Math.max(90, value.confidence_interval - 1))}
+                                    disabled={value.confidence_interval <= 90}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-30 transition"
+                                    aria-label="Diminuir intervalo"
+                                >−</button>
+                                <input
+                                    type="range"
+                                    id="ci_manual"
+                                    min={90} max={99} step={1}
+                                    value={value.confidence_interval}
+                                    onChange={e => set('confidence_interval', Number(e.target.value))}
+                                    className="flex-1 accent-blue-600"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => set('confidence_interval', Math.min(99, value.confidence_interval + 1))}
+                                    disabled={value.confidence_interval >= 99}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-30 transition"
+                                    aria-label="Aumentar intervalo"
+                                >+</button>
+                                <span className="min-w-[48px] text-center text-sm font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1">
+                                    {value.confidence_interval}%
+                                </span>
                             </div>
                         </div>
                         <div>

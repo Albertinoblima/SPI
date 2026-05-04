@@ -27,7 +27,8 @@ const initialWizardData: WizardData = {
     tech: {
         title: '',
         description: '',
-        survey_type: '',
+        research_category: '' as const,
+        survey_type: '',,
         margin_of_error: 3,
         confidence_interval: 95,
         total_interviews: 1067,
@@ -77,6 +78,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                     tech: {
                         title: s.title ?? '',
                         description: s.description ?? '',
+                        research_category: (s.research_category ?? '') as import('./Step1TechnicalData').ResearchCategory | '',
                         survey_type: s.survey_type ?? '',
                         margin_of_error: s.margin_of_error ?? 3,
                         confidence_interval: s.confidence_interval ?? 95,

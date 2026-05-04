@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 import { StatisticsCalculator, type SamplingStats } from './StatisticsCalculator';
 
+export type ResearchCategory = 'quantitative' | 'qualitative';
+
 export interface SurveyTechData {
     title: string;
     description: string;
+    research_category: ResearchCategory | '';
     survey_type: string;
     // ── Estatísticas amostrais ──
     margin_of_error: number;
@@ -96,51 +99,32 @@ function Field({ children }: { children: React.ReactNode }) {
     return <div className="flex flex-col">{children}</div>;
 }
 
-const SURVEY_TYPE_GROUPS: { label: string; options: { value: string; label: string }[] }[] = [
-    {
-        label: 'Quantitativa',
-        options: [
-            { value: 'eleitoral', label: 'Eleitoral' },
-            { value: 'opiniao_publica', label: 'Pesquisa de Opinião Pública' },
-            { value: 'satisfacao', label: 'Pesquisa Sobre Satisfação do Atendimento' },
-            { value: 'avaliacao_servicos', label: 'Pesquisa de Avaliação de Serviços' },
-            { value: 'avaliacao_administrativa', label: 'Pesquisa de Avaliação Administrativa' },
-            { value: 'avaliacao_empresarial', label: 'Pesquisa de Avaliação Empresarial' },
-            { value: 'consumo_produtos', label: 'Pesquisa Sobre Consumo de Produtos' },
-            { value: 'otimizacao_produto', label: 'Pesquisa de Otimização de Produto' },
-            { value: 'recall', label: 'Pesquisa de Recall' },
-            { value: 'marca', label: 'Pesquisa de Marca' },
-            { value: 'criacao_posicionamento_marca', label: 'Pesquisa para Criação e Posicionamento de Marca' },
-            { value: 'mercado_quantitativa', label: 'Estudo de Mercado Alvo (Território)' },
-            { value: 'segmentacao_mercado', label: 'Estudo de Segmentação de Mercado' },
-            { value: 'publico_alvo', label: 'Estudo Estratégico de Público Alvo' },
-            { value: 'ponto_investimento', label: 'Estudo de Avaliação de Ponto de Investimento' },
-            { value: 'censo', label: 'Estudo Censitário (Censo)' },
-        ],
-    },
-    {
-        label: 'Qualitativa',
-        options: [
-            { value: 'qualitativa_grupo_focal', label: 'Grupo Focal' },
-            { value: 'qualitativa_profundidade', label: 'Entrevista em Profundidade' },
-        ],
-    },
-    {
-        label: 'Mista',
-        options: [
-            { value: 'quali_quanti', label: 'Quali-Quanti' },
-        ],
-    },
-    {
-        label: 'Outros',
-        options: [
-            { value: 'outros', label: 'Outros' },
-        ],
-    },
+const QUANTITATIVE_TYPES: { value: string; label: string }[] = [
+    { value: 'eleitoral', label: 'Eleitoral' },
+    { value: 'opiniao_publica', label: 'Pesquisa de Opinião Pública' },
+    { value: 'satisfacao', label: 'Pesquisa Sobre Satisfação do Atendimento' },
+    { value: 'avaliacao_servicos', label: 'Pesquisa de Avaliação de Serviços' },
+    { value: 'avaliacao_administrativa', label: 'Pesquisa de Avaliação Administrativa' },
+    { value: 'avaliacao_empresarial', label: 'Pesquisa de Avaliação Empresarial' },
+    { value: 'consumo_produtos', label: 'Pesquisa Sobre Consumo de Produtos' },
+    { value: 'otimizacao_produto', label: 'Pesquisa de Otimização de Produto' },
+    { value: 'recall', label: 'Pesquisa de Recall' },
+    { value: 'marca', label: 'Pesquisa de Marca' },
+    { value: 'criacao_posicionamento_marca', label: 'Pesquisa para Criação e Posicionamento de Marca' },
+    { value: 'mercado_quantitativa', label: 'Estudo de Mercado Alvo (Território)' },
+    { value: 'segmentacao_mercado', label: 'Estudo de Segmentação de Mercado' },
+    { value: 'publico_alvo', label: 'Estudo Estratégico de Público Alvo' },
+    { value: 'ponto_investimento', label: 'Estudo de Avaliação de Ponto de Investimento' },
+    { value: 'censo', label: 'Estudo Censitário (Censo)' },
+];
+
+const QUALITATIVE_TYPES: { value: string; label: string }[] = [
+    { value: 'qualitativa_grupo_focal', label: 'Grupo Focal' },
+    { value: 'qualitativa_profundidade', label: 'Entrevista em Profundidade' },
 ];
 
 // Lista plana usada em outras partes do código
-const SURVEY_TYPE_OPTIONS = SURVEY_TYPE_GROUPS.flatMap(g => g.options);
+const SURVEY_TYPE_OPTIONS = [...QUANTITATIVE_TYPES, ...QUALITATIVE_TYPES];
 
 export function shouldUseStatisticalSampling(surveyType: string): boolean {
     return [
@@ -228,6 +212,16 @@ export function Step1TechnicalData({ data, onChange }: Props) {
         onChange({ ...data, [key]: value });
     const usesSampling = shouldUseStatisticalSampling(data.survey_type);
 
+    const typeOptions = data.research_category === 'quantitative'
+        ? QUANTITATIVE_TYPES
+        : data.research_category === 'qualitative'
+            ? QUALITATIVE_TYPES
+            : [];
+
+    const handleCategoryChange = (cat: ResearchCategory) => {
+        onChange({ ...data, research_category: cat, survey_type: '' });
+    };
+
     // Validação de datas
     const dateError = (() => {
         if (!data.started_at || !data.ended_at) return '';
@@ -247,6 +241,37 @@ export function Step1TechnicalData({ data, onChange }: Props) {
             </p>
 
             <div className="grid grid-cols-1 gap-5">
+                {/* Categoria: Quantitativa ou Qualitativa */}
+                <div>
+                    <p className="text-sm font-semibold text-slate-700 mb-2">
+                        Natureza da Pesquisa <span className="text-red-500">*</span>
+                        <Tooltip text="Define se a pesquisa coleta dados numéricos (quantitativa) ou explora percepções em profundidade (qualitativa). Esta escolha determina os tipos disponíveis e os parâmetros estatísticos." />
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                        {([
+                            { value: 'quantitative' as const, label: 'Quantitativa', desc: 'Amostras, percentuais, margens de erro', icon: '📊' },
+                            { value: 'qualitative' as const, label: 'Qualitativa', desc: 'Grupos focais, entrevistas em profundidade', icon: '💬' },
+                        ] as const).map(opt => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => handleCategoryChange(opt.value)}
+                                className={`flex items-start gap-3 px-4 py-3 rounded-xl border-2 text-left transition ${data.research_category === opt.value
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <span className="text-2xl mt-0.5">{opt.icon}</span>
+                                <span>
+                                    <span className={`block text-sm font-bold ${data.research_category === opt.value ? 'text-blue-700' : 'text-slate-700'
+                                        }`}>{opt.label}</span>
+                                    <span className="block text-xs text-slate-500 mt-0.5">{opt.desc}</span>
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Título */}
                 <Field>
                     <Label htmlFor="title" tooltip="Nome oficial da pesquisa. Aparecerá em todos os relatórios e na capa.">
@@ -266,25 +291,27 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                 {/* Tipo + Objetivo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Field>
-                        <Label htmlFor="survey_type" tooltip="Classifica a natureza e o foco específico da pesquisa para fins de relatório e análise.">
+                        <Label htmlFor="survey_type" tooltip="Classifica e o foco específico da pesquisa para fins de relatório e análise.">
                             Foco Específico
                         </Label>
-                        <select
-                            id="survey_type"
-                            value={data.survey_type}
-                            onChange={e => set('survey_type', e.target.value)}
-                            aria-label="Foco específico da pesquisa"
-                            className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Selecione...</option>
-                            {SURVEY_TYPE_GROUPS.map(group => (
-                                <optgroup key={group.label} label={`── ${group.label} ──`}>
-                                    {group.options.map(option => (
-                                        <option key={option.value} value={option.value}>{option.label}</option>
-                                    ))}
-                                </optgroup>
-                            ))}
-                        </select>
+                        {!data.research_category ? (
+                            <div className="border border-slate-200 rounded-lg px-4 py-2.5 bg-slate-50 text-sm text-slate-400 italic">
+                                Selecione a natureza da pesquisa acima para ver as opções
+                            </div>
+                        ) : (
+                            <select
+                                id="survey_type"
+                                value={data.survey_type}
+                                onChange={e => set('survey_type', e.target.value)}
+                                aria-label="Foco específico da pesquisa"
+                                className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Selecione...</option>
+                                {typeOptions.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        )}
                     </Field>
 
                     <Field>
