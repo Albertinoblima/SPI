@@ -127,7 +127,7 @@ export function Step1TechnicalData({ data, onChange }: Props) {
 
     return (
         <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 1 — Dados Técnicos</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 1 — Dados Técnicos e Metodologia</h2>
             <p className="text-sm text-slate-500 mb-6">
                 Informe os dados de identificação e os parâmetros estatísticos que aparecerão no cabeçalho do relatório.
             </p>
@@ -301,7 +301,7 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                 {/* Metodologia */}
                 <Field>
                     <Label htmlFor="methodology" tooltip="Ex: Entrevista domiciliar face-a-face com questionário estruturado.">
-                        Metodologia
+                        Texto complementar da metodologia
                     </Label>
                     <textarea
                         id="methodology"

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Step1TechnicalData, type SurveyTechData } from './Step1TechnicalData';
@@ -9,7 +8,6 @@ import { Step2Localities, type Locality } from './Step2Localities';
 import { Step3Premises, type Premise } from './Step3Premises';
 import { Step4Questions } from './Step4Questions';
 import type { Question } from '@political-research/shared-types';
-import { HELP_HOVER_EVENT } from '@/lib/help-topics';
 
 const STEPS = [
     { id: 1, label: 'Dados Técnicos', description: 'Identificação e parâmetros estatísticos' },
@@ -57,26 +55,6 @@ export function SurveyWizard() {
     const [data, setData] = useState<WizardData>(initialWizardData);
     const [saving, setSaving] = useState(false);
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-    const [contextHelp, setContextHelp] = useState<{ title: string; text: string; href: string }>({
-        title: 'Ajuda contextual',
-        text: 'Passe o mouse sobre os icones de ajuda (?) para ver orientacoes rapidas e acessar o guia completo.',
-        href: '/help',
-    });
-
-    useEffect(() => {
-        const onHelpHover = (event: Event) => {
-            const custom = event as CustomEvent<{ title?: string; text?: string; href?: string }>;
-            setContextHelp({
-                title: custom.detail?.title ?? 'Ajuda contextual',
-                text: custom.detail?.text ?? 'Consulte o guia completo para esta etapa.',
-                href: custom.detail?.href ?? '/help',
-            });
-        };
-
-        window.addEventListener(HELP_HOVER_EVENT, onHelpHover as EventListener);
-        return () => window.removeEventListener(HELP_HOVER_EVENT, onHelpHover as EventListener);
-    }, []);
-
     const updateTech = useCallback((tech: SurveyTechData) => {
         setData(prev => ({ ...prev, tech }));
     }, []);
@@ -240,13 +218,7 @@ export function SurveyWizard() {
                 )}
             </div>
 
-            <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-semibold text-blue-900">{contextHelp.title}</p>
-                <p className="text-sm text-blue-800 mt-1">{contextHelp.text}</p>
-                <Link href={contextHelp.href} className="inline-block mt-2 text-sm font-medium text-blue-700 underline underline-offset-2 hover:text-blue-900">
-                    Saber mais...
-                </Link>
-            </div>
+
 
             {/* Rodapé de navegação */}
             <div className="mt-6 flex items-center justify-between">
