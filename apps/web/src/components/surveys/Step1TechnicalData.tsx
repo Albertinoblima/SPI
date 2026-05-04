@@ -112,6 +112,62 @@ export function shouldUseStatisticalSampling(surveyType: string): boolean {
     return ['eleitoral', 'opiniao_publica', 'satisfacao', 'avaliacao_servicos', 'mercado_quantitativa'].includes(surveyType);
 }
 
+const METHODOLOGY_TEMPLATES: Record<string, string[]> = {
+    eleitoral: [
+        'Pesquisa quantitativa de intenção de voto realizada por meio de entrevistas presenciais domiciliares com questionário estruturado, aplicado a eleitores com domicílio eleitoral no município, selecionados por amostragem probabilística estratificada por localidade e perfil socioeconômico.',
+        'Levantamento amostral de opinião eleitoral conduzido com entrevistas face a face, adotando cotas proporcionais de sexo, faixa etária e escolaridade, conforme distribuição do eleitorado junto ao TSE.',
+        'Sondagem eleitoral por entrevistas domiciliares aleatórias, com questionário padronizado aprovado pelo responsável técnico, respeitando margem de erro e intervalo de confiança estabelecidos no planejamento amostral.',
+    ],
+    opiniao_publica: [
+        'Pesquisa quantitativa de opinião pública realizada por entrevistas presenciais com adultos residentes no município, utilizando amostragem aleatória simples estratificada por zona urbana e rural, com cotas de sexo e faixa etária.',
+        'Levantamento de percepção e opinião da população local sobre temas de interesse público, conduzido por entrevistadores treinados com questionário fechado validado previamente em pré-teste com 30 respondentes.',
+        'Sondagem de opinião com abordagem por cotas proporcionais ao perfil censitário do município, capturando percepções sobre gestão pública, serviços e demandas sociais.',
+    ],
+    satisfacao: [
+        'Pesquisa de satisfação com serviços públicos conduzida por entrevistas presenciais junto a usuários dos serviços avaliados, com escala Likert de 5 pontos e questões abertas complementares para captura de sugestões de melhoria.',
+        'Levantamento amostral de satisfação do cidadão com a gestão municipal, aplicado em pontos de alto fluxo (UBS, escolas, feiras), com abordagem aleatória e questionário estruturado.',
+        'Avaliação de satisfação com serviços essenciais (saúde, educação, infraestrutura e segurança), por meio de entrevistas domiciliares com amostragem proporcional ao tamanho de cada setor censitário.',
+    ],
+    avaliacao_servicos: [
+        'Pesquisa de avaliação de serviços públicos municipais por entrevistas presenciais com usuários, utilizando escala de desempenho e questões sobre expectativas e experiências recentes, com amostragem sistemática.',
+        'Levantamento quantitativo de percepção de qualidade nos serviços públicos prestados, aplicado em pontos de atendimento, com coleta de dados via app mobile com geolocalização e assinatura digital.',
+        'Avaliação periódica de serviços por entrevistas domiciliares aleatórias, comparando resultados com waves anteriores para mensuração de evolução de indicadores de desempenho.',
+    ],
+    mercado_quantitativa: [
+        'Pesquisa quantitativa de mercado realizada por entrevistas presenciais com consumidores, utilizando amostragem por cotas de perfil socioeconômico, com questionário estruturado de uso, hábitos e preferências.',
+        'Levantamento de intenção de compra e percepção de marca conduzido com abordagem em pontos de venda e residências, com coleta digital e envio de dados em tempo real.',
+        'Sondagem de mercado com amostragem aleatória estratificada por bairro, coletando informações sobre comportamento do consumidor, satisfação e propensão a recomendar produtos e serviços.',
+    ],
+    censo: [
+        'Levantamento censitário de cobertura total do universo pesquisado, realizado por entrevistadores com dispositivos móveis, com geolocalização obrigatória de cada domicílio visitado e sincronização online/offline.',
+        'Cadastramento integral da população-alvo por meio de visitas domiciliares sistemáticas por setor, com formulário estruturado digital e supervisão remota em tempo real.',
+        'Censo socioeconômico conduzido com questionário padronizado aplicado a todos os domicílios da área delimitada, com revisão de consistência automática e supervisão de campo.',
+    ],
+    qualitativa_grupo_focal: [
+        'Pesquisa qualitativa realizada por meio de grupos focais compostos por 8 a 10 participantes recrutados por perfil específico, conduzidos por moderador treinado com roteiro semiestruturado e análise temática dos resultados.',
+        'Grupos de discussão focal com segmentos distintos da população, gravados com autorização dos participantes e analisados conforme metodologia de análise de conteúdo categorial.',
+        'Pesquisa exploratória qualitativa com grupos focais por perfil etário e socioeconômico, abordando percepções, expectativas e representações sobre o tema central da investigação.',
+    ],
+    qualitativa_profundidade: [
+        'Pesquisa qualitativa com entrevistas em profundidade individuais conduzidas por entrevistadores especializados, com roteiro semiestruturado, duração estimada de 60 minutos e análise temática das transcrições.',
+        'Entrevistas em profundidade com informantes-chave selecionados por critérios de relevância e expertise, com análise de conteúdo qualitativo e triangulação de fontes.',
+        'Investigação qualitativa exploratória por entrevistas individuais em profundidade, com técnica narrativa e análise fenomenológica orientada a compreender experiências e significados atribuídos pelos participantes.',
+    ],
+    quali_quanti: [
+        'Pesquisa mista combinando fase qualitativa exploratória (grupos focais ou entrevistas em profundidade) para construção de hipóteses, seguida de fase quantitativa amostral para validação estatística dos achados.',
+        'Metodologia quali-quanti sequencial: etapa qualitativa para geração de insights e etapa quantitativa amostral com questionário estruturado para mensuração de frequências e correlações no público-alvo.',
+        'Estudo integrado quali-quanti com coleta simultânea: questionários estruturados para dados quantitativos e questões abertas para aprofundamento qualitativo, com análise convergente dos resultados.',
+    ],
+    outros: [
+        'Pesquisa conduzida por entrevistas presenciais com questionário estruturado, amostragem definida pela coordenação técnica e supervisão de campo com uso de aplicativo mobile.',
+        'Levantamento de dados primários por entrevistas diretas com o público-alvo definido no planejamento, seguindo protocolo metodológico aprovado pelo responsável técnico da pesquisa.',
+    ],
+};
+
+function getMethodologySuggestions(surveyType: string): string[] {
+    return METHODOLOGY_TEMPLATES[surveyType] ?? METHODOLOGY_TEMPLATES['outros'] ?? [];
+}
+
 function getMethodologyHint(surveyType: string): string {
     if (shouldUseStatisticalSampling(surveyType)) {
         return 'Pesquisa quantitativa amostral: utilize margem de erro e intervalo de confiança para dimensionar entrevistas.';
@@ -132,6 +188,17 @@ export function Step1TechnicalData({ data, onChange }: Props) {
     const set = (key: keyof SurveyTechData, value: string | number | boolean) =>
         onChange({ ...data, [key]: value });
     const usesSampling = shouldUseStatisticalSampling(data.survey_type);
+
+    // Validação de datas
+    const dateError = (() => {
+        if (!data.started_at || !data.ended_at) return '';
+        if (data.ended_at < data.started_at) return 'A data de encerramento não pode ser anterior à data de início.';
+        return '';
+    })();
+
+    const handleEndDate = (value: string) => {
+        onChange({ ...data, ended_at: value });
+    };
 
     return (
         <div>
@@ -226,7 +293,12 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             id="started_at"
                             type="date"
                             value={data.started_at}
-                            onChange={e => set('started_at', e.target.value)}
+                            onChange={e => {
+                                const newStart = e.target.value;
+                                // Se a data final já está preenchida e fica menor, limpa a data final
+                                const newEnded = data.ended_at && data.ended_at < newStart ? '' : data.ended_at;
+                                onChange({ ...data, started_at: newStart, ended_at: newEnded });
+                            }}
                             className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                             aria-label="Data de início da coleta"
                         />
@@ -239,10 +311,18 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             id="ended_at"
                             type="date"
                             value={data.ended_at}
-                            onChange={e => set('ended_at', e.target.value)}
-                            className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                            min={data.started_at || undefined}
+                            onChange={e => handleEndDate(e.target.value)}
+                            className={`border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 ${
+                                dateError ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-slate-300'
+                            }`}
                             aria-label="Data de encerramento da coleta"
                         />
+                        {dateError && (
+                            <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                                <span>⚠</span> {dateError}
+                            </p>
+                        )}
                     </Field>
                 </div>
 
@@ -263,34 +343,41 @@ export function Step1TechnicalData({ data, onChange }: Props) {
 
                 {/* Metodologia */}
                 <Field>
-                    <Label htmlFor="methodology" tooltip="Ex: Entrevista domiciliar face-a-face com questionário estruturado.">
+                    <Label htmlFor="methodology" tooltip="Texto descritivo que aparecerá no relatório explicando como a pesquisa foi conduzida.">
                         Texto complementar da metodologia
                     </Label>
                     <textarea
                         id="methodology"
-                        rows={2}
+                        rows={4}
                         value={data.methodology}
                         onChange={e => set('methodology', e.target.value)}
-                        className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 resize-none"
-                        placeholder="Ex: Entrevista domiciliar face-a-face com questionário estruturado."
+                        className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 resize-y text-sm"
+                        placeholder="Descreva como a pesquisa será conduzida: método de coleta, forma de abordagem, critérios de seleção dos entrevistados..."
                     />
-                    <div className="mt-2 flex flex-wrap gap-2">
-                        {[
-                            'Amostragem probabilística estratificada por localidade',
-                            'Entrevistas presenciais domiciliares com questionário estruturado',
-                            'Grupo focal moderado com roteiro semiestruturado',
-                            'Entrevistas em profundidade com análise temática',
-                        ].map(template => (
-                            <button
-                                key={template}
-                                type="button"
-                                onClick={() => set('methodology', template)}
-                                className="text-xs px-3 py-1.5 rounded-full border border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-700"
-                            >
-                                {template}
-                            </button>
-                        ))}
-                    </div>
+                    {getMethodologySuggestions(data.survey_type).length > 0 && (
+                        <div className="mt-2">
+                            <p className="text-xs text-slate-500 mb-1.5">Sugestões para <strong>{SURVEY_TYPE_OPTIONS.find(o => o.value === data.survey_type)?.label ?? 'este tipo'}</strong> — clique para usar:</p>
+                            <div className="flex flex-col gap-1.5">
+                                {getMethodologySuggestions(data.survey_type).map((template, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => set('methodology', template)}
+                                        className={`text-xs text-left px-3 py-2 rounded-lg border transition ${
+                                            data.methodology === template
+                                                ? 'border-blue-400 bg-blue-50 text-blue-700'
+                                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                                        }`}
+                                    >
+                                        {template}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {!data.survey_type && (
+                        <p className="text-xs text-slate-400 mt-1.5">Selecione o tipo de pesquisa para ver sugestões de texto metodológico.</p>
+                    )}
                 </Field>
 
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
