@@ -66,24 +66,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className={`${collapsed ? 'w-16' : 'w-64'} bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 transition-all duration-200 overflow-hidden`}>
                     <div className={`p-4 border-b border-slate-200 dark:border-slate-700 flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
                         {collapsed ? (
-                            /* Logo reduzida quando colapsado */
+                            /* Logo SPI reduzida quando colapsado */
                             <div className="w-8 h-8 rounded-md overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-700 flex-shrink-0">
-                                {companyLogo ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={companyLogo}
-                                        alt="Logo"
-                                        className="object-contain w-8 h-8"
-                                    />
-                                ) : (
-                                    <Image
-                                        src="/branding/idialog-logo.png"
-                                        alt="Logo"
-                                        width={32}
-                                        height={32}
-                                        className="object-contain w-8 h-8"
-                                    />
-                                )}
+                                <Image
+                                    src="/branding/idialog-logo.png"
+                                    alt="Logo SPI"
+                                    width={32}
+                                    height={32}
+                                    className="object-contain w-8 h-8"
+                                />
                             </div>
                         ) : (
                             <div className="flex-1 min-w-0">
