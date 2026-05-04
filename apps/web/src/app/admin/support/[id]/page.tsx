@@ -8,11 +8,19 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+interface Attachment {
+    url: string;
+    name: string;
+    type: string;
+    size: number;
+}
+
 interface Message {
     id: string;
     message: string;
     is_from_admin: boolean;
     created_at: string;
+    attachments?: Attachment[];
     users?: { full_name: string; email: string };
 }
 
@@ -216,6 +224,22 @@ export default function AdminTicketDetailPage() {
                                         <p className="text-xs font-semibold text-blue-200 mb-1">⚡ Suporte (você)</p>
                                     )}
                                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                                    {msg.attachments && msg.attachments.length > 0 && (
+                                        <div className="mt-2 space-y-1.5">
+                                            {msg.attachments.map((att, i) => (
+                                                att.type.startsWith('image/') ? (
+                                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer">
+                                                        <img src={att.url} alt={att.name} className="max-w-full rounded-lg max-h-48 object-cover border border-white/20" />
+                                                    </a>
+                                                ) : (
+                                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 text-xs underline opacity-80 hover:opacity-100">
+                                                        📎 {att.name}
+                                                    </a>
+                                                )
+                                            ))}
+                                        </div>
+                                    )}
                                     <p className={`text-xs mt-1.5 ${msg.is_from_admin ? 'text-blue-200' : 'text-slate-500'}`}>
                                         {formatTime(msg.created_at)}
                                     </p>

@@ -3,6 +3,14 @@
 // POST /api/admin/support/tickets/[id]/messages - Adicionar mensagem de resposta
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSystemAdmin, requireTenantAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import { createClient } from '@supabase/supabase-js';
+
+function adminDb() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+}
 
 export async function GET(
     request: NextRequest,
@@ -35,17 +43,20 @@ export async function GET(
             return apiError('Acesso negado', 403);
         }
 
+        // Usar service_role para contornar RLS ao ler dados de outros tenants
+        const db = adminDb();
+
         // Buscar dados do usuário dono do ticket
         const [{ data: ticketUser }, { data: tenant }, { data: assignedUser }] = await Promise.all([
-            auth.supabase.from('users').select('full_name, email').eq('id', ticket.user_id).single(),
-            auth.supabase.from('tenants').select('name, slug').eq('id', ticket.tenant_id).single(),
+            db.from('users').select('full_name, email').eq('id', ticket.user_id).single(),
+            db.from('tenants').select('name, slug').eq('id', ticket.tenant_id).single(),
             ticket.assigned_to
-                ? auth.supabase.from('users').select('full_name, email').eq('id', ticket.assigned_to).single()
+                ? db.from('users').select('full_name, email').eq('id', ticket.assigned_to).single()
                 : Promise.resolve({ data: null }),
         ]);
 
         // Buscar mensagens com dados do remetente
-        const { data: rawMessages } = await auth.supabase
+        const { data: rawMessages } = await db
             .from('support_messages')
             .select('*')
             .eq('ticket_id', ticketId)
@@ -54,7 +65,7 @@ export async function GET(
         // Enriquecer mensagens com dados do remetente
         const messages = await Promise.all(
             (rawMessages ?? []).map(async (msg) => {
-                const { data: sender } = await auth.supabase
+                const { data: sender } = await db
                     .from('users')
                     .select('full_name, email')
                     .eq('id', msg.sender_id)
