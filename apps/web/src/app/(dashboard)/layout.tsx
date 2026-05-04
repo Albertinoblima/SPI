@@ -11,7 +11,9 @@ import {
     Settings,
     CircleHelp,
     LogOut,
+    LifeBuoy,
 } from 'lucide-react';
+import ChatWidget from '@/components/support/ChatWidget';
 import { createClient } from '@/lib/supabase/client';
 
 interface DashboardLayoutProps {
@@ -26,6 +28,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { label: 'Início', href: '/dashboard', icon: BarChart3 },
         { label: 'Pesquisas', href: '/surveys', icon: FileText },
         { label: 'Equipe', href: '/team', icon: Users },
+        { label: 'Suporte', href: '/support', icon: LifeBuoy },
         { label: 'Ajuda', href: '/help', icon: CircleHelp },
         { label: 'Configurações', href: '/settings', icon: Settings },
     ];
@@ -93,6 +96,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex-1 overflow-y-auto">
                 {children}
             </div>
+
+            {/* Chat de Suporte - flutuante */}
+            <ChatWidget />
         </div>
     );
 }
