@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, HelpCircle, Calculator, Users } from 'lucide-react';
 import Link from 'next/link';
 import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
@@ -35,6 +35,12 @@ interface Props {
     surveyType: string;
     scopeData: ScopeData;
     onScopeChange: (scopeData: ScopeData) => void;
+}
+
+interface GeoStateOption {
+    code: number;
+    uf: string;
+    name: string;
 }
 
 function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
@@ -174,25 +180,101 @@ export function Step2Localities({
     });
 
     const [error, setError] = useState('');
+    const [geoSource, setGeoSource] = useState<'ibge' | 'fallback' | null>(null);
+    const [ibgeStates, setIbgeStates] = useState<GeoStateOption[]>([]);
+    const [ibgeCities, setIbgeCities] = useState<string[]>([]);
 
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
     const totalInterviews = effectiveLocalities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
     const totalPopulation = effectiveLocalities.reduce((acc, l) => acc + (l.population ?? 0), 0);
 
-    const stateOptions = useMemo(
-        () => Array.from(new Set(localities.filter(l => l.geo_level === 'state').map(l => l.name))).sort(),
-        [localities]
-    );
+    const activeStateForCitySuggestions = useMemo(() => {
+        if (scopeData.geographic_scope === 'city' || scopeData.geographic_scope === 'state') {
+            return scopeData.scope_state_name;
+        }
+        if (scopeData.geographic_scope === 'national') {
+            return form.parent_state_name ?? '';
+        }
+        return '';
+    }, [scopeData.geographic_scope, scopeData.scope_state_name, form.parent_state_name]);
 
-    const cityOptions = useMemo(
-        () => Array.from(new Set(
-            localities
-                .filter(l => l.geo_level === 'city')
-                .filter(l => !form.parent_state_name || l.parent_state_name === form.parent_state_name)
-                .map(l => l.name)
-        )).sort(),
-        [localities, form.parent_state_name]
-    );
+    useEffect(() => {
+        let active = true;
+
+        const loadStates = async () => {
+            try {
+                const response = await fetch('/api/geo/states', { cache: 'force-cache' });
+                const payload = await response.json();
+                if (!active) return;
+
+                if (payload?.success && Array.isArray(payload?.data?.states)) {
+                    setIbgeStates(payload.data.states as GeoStateOption[]);
+                    setGeoSource((payload.data.source as 'ibge' | 'fallback') ?? null);
+                }
+            } catch {
+                if (!active) return;
+                setGeoSource('fallback');
+            }
+        };
+
+        loadStates();
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        const stateName = activeStateForCitySuggestions.trim();
+        if (!stateName) {
+            setIbgeCities([]);
+            return;
+        }
+
+        let active = true;
+
+        const loadCities = async () => {
+            try {
+                const response = await fetch(`/api/geo/cities?state=${encodeURIComponent(stateName)}`, { cache: 'force-cache' });
+                const payload = await response.json();
+                if (!active) return;
+
+                if (payload?.success && Array.isArray(payload?.data?.cities)) {
+                    setIbgeCities(payload.data.cities as string[]);
+                    if (payload?.data?.source) {
+                        setGeoSource(payload.data.source as 'ibge' | 'fallback');
+                    }
+                } else {
+                    setIbgeCities([]);
+                }
+            } catch {
+                if (!active) return;
+                setIbgeCities([]);
+            }
+        };
+
+        loadCities();
+
+        return () => {
+            active = false;
+        };
+    }, [activeStateForCitySuggestions]);
+
+    const stateOptions = useMemo(() => {
+        const localStateNames = localities.filter(l => l.geo_level === 'state').map(l => l.name);
+        const ibgeStateNames = ibgeStates.map((state) => state.name);
+
+        return Array.from(new Set([...localStateNames, ...ibgeStateNames])).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    }, [localities, ibgeStates]);
+
+    const cityOptions = useMemo(() => {
+        const localCityNames = localities
+            .filter(l => l.geo_level === 'city')
+            .filter(l => !activeStateForCitySuggestions || l.parent_state_name === activeStateForCitySuggestions)
+            .map(l => l.name);
+
+        return Array.from(new Set([...localCityNames, ...ibgeCities])).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    }, [localities, activeStateForCitySuggestions, ibgeCities]);
 
     const localitiesByLevel = useMemo(() => {
         return {
@@ -402,6 +484,7 @@ export function Step2Localities({
                         <div>
                             <label className="text-sm font-medium text-slate-700 block mb-1">Estado</label>
                             <input
+                                list="state-options-global"
                                 type="text"
                                 value={scopeData.scope_state_name}
                                 onChange={(e) => onScopeChange({ ...scopeData, scope_state_name: e.target.value })}
@@ -415,6 +498,7 @@ export function Step2Localities({
                         <div>
                             <label className="text-sm font-medium text-slate-700 block mb-1">Cidade</label>
                             <input
+                                list="city-options-global"
                                 type="text"
                                 value={scopeData.scope_city_name}
                                 onChange={(e) => onScopeChange({ ...scopeData, scope_city_name: e.target.value })}
@@ -437,7 +521,20 @@ export function Step2Localities({
                         </div>
                     )}
                 </div>
+                <datalist id="state-options-global">
+                    {stateOptions.map((stateName) => (
+                        <option key={stateName} value={stateName} />
+                    ))}
+                </datalist>
+                <datalist id="city-options-global">
+                    {cityOptions.map((cityName) => (
+                        <option key={cityName} value={cityName} />
+                    ))}
+                </datalist>
                 <p className="mt-3 text-xs text-slate-500">Resumo: {scopeSummary}</p>
+                <p className="mt-1 text-[11px] text-slate-400">
+                    Referência geográfica: {geoSource === 'ibge' ? 'IBGE (sincronizado)' : 'fallback local'}.
+                </p>
             </div>
 
             {usesSampling ? (
@@ -510,18 +607,13 @@ export function Step2Localities({
                             <label htmlFor="loc-parent-state" className="text-sm font-medium text-slate-700 block mb-1">Estado de referência</label>
                             <input
                                 id="loc-parent-state"
-                                list="state-options"
+                                list="state-options-global"
                                 type="text"
                                 value={form.parent_state_name ?? ''}
                                 onChange={(e) => setForm((prev) => ({ ...prev, parent_state_name: e.target.value }))}
                                 className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                                 placeholder="Ex: Ceará"
                             />
-                            <datalist id="state-options">
-                                {stateOptions.map((stateName) => (
-                                    <option key={stateName} value={stateName} />
-                                ))}
-                            </datalist>
                         </div>
                     )}
 
@@ -530,18 +622,13 @@ export function Step2Localities({
                             <label htmlFor="loc-parent-city" className="text-sm font-medium text-slate-700 block mb-1">Cidade de referência</label>
                             <input
                                 id="loc-parent-city"
-                                list="city-options"
+                                list="city-options-global"
                                 type="text"
                                 value={form.parent_city_name ?? ''}
                                 onChange={(e) => setForm((prev) => ({ ...prev, parent_city_name: e.target.value }))}
                                 className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                                 placeholder="Ex: Fortaleza"
                             />
-                            <datalist id="city-options">
-                                {cityOptions.map((cityName) => (
-                                    <option key={cityName} value={cityName} />
-                                ))}
-                            </datalist>
                         </div>
                     )}
 
