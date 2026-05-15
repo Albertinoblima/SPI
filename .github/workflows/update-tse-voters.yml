@@ -49,13 +49,9 @@ jobs:
       - name: Commit TSE data updates
         if: steps.changes.outputs.has_changes == 'true'
         run: |
+          $today = Get-Date -Format 'dd/MM/yyyy'
           git add apps/web/src/lib/geo/tse-voter-data.json
-          git commit -m "data(tse): atualizar dados eleitorais do TSE
-
-- Todos os municípios brasileiros
-- Proporções por sexo (M/F)
-- Distribuição por faixa etária (16-80+ anos)
-- Data: $(Get-Date -Format 'dd/MM/yyyy')" -m "Co-authored-by: github-actions[bot] <41898752+github-actions[bot]@users.noreply.github.com>"
+          git commit -m "data(tse): atualizar dados eleitorais do TSE" -m "- Todos os municípios brasileiros`n- Proporções por sexo (M/F)`n- Distribuição por faixa etária (16-80+ anos)`n- Data: $today" -m "Co-authored-by: github-actions[bot] <41898752+github-actions[bot]@users.noreply.github.com>"
 
       - name: Push updates
         if: steps.changes.outputs.has_changes == 'true'

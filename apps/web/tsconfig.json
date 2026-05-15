@@ -10,7 +10,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "allowJs": true,
     "noEmit": true,
     "incremental": true,

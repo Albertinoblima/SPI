@@ -970,11 +970,11 @@ export function Step2Localities({
                                                 )}
                                             </div>
                                             {/* Barra visual sexo */}
-                                            <div className="flex h-2.5 rounded overflow-hidden mt-1.5 w-full max-w-xs">
-                                                <div style={{ width: `${voterLookup.proportions.sex.m}%` }} className="bg-blue-400" />
-                                                <div style={{ width: `${voterLookup.proportions.sex.f}%` }} className="bg-pink-400" />
+                                            <div className="mt-1.5 w-full max-w-xs space-y-1">
+                                                <progress className="h-2.5 w-full accent-blue-400" max={100} value={Math.min(voterLookup.proportions.sex.m, 100)} />
+                                                <progress className="h-2.5 w-full accent-pink-400" max={100} value={Math.min(voterLookup.proportions.sex.f, 100)} />
                                                 {voterLookup.proportions.sex.n > 0 && (
-                                                    <div style={{ width: `${voterLookup.proportions.sex.n}%` }} className="bg-slate-400" />
+                                                    <progress className="h-2.5 w-full accent-slate-400" max={100} value={Math.min(voterLookup.proportions.sex.n, 100)} />
                                                 )}
                                             </div>
                                         </div>
@@ -983,9 +983,7 @@ export function Step2Localities({
                                             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                                                 {(Object.entries(voterLookup.proportions.age) as [string, number][]).map(([key, pct]) => (
                                                     <div key={key} className="flex items-center gap-1.5">
-                                                        <div className="w-20 h-1.5 bg-slate-200 rounded overflow-hidden">
-                                                            <div style={{ width: `${Math.min(pct, 100)}%` }} className="h-full bg-violet-500" />
-                                                        </div>
+                                                        <progress className="h-1.5 w-20 accent-violet-500" max={100} value={Math.min(pct, 100)} />
                                                         <span className="text-slate-700">{TSE_AGE_LABELS[key] ?? key}: <strong>{pct.toFixed(1)}%</strong></span>
                                                     </div>
                                                 ))}
