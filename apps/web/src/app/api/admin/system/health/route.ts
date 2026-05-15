@@ -56,13 +56,11 @@ export async function GET(request: NextRequest) {
     // Buscar dados em paralelo
     const [
         vercelResult,
-        { data: errorSummary },
         { data: recentErrors },
         { data: analytics },
         { data: systemStats },
     ] = await Promise.all([
         fetchVercelDeployments(),
-        auth.supabase.rpc('get_error_summary').maybeSingle().catch(() => ({ data: null })) as Promise<{ data: null }>,
         auth.supabase
             .from('error_logs')
             .select('id, error_code, error_message, severity, http_path, created_at, resolved, tenant_id')
