@@ -354,12 +354,12 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     </Field>
 
                     <Field>
-                        <Label htmlFor="population_type" tooltip="Define a base de dados que alimentará as localidades (Etapa 2) e o dimensionamento amostral (Etapa 3). 'Eleitores' usa dados do TSE; 'Habitantes' usa IBGE.">
-                            Base Populacional
+                        <Label htmlFor="population_type" tooltip="Define o público-alvo principal da pesquisa. Em 'Eleitores', o sistema usa a base eleitoral do TSE; em 'Habitantes', usa a base populacional do IBGE. O tratamento estatístico da base populacional será feito na Etapa 3.">
+                            Público-alvo
                         </Label>
                         <select
                             id="population_type"
-                            aria-label="Base populacional da pesquisa"
+                            aria-label="Público-alvo da pesquisa"
                             value={data.population_type ?? 'eleitores'}
                             onChange={e => set('population_type', e.target.value)}
                             className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
@@ -381,21 +381,6 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                         </select>
                     </Field>
                 </div>
-
-                {/* Público-alvo (descrição livre) */}
-                <Field>
-                    <Label htmlFor="target_audience" tooltip="Quem são os entrevistados? Ex: Eleitores com título ativo no município.">
-                        Público-alvo
-                    </Label>
-                    <input
-                        id="target_audience"
-                        type="text"
-                        value={data.target_audience}
-                        onChange={e => set('target_audience', e.target.value)}
-                        className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                        placeholder="Ex: Eleitores registrados no município"
-                    />
-                </Field>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
                     {getMethodologyHint(data.survey_type)}
