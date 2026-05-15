@@ -272,7 +272,7 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
     return (
         <div>
             <div className="flex items-center justify-between mb-1">
-                <h2 className="text-lg font-bold text-slate-900">Etapa 4 — Questionário</h2>
+                <h2 className="text-lg font-bold text-slate-900">Etapa 5 — Questionário</h2>
                 <button
                     type="button"
                     onClick={() => setPreview(v => !v)}

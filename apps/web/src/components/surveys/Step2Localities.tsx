@@ -552,8 +552,8 @@ export function Step2Localities({
 
                     <div>
                         <label htmlFor="loc-pop" className="text-sm font-medium text-slate-700 block mb-1">
-                            Quantidade
-                            <Tooltip text="População base para cálculo ou estimativa operacional. Pode ser 0 em nível apenas de agrupamento." helpId="localities-population" />
+                            População base
+                            <Tooltip text="População base para cálculo amostral ou estimativa operacional. Pode ser 0 em nível apenas de agrupamento." helpId="localities-population" />
                         </label>
                         <input
                             id="loc-pop"

@@ -367,7 +367,7 @@ export function Step3Premises({ premises, onChange }: Props) {
 
     return (
         <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 3 — Estratificação da Amostra</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 4 — Estratificação da Amostra</h2>
             <p className="text-sm text-slate-500 mb-4">
                 Defina o perfil do entrevistado e as cotas esperadas. A estratificação garante que a amostra represente
                 adequadamente os diferentes segmentos da população pesquisada.

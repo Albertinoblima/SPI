@@ -112,8 +112,9 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Metas por Localidade',
         short: 'A distribuicao por localidade muda conforme o tipo da pesquisa.',
         content: [
-            'Tipos amostrais usam estimativa automatica por formula para populacao finita.',
+            'Tipos amostrais calculam entrevistas automaticamente pela formula para populacao finita.',
             'Tipos qualitativos/censo usam meta manual por estrategia operacional.',
+            'O dimensionamento amostral completo e revisado na Etapa 3 antes do questionario.',
             'Sempre revise pesos finais para evitar concentracao excessiva em uma unica area.',
         ],
     },
@@ -130,11 +131,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     {
         id: 'localities-population',
         title: 'Populacao de Referencia',
-        short: 'Use a base populacional correta para o calculo de entrevistas.',
+        short: 'Use a população base correta para o cálculo amostral de cada localidade.',
         content: [
-            'Em eleitorais, prefira base de eleitores validada.',
+            'Em pesquisas eleitorais, prefira base de eleitores validada.',
             'Em estudos territoriais gerais, use habitantes.',
-            'Bases inconsistentes distorcem cotas e inferencia final.',
+            'Bases inconsistentes distorcem cotas e inferência final.',
+            'O valor informado aqui alimenta o dimensionamento amostral na Etapa 3.',
         ],
     },
     {
@@ -277,8 +279,20 @@ export const HELP_TOPICS: HelpTopic[] = [
         content: [
             'No modo automatico, e calculado pela formula padrao de amostragem.',
             'Pode ser ajustado manualmente para adequar ao orcamento ou capacidade de campo.',
-            'Este numero e distribuido entre as localidades na Etapa 2 (Localidades).',
+            'A distribuicao por localidade e revisada na Etapa 3 (Dimensionamento Amostral).',
             'Arredondar para cima mantem ou melhora a precisao estatistica.',
+        ],
+    },
+    {
+        id: 'sample-size-review',
+        title: 'Dimensionamento Amostral',
+        short: 'Revisao do calculo do tamanho da amostra antes de elaborar o questionario.',
+        content: [
+            'Confira o total de entrevistas calculado com base na populacao base de cada localidade.',
+            'Os parametros estatisticos (margem de erro, intervalo de confianca, Deff) vem da Etapa 1.',
+            'As populacoes base por localidade foram definidas na Etapa 2.',
+            'Volte as etapas anteriores para ajustar qualquer parametro antes de prosseguir.',
+            'Esta etapa e somente de revisao; nenhum dado e alterado aqui.',
         ],
     },
     {

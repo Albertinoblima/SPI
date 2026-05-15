@@ -5,15 +5,17 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
 import { Step2Localities, type Locality } from './Step2Localities';
+import { Step3SampleSize } from './Step3SampleSize';
 import { Step3Premises, type Premise } from './Step3Premises';
 import { Step4Questions } from './Step4Questions';
 import type { Question } from '@political-research/shared-types';
 
 const STEPS = [
     { id: 1, label: 'Dados Técnicos', description: 'Identificação e parâmetros estatísticos' },
-    { id: 2, label: 'Localidades', description: 'Municípios e cálculo amostral' },
-    { id: 3, label: 'Premissas', description: 'Perfil e cotas do entrevistado' },
-    { id: 4, label: 'Questionário', description: 'Perguntas da pesquisa' },
+    { id: 2, label: 'Localidades', description: 'Municípios e população base' },
+    { id: 3, label: 'Dimensionamento', description: 'Revisão do cálculo amostral' },
+    { id: 4, label: 'Premissas', description: 'Perfil e cotas do entrevistado' },
+    { id: 5, label: 'Questionário', description: 'Perguntas da pesquisa' },
 ];
 
 export interface WizardData {
@@ -215,7 +217,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         }));
     }, []);
 
-    const goNext = () => setCurrentStep(s => Math.min(s + 1, 4));
+    const goNext = () => setCurrentStep(s => Math.min(s + 1, 5));
     const goPrev = () => setCurrentStep(s => Math.max(s - 1, 1));
 
     const validateRegisteredResearchRequirements = () => {
@@ -336,6 +338,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         }
         if (data.questions.length === 0) {
             setAlert({ type: 'error', message: 'Adicione ao menos uma pergunta ao questionário.' });
+            setCurrentStep(5);
             return;
         }
         await handleSaveDraft();
@@ -357,7 +360,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         <h1 className="text-2xl font-bold text-slate-900">
                             {surveyId ? 'Editar Rascunho' : 'Nova Pesquisa'}
                         </h1>
-                        <p className="text-slate-500 mt-1">Preencha as informações nas 4 etapas abaixo</p>
+                        <p className="text-slate-500 mt-1">Preencha as informações nas 5 etapas abaixo</p>
                     </div>
 
                     {/* Stepper */}
@@ -426,9 +429,15 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             />
                         )}
                         {currentStep === 3 && (
-                            <Step3Premises premises={data.premises} onChange={updatePremises} />
+                            <Step3SampleSize
+                                localities={data.localities}
+                                tech={data.tech}
+                            />
                         )}
                         {currentStep === 4 && (
+                            <Step3Premises premises={data.premises} onChange={updatePremises} />
+                        )}
+                        {currentStep === 5 && (
                             <Step4Questions
                                 questions={data.questions}
                                 onChange={updateQuestions}
@@ -470,7 +479,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             >
                                 {saving ? 'Salvando...' : 'Salvar Rascunho'}
                             </button>
-                            {currentStep < 4 ? (
+                            {currentStep < 5 ? (
                                 <button
                                     type="button"
                                     onClick={goNext}
