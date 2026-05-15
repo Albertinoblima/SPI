@@ -149,21 +149,17 @@ foreach ($uf in $UFS) {
 
     $reader.Dispose(); $stream.Dispose(); $zip.Dispose()
     Write-Host "[$uf] $lineCount linhas, $($data.Count) municipios total." -ForegroundColor Green
+
+    # Gravar JSON incremental apos cada estado (permite uso de dados parciais)
+    $objInc = [ordered]@{}
+    foreach ($kvp in $data.GetEnumerator()) { $objInc[$kvp.Key] = $kvp.Value }
+    $jsonInc = $objInc | ConvertTo-Json -Depth 3 -Compress
+    $outPathInc = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OUTPUT_JSON)
+    [System.IO.File]::WriteAllText($outPathInc, $jsonInc, [System.Text.Encoding]::UTF8)
 }
 
 # Gerar JSON
-Write-Host "`nGerando JSON com $($data.Count) municipios..." -ForegroundColor Magenta
-
-$obj = [ordered]@{}
-foreach ($kvp in $data.GetEnumerator()) {
-    $obj[$kvp.Key] = $kvp.Value
-}
-
-$json = $obj | ConvertTo-Json -Depth 3 -Compress
-
 $outputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OUTPUT_JSON)
-[System.IO.File]::WriteAllText($outputPath, $json, [System.Text.Encoding]::UTF8)
-
 $kb = [math]::Round((Get-Item $outputPath).Length / 1KB, 0)
-Write-Host "Arquivo gerado: $outputPath ($kb KB)" -ForegroundColor Green
+Write-Host "`nArquivo gerado: $outputPath ($kb KB)" -ForegroundColor Green
 Write-Host "Concluido. $($data.Count) municipios processados." -ForegroundColor Green
