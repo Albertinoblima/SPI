@@ -183,6 +183,10 @@ export function Step2Localities({
     const [geoSource, setGeoSource] = useState<'ibge' | 'fallback' | null>(null);
     const [ibgeStates, setIbgeStates] = useState<GeoStateOption[]>([]);
     const [ibgeCities, setIbgeCities] = useState<string[]>([]);
+    const [populationLookup, setPopulationLookup] = useState<{ loading: boolean; message: string | null }>({
+        loading: false,
+        message: null,
+    });
 
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
     const totalInterviews = effectiveLocalities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
@@ -297,6 +301,69 @@ export function Step2Localities({
         return null;
     };
 
+    const resolveHierarchy = () => {
+        const resolvedParentState = (() => {
+            if (scopeData.geographic_scope === 'state' || scopeData.geographic_scope === 'city') return scopeData.scope_state_name.trim();
+            if (form.geo_level === 'city' || form.geo_level === 'locality') return (form.parent_state_name ?? '').trim();
+            return '';
+        })();
+
+        const resolvedParentCity = (() => {
+            if (scopeData.geographic_scope === 'city') return scopeData.scope_city_name.trim();
+            if (form.geo_level === 'locality') return (form.parent_city_name ?? '').trim();
+            return '';
+        })();
+
+        return {
+            resolvedParentState,
+            resolvedParentCity,
+        };
+    };
+
+    const handleSuggestPopulation = async () => {
+        const { resolvedParentState, resolvedParentCity } = resolveHierarchy();
+
+        const stateForLookup = resolvedParentState;
+        const cityForLookup = form.geo_level === 'city' ? form.name.trim() : resolvedParentCity;
+
+        if (!stateForLookup || !cityForLookup) {
+            setPopulationLookup({
+                loading: false,
+                message: 'Informe estado e cidade para sugerir população via IBGE.',
+            });
+            return;
+        }
+
+        setPopulationLookup({ loading: true, message: null });
+
+        try {
+            const response = await fetch(
+                `/api/geo/population?state=${encodeURIComponent(stateForLookup)}&city=${encodeURIComponent(cityForLookup)}`,
+            );
+            const payload = await response.json();
+
+            const population = Number(payload?.data?.population ?? 0);
+            if (payload?.success && Number.isFinite(population) && population > 0) {
+                setForm((prev) => ({ ...prev, population }));
+                setPopulationLookup({
+                    loading: false,
+                    message: `População sugerida pelo IBGE: ${population.toLocaleString('pt-BR')} habitantes.`,
+                });
+                return;
+            }
+
+            setPopulationLookup({
+                loading: false,
+                message: payload?.data?.warning ?? 'Não foi possível sugerir população para esta localidade.',
+            });
+        } catch {
+            setPopulationLookup({
+                loading: false,
+                message: 'Falha ao consultar população no IBGE. Você pode preencher manualmente.',
+            });
+        }
+    };
+
     const handleAdd = () => {
         const scopeError = validateScope();
         if (scopeError) {
@@ -314,17 +381,7 @@ export function Step2Localities({
             return;
         }
 
-        const resolvedParentState = ((): string => {
-            if (scopeData.geographic_scope === 'state' || scopeData.geographic_scope === 'city') return scopeData.scope_state_name.trim();
-            if (form.geo_level === 'city' || form.geo_level === 'locality') return (form.parent_state_name ?? '').trim();
-            return '';
-        })();
-
-        const resolvedParentCity = ((): string => {
-            if (scopeData.geographic_scope === 'city') return scopeData.scope_city_name.trim();
-            if (form.geo_level === 'locality') return (form.parent_city_name ?? '').trim();
-            return '';
-        })();
+        const { resolvedParentState, resolvedParentCity } = resolveHierarchy();
 
         if ((form.geo_level === 'city' || form.geo_level === 'locality') && !resolvedParentState) {
             setError('Informe o estado de referência para esse cadastro.');
@@ -388,6 +445,7 @@ export function Step2Localities({
             population_type: specificAudience ? 'segmento_especifico' : 'eleitores',
             interviews_required: 0,
         });
+        setPopulationLookup({ loading: false, message: null });
     };
 
     const handleRemove = (id: string) => {
@@ -663,6 +721,24 @@ export function Step2Localities({
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                             placeholder="Ex: 50000"
                         />
+                        {(form.geo_level === 'city' || form.geo_level === 'locality') && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleSuggestPopulation}
+                                    disabled={populationLookup.loading}
+                                    className="text-xs px-3 py-1.5 rounded-md border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-60"
+                                >
+                                    {populationLookup.loading ? 'Consultando IBGE...' : 'Sugerir população via IBGE'}
+                                </button>
+                                <span className="text-[11px] text-slate-500">Consulta gratuita com fallback manual.</span>
+                            </div>
+                        )}
+                        {populationLookup.message && (
+                            <p className="mt-2 text-xs text-slate-600 bg-slate-100 border border-slate-200 rounded px-2.5 py-1.5">
+                                {populationLookup.message}
+                            </p>
+                        )}
                     </div>
 
                     <div>

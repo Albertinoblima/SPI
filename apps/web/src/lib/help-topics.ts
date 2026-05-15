@@ -136,6 +136,7 @@ export const HELP_TOPICS: HelpTopic[] = [
             'Em pesquisas eleitorais, prefira base de eleitores validada.',
             'Em estudos territoriais gerais, use habitantes.',
             'Para abrangencia nacional, o sistema aplica populacao infinita no calculo amostral.',
+            'Para cidade/localidade, use o botao de sugestao para consultar populacao municipal no IBGE.',
             'Bases inconsistentes distorcem cotas e inferência final.',
             'O valor informado aqui alimenta o dimensionamento amostral na Etapa 3.',
         ],
