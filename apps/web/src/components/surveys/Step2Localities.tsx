@@ -647,7 +647,7 @@ export function Step2Localities({
             <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 — Localidades</h2>
             <p className="text-sm text-slate-500 mb-2">
                 {usesSampling
-                    ? 'Cadastre as localidades da pesquisa com a população base de cada uma. A referência geográfica é sincronizada com o IBGE e o TSE. O dimensionamento amostral é configurado na Etapa 3.'
+                    ? 'Cadastre as localidades da pesquisa com a população de cada uma. A referência geográfica é sincronizada com o IBGE e o TSE. O dimensionamento amostral é configurado na Etapa 3.'
                     : 'Defina a abrangência territorial e cadastre níveis inferiores sem repetir níveis superiores, com metas operacionais manuais quando necessário.'}
             </p>
 
@@ -843,8 +843,8 @@ export function Step2Localities({
 
                     <div>
                         <label htmlFor="loc-pop" className="text-sm font-medium text-slate-700 block mb-1">
-                            População base
-                            <Tooltip text="População base para cálculo amostral ou estimativa operacional. Pode ser 0 em nível apenas de agrupamento." helpId="localities-population" />
+                            População
+                            <Tooltip text="População da localidade para estimativas e planejamento. Pode ser 0 em nível apenas de agrupamento." helpId="localities-population" />
                         </label>
                         <input
                             id="loc-pop"
@@ -976,32 +976,6 @@ export function Step2Localities({
                                 )}
                             </div>
                         )}
-                    </div>
-
-                    <div>
-                        <label htmlFor="loc-pop-type" className="text-sm font-medium text-slate-700 block mb-1">Público-alvo</label>
-                        <select
-                            id="loc-pop-type"
-                            value={form.population_type}
-                            onChange={(e) => setForm((prev) => ({ ...prev, population_type: e.target.value as Locality['population_type'] }))}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                            disabled={specificAudience}
-                        >
-                            <option value="comerciantes">Comerciantes</option>
-                            <option value="comerciarios">Comerciários</option>
-                            <option value="consumidores">Consumidores</option>
-                            <option value="eleitores">Eleitores</option>
-                            <option value="dona_de_casa">Dona de Casa</option>
-                            <option value="industriarios">Industriários</option>
-                            <option value="funcionarios_publicos">Funcionários Públicos</option>
-                            <option value="prestadores_servicos">Prestadores de Serviços</option>
-                            <option value="professores">Professores</option>
-                            <option value="profissional_liberal">Profissional Liberal</option>
-                            <option value="publico_geral">Público em Geral</option>
-                            <option value="segmento_especifico">Segmento Específico</option>
-                            <option value="sindicalistas">Sindicalistas</option>
-                            <option value="habitantes">Habitantes</option>
-                        </select>
                     </div>
 
                     {!usesSampling && (
