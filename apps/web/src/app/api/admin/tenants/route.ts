@@ -1,5 +1,5 @@
 // GET /api/admin/tenants - Listar todos os tenants com estatísticas
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
                     { count: 'exact' }
                 )
                 .eq('status', status)
+                .is('deleted_at', null)
                 .order('created_at', { ascending: false })
                 .range(offset, offset + pageSize - 1);
         } else {

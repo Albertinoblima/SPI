@@ -3,14 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-    Building2,
     Users,
     FileText,
     AlertTriangle,
     Loader,
     ArrowLeft,
     Lock,
-    LockOpen,
+    Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -66,6 +65,7 @@ export default function TenantDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [updating, setUpdating] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [newStatus, setNewStatus] = useState<string | null>(null);
 
     const fetchTenant = useCallback(async () => {
@@ -107,7 +107,8 @@ export default function TenantDetailsPage() {
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao atualizar tenant');
+                const body = await response.json().catch(() => ({}));
+                throw new Error(body.error || 'Erro ao atualizar tenant');
             }
 
             setData((prev) => {
@@ -121,6 +122,42 @@ export default function TenantDetailsPage() {
             setError(err instanceof Error ? err.message : 'Erro ao atualizar');
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleDeleteTenant = async () => {
+        if (!data || deleting) return;
+
+        const confirmation = window.prompt(
+            `Para confirmar, digite o slug da empresa: ${data.tenant.slug}`
+        );
+
+        if (confirmation === null) return;
+
+        if (confirmation.trim() !== data.tenant.slug) {
+            setError('Confirmação inválida. Digite exatamente o slug da empresa para excluir.');
+            return;
+        }
+
+        try {
+            setDeleting(true);
+            setError(null);
+
+            const response = await fetch(`/api/admin/tenants/${tenantId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(body.error || 'Erro ao excluir empresa');
+            }
+
+            router.push('/admin/tenants');
+            router.refresh();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Erro ao excluir empresa');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -364,6 +401,24 @@ export default function TenantDetailsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Danger Zone */}
+            <div className="p-6 rounded-lg bg-red-950/20 border border-red-800/40">
+                <h2 className="text-lg font-semibold text-red-300 mb-2 flex items-center gap-2">
+                    <Trash2 className="w-5 h-5" />
+                    Zona de Perigo
+                </h2>
+                <p className="text-sm text-red-200/90 mb-4">
+                    A exclusão remove a empresa das listagens (soft delete) e não pode ser desfeita pela interface.
+                </p>
+                <button
+                    onClick={handleDeleteTenant}
+                    disabled={deleting || updating}
+                    className="px-6 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                    {deleting ? 'Excluindo...' : 'Excluir Empresa'}
+                </button>
+            </div>
         </div>
     );
 }
