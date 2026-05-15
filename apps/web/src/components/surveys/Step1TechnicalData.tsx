@@ -20,6 +20,10 @@ export interface SurveyTechData {
     deff: number;
     p_proportion: number;
     stats_mode: 'auto' | 'manual';
+    /** Modo de tratamento de população no cálculo amostral */
+    infinite_population_mode: 'national_only' | 'auto_threshold' | 'force_all';
+    /** Limiar (hab.) a partir do qual população é tratada como infinita (auto_threshold) */
+    infinite_population_threshold: number;
     // ── Demais campos ──
     objective: string;
     methodology: string;

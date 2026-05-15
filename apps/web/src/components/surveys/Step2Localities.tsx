@@ -544,7 +544,7 @@ export function Step2Localities({
         }
 
         const interviews = usesSampling
-            ? calcInterviews(form.population, marginOfError, confidenceInterval, forceInfinitePopulation)
+            ? 0  // cálculo amostral é feito na Etapa 3
             : form.interviews_required;
 
         if (!usesSampling && form.population > 0 && interviews <= 0) {
@@ -645,7 +645,7 @@ export function Step2Localities({
             <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 — Localidades</h2>
             <p className="text-sm text-slate-500 mb-2">
                 {usesSampling
-                    ? 'Defina a abrangência territorial e cadastre níveis inferiores sem repetir níveis superiores. O sistema calcula entrevistas automaticamente para cada cadastro efetivo.'
+                    ? 'Cadastre as localidades da pesquisa com a população base de cada uma. A referência geográfica é sincronizada com o IBGE e o TSE. O dimensionamento amostral é configurado na Etapa 3.'
                     : 'Defina a abrangência territorial e cadastre níveis inferiores sem repetir níveis superiores, com metas operacionais manuais quando necessário.'}
             </p>
 
@@ -748,29 +748,6 @@ export function Step2Localities({
                     Referência geográfica: {geoSource === 'ibge' ? 'IBGE (sincronizado)' : 'fallback local'}.
                 </p>
             </div>
-
-            {usesSampling ? (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-800 flex items-start gap-2">
-                    <Calculator size={15} className="mt-0.5 shrink-0 text-blue-600" />
-                    <span>
-                        {forceInfinitePopulation ? (
-                            <>
-                                <strong>Abrangência nacional com população infinita:</strong>{' '}
-                                n = Z² × p × q / e² — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
-                            </>
-                        ) : (
-                            <>
-                                <strong>Fórmula amostral para populações finitas:</strong>{' '}
-                                n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
-                            </>
-                        )}
-                    </span>
-                </div>
-            ) : (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-xs text-amber-900">
-                    Para esta tipologia metodológica, não há cálculo amostral automático. A empresa define a meta operacional por localidade.
-                </div>
-            )}
 
             <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-slate-50">
                 <h3 className="text-sm font-semibold text-slate-700 mb-4">
@@ -1043,12 +1020,6 @@ export function Step2Localities({
                     )}
                 </div>
 
-                {usesSampling && form.population > 0 && marginOfError > 0 && (
-                    <p className="mt-3 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-                        📊 Estimativa: <strong className="text-blue-700">{calcInterviews(form.population, marginOfError, confidenceInterval, forceInfinitePopulation)} entrevistas</strong>
-                    </p>
-                )}
-
                 {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
                 <button
@@ -1067,14 +1038,6 @@ export function Step2Localities({
                         <h3 className="text-sm font-semibold text-slate-700">
                             {localities.length} item{localities.length > 1 ? 's' : ''} cadastrado{localities.length > 1 ? 's' : ''}
                         </h3>
-                        <button
-                            type="button"
-                            onClick={handleRecalcAll}
-                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition"
-                        >
-                            <Calculator size={14} />
-                            {usesSampling ? 'Recalcular todas' : 'Atualizar pesos'}
-                        </button>
                     </div>
 
                     <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -1086,8 +1049,12 @@ export function Step2Localities({
                                     <th className="text-left px-4 py-3 font-semibold">Hierarquia</th>
                                     <th className="text-left px-4 py-3 font-semibold">Zona</th>
                                     <th className="text-right px-4 py-3 font-semibold">População</th>
-                                    <th className="text-right px-4 py-3 font-semibold">Entrevistas</th>
-                                    <th className="text-right px-4 py-3 font-semibold">Peso</th>
+                                    {!usesSampling && (
+                                        <>
+                                            <th className="text-right px-4 py-3 font-semibold">Entrevistas</th>
+                                            <th className="text-right px-4 py-3 font-semibold">Peso</th>
+                                        </>
+                                    )}
                                     <th className="px-4 py-3" />
                                 </tr>
                             </thead>
@@ -1102,10 +1069,14 @@ export function Step2Localities({
                                         </td>
                                         <td className="px-4 py-3 text-slate-600">{ZONE_LABELS[loc.zone]}</td>
                                         <td className="px-4 py-3 text-right text-slate-600">{loc.population.toLocaleString('pt-BR')}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-blue-700">{(loc.interviews_required ?? 0).toLocaleString('pt-BR')}</td>
-                                        <td className="px-4 py-3 text-right text-slate-500 text-xs">
-                                            {loc.interviews_weight !== undefined ? `${(loc.interviews_weight * 100).toFixed(1)}%` : '—'}
-                                        </td>
+                                        {!usesSampling && (
+                                            <>
+                                                <td className="px-4 py-3 text-right font-bold text-blue-700">{(loc.interviews_required ?? 0).toLocaleString('pt-BR')}</td>
+                                                <td className="px-4 py-3 text-right text-slate-500 text-xs">
+                                                    {loc.interviews_weight !== undefined ? `${(loc.interviews_weight * 100).toFixed(1)}%` : '—'}
+                                                </td>
+                                            </>
+                                        )}
                                         <td className="px-4 py-3 text-right">
                                             <button
                                                 type="button"
@@ -1121,9 +1092,14 @@ export function Step2Localities({
                             </tbody>
                             <tfoot className="bg-slate-50 border-t border-slate-200">
                                 <tr>
-                                    <td className="px-4 py-3 font-semibold text-slate-700" colSpan={5}>Total (níveis efetivos)</td>
-                                    <td className="px-4 py-3 text-right font-bold text-blue-700 text-base">{totalInterviews.toLocaleString('pt-BR')} entrevistas</td>
-                                    <td className="px-4 py-3 text-right text-slate-500 text-xs">100%</td>
+                                    <td className="px-4 py-3 font-semibold text-slate-700" colSpan={4}>Total (níveis efetivos)</td>
+                                    <td className="px-4 py-3 text-right font-bold text-emerald-700">{totalPopulation.toLocaleString('pt-BR')}</td>
+                                    {!usesSampling && (
+                                        <>
+                                            <td className="px-4 py-3 text-right font-bold text-blue-700 text-base">{effectiveLocalities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0).toLocaleString('pt-BR')} entrevistas</td>
+                                            <td className="px-4 py-3 text-right text-slate-500 text-xs">100%</td>
+                                        </>
+                                    )}
                                     <td />
                                 </tr>
                             </tfoot>
@@ -1131,28 +1107,8 @@ export function Step2Localities({
                     </div>
 
                     {usesSampling && (
-                        <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Users size={18} className="text-emerald-600 shrink-0" />
-                                <div>
-                                    <p className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">Universo total pesquisado</p>
-                                    <p className="text-lg font-extrabold text-emerald-800">
-                                        {totalPopulation.toLocaleString('pt-BR')}
-                                        <span className="text-xs font-normal text-emerald-600 ml-1">pessoas / eleitores</span>
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="h-px sm:h-10 w-full sm:w-px bg-emerald-200" />
-                            <div className="flex items-center gap-3">
-                                <Calculator size={18} className="text-blue-600 shrink-0" />
-                                <div>
-                                    <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide">Total de entrevistas (Etapa 2)</p>
-                                    <p className="text-lg font-extrabold text-blue-800">
-                                        {totalInterviews.toLocaleString('pt-BR')}
-                                        <span className="text-xs font-normal text-blue-600 ml-1">entrevistas</span>
-                                    </p>
-                                </div>
-                            </div>
+                        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                            O cálculo do tamanho da amostra e o tratamento de população infinita são configurados na <strong>Etapa 3 — Dimensionamento Amostral</strong>.
                         </div>
                     )}
                 </div>

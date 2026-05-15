@@ -38,6 +38,8 @@ const initialWizardData: WizardData = {
         deff: 1.0,
         p_proportion: 0.5,
         stats_mode: 'auto',
+        infinite_population_mode: 'national_only',
+        infinite_population_threshold: 50000,
         objective: '',
         methodology: '',
         target_audience: '',
@@ -86,20 +88,54 @@ function shouldForceInfinitePopulation(scope: SurveyTechData['geographic_scope']
     return scope === 'national';
 }
 
-function computeAutoTotalInterviews(tech: SurveyTechData, totalPopulation: number): number {
+/** Determina se uma localidade específica usa população infinita conforme o modo escolhido. */
+export function localityUsesInfinitePopulation(
+    population: number,
+    tech: Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold' | 'geographic_scope'>,
+): boolean {
+    const mode = tech.infinite_population_mode ?? 'national_only';
+    if (mode === 'force_all') return true;
+    if (mode === 'auto_threshold') return population >= (tech.infinite_population_threshold ?? 50000);
+    // national_only
+    return tech.geographic_scope === 'national';
+}
+
+function computeAutoTotalInterviews(tech: SurveyTechData, localities: Locality[]): number {
     const Z: Record<number, number> = { 90: 1.645, 95: 1.96, 99: 2.576 };
     const z = Z[tech.confidence_interval] ?? 1.96;
     const E = tech.margin_of_error / 100;
     const p = tech.p_proportion ?? 0.5;
     const n0 = (z * z * p * (1 - p)) / (E * E);
+    const deff = tech.deff ?? 1;
+    const mode = tech.infinite_population_mode ?? 'national_only';
 
-    const useInfinitePopulation = shouldForceInfinitePopulation(tech.geographic_scope);
-    const popForCalc = !useInfinitePopulation && totalPopulation > 0 ? totalPopulation : null;
-    const nWithPop = popForCalc && popForCalc > 0
-        ? n0 / (1 + (n0 - 1) / popForCalc)
-        : n0;
+    if (mode === 'force_all') {
+        return Math.ceil(n0 * deff);
+    }
 
-    return Math.ceil(nWithPop * (tech.deff ?? 1));
+    const effectiveLocs = getEffectiveLocalities(localities);
+
+    if (mode === 'auto_threshold') {
+        const threshold = tech.infinite_population_threshold ?? 50000;
+        if (effectiveLocs.length === 0) return Math.ceil(n0 * deff);
+        const total = effectiveLocs.reduce((acc, loc) => {
+            const useInfinite = (loc.population ?? 0) >= threshold;
+            const n = useInfinite || loc.population <= 0
+                ? n0
+                : n0 / (1 + (n0 - 1) / loc.population);
+            return acc + Math.ceil(n * deff);
+        }, 0);
+        return total;
+    }
+
+    // national_only (padrão)
+    const isNational = tech.geographic_scope === 'national';
+    if (isNational || effectiveLocs.length === 0) {
+        return Math.ceil(n0 * deff);
+    }
+    const totalPop = effectiveLocs.reduce((s, l) => s + (l.population ?? 0), 0);
+    const nWithPop = totalPop > 0 ? n0 / (1 + (n0 - 1) / totalPop) : n0;
+    return Math.ceil(nWithPop * deff);
 }
 
 export function SurveyWizard({ draftId }: { draftId?: string }) {
@@ -133,6 +169,8 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         deff: s.deff ?? 1.0,
                         p_proportion: s.p_proportion ?? 0.5,
                         stats_mode: s.stats_mode ?? 'auto',
+                        infinite_population_mode: s.infinite_population_mode ?? 'national_only',
+                        infinite_population_threshold: s.infinite_population_threshold ?? 50000,
                         objective: s.objective ?? '',
                         methodology: s.methodology ?? '',
                         target_audience: s.target_audience ?? '',
@@ -183,11 +221,12 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         setData(prev => {
             const effectiveLocalities = getEffectiveLocalities(prev.localities);
             const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
-            const forceInfinite = shouldForceInfinitePopulation(tech.geographic_scope);
+            const isNational = tech.geographic_scope === 'national';
+            const mode = tech.infinite_population_mode ?? 'national_only';
 
             const normalizedTech: SurveyTechData = {
                 ...tech,
-                population_size: forceInfinite ? null : tech.population_size,
+                population_size: (isNational || mode === 'force_all') ? null : (totalPop > 0 ? totalPop : null),
             };
 
             if (normalizedTech.stats_mode !== 'auto' || !shouldUseStatisticalSampling(normalizedTech.survey_type)) {
@@ -198,7 +237,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 ...prev,
                 tech: {
                     ...normalizedTech,
-                    total_interviews: computeAutoTotalInterviews(normalizedTech, totalPop),
+                    total_interviews: computeAutoTotalInterviews(normalizedTech, prev.localities),
                 },
             };
         });
@@ -218,14 +257,15 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             if (!usesSampling) {
                 return { ...prev, localities };
             }
-            const forceInfinite = shouldForceInfinitePopulation(tech.geographic_scope);
-            const total_interviews = computeAutoTotalInterviews(tech, totalPop);
+            const isNational = tech.geographic_scope === 'national';
+            const mode = tech.infinite_population_mode ?? 'national_only';
+            const total_interviews = computeAutoTotalInterviews(tech, localities);
             return {
                 ...prev,
                 localities,
                 tech: {
                     ...tech,
-                    population_size: forceInfinite ? null : (totalPop > 0 ? totalPop : null),
+                    population_size: (isNational || mode === 'force_all') ? null : (totalPop > 0 ? totalPop : null),
                     total_interviews,
                 },
             };
@@ -249,19 +289,37 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 ...prev.tech,
                 ...scopeData,
             };
-
-            if (shouldForceInfinitePopulation(nextTech.geographic_scope)) {
+            const isNational = nextTech.geographic_scope === 'national';
+            const mode = nextTech.infinite_population_mode ?? 'national_only';
+            if (isNational || mode === 'force_all') {
                 nextTech.population_size = null;
+            } else {
+                nextTech.population_size = totalPop > 0 ? totalPop : null;
             }
 
             if (nextTech.stats_mode === 'auto' && shouldUseStatisticalSampling(nextTech.survey_type)) {
-                nextTech.total_interviews = computeAutoTotalInterviews(nextTech, totalPop);
+                nextTech.total_interviews = computeAutoTotalInterviews(nextTech, prev.localities);
             }
 
             return {
                 ...prev,
                 tech: nextTech,
             };
+        });
+    }, []);
+
+    const updateSampleMode = useCallback((updates: Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold'>) => {
+        setData(prev => {
+            const effectiveLocalities = getEffectiveLocalities(prev.localities);
+            const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
+            const nextTech: SurveyTechData = { ...prev.tech, ...updates };
+            const isNational = nextTech.geographic_scope === 'national';
+            const mode = nextTech.infinite_population_mode;
+            nextTech.population_size = (isNational || mode === 'force_all') ? null : (totalPop > 0 ? totalPop : null);
+            if (nextTech.stats_mode === 'auto' && shouldUseStatisticalSampling(nextTech.survey_type)) {
+                nextTech.total_interviews = computeAutoTotalInterviews(nextTech, prev.localities);
+            }
+            return { ...prev, tech: nextTech };
         });
     }, []);
 
@@ -480,6 +538,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             <Step3SampleSize
                                 localities={data.localities}
                                 tech={data.tech}
+                                onTechChange={updateSampleMode}
                             />
                         )}
                         {currentStep === 4 && (
