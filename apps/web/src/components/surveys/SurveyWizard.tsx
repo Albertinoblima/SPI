@@ -11,8 +11,8 @@ import { Step4Questions } from './Step4Questions';
 import type { Question } from '@political-research/shared-types';
 
 const STEPS = [
-    { id: 1, label: 'Dados Técnicos', description: 'Identificação e parâmetros estatísticos' },
-    { id: 2, label: 'Localidades', description: 'Municípios e população base' },
+    { id: 1, label: 'Dados Técnicos', description: 'Identificação da pesquisa' },
+    { id: 2, label: 'Localidades', description: 'Abrangência e territórios' },
     { id: 3, label: 'Dimensionamento', description: 'Revisão do cálculo amostral' },
     { id: 4, label: 'Premissas', description: 'Perfil e cotas do entrevistado' },
     { id: 5, label: 'Questionário', description: 'Perguntas da pesquisa' },
@@ -310,7 +310,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         });
     }, []);
 
-    const updateSampleMode = useCallback((updates: Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold'>) => {
+    const updateSampleMode = useCallback((updates: Partial<Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold' | 'margin_of_error' | 'confidence_interval'>>) => {
         setData(prev => {
             const effectiveLocalities = getEffectiveLocalities(prev.localities);
             const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
@@ -523,8 +523,6 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             <Step2Localities
                                 localities={data.localities}
                                 onChange={updateLocalities}
-                                marginOfError={data.tech.margin_of_error}
-                                confidenceInterval={data.tech.confidence_interval}
                                 surveyType={data.tech.survey_type}
                                 scopeData={{
                                     geographic_scope: data.tech.geographic_scope,
@@ -542,6 +540,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                 localities={data.localities}
                                 tech={data.tech}
                                 onTechChange={updateSampleMode}
+                                onLocalitiesChange={updateLocalities}
                             />
                         )}
                         {currentStep === 4 && (

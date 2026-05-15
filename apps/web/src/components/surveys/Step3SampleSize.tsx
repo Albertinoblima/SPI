@@ -23,7 +23,24 @@ interface Props {
         | 'infinite_population_mode'
         | 'infinite_population_threshold'
     >;
-    onTechChange: (updates: Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold'>) => void;
+    onTechChange: (updates: Partial<Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold' | 'margin_of_error' | 'confidence_interval'>>) => void;
+    onLocalitiesChange: (localities: Locality[]) => void;
+}
+
+function getMethodologyHint(surveyType: string): string {
+    if (shouldUseStatisticalSampling(surveyType)) {
+        return 'Pesquisa quantitativa amostral: utilize margem de erro e intervalo de confiança para dimensionar entrevistas.';
+    }
+    if (surveyType === 'censo') {
+        return 'Levantamento censitário: cobertura total do universo. A quantidade por localidade deve ser definida manualmente.';
+    }
+    if (surveyType === 'qualitativa_grupo_focal' || surveyType === 'qualitativa_profundidade') {
+        return 'Pesquisa qualitativa: não utiliza margem de erro estatística. Defina metas de entrevistas por critério técnico na etapa de localidades.';
+    }
+    if (surveyType === 'quali_quanti') {
+        return 'Pesquisa mista: use amostragem apenas na fase quantitativa. Metas qualitativas devem ser definidas manualmente.';
+    }
+    return 'Defina o tipo para habilitar recomendações metodológicas e regras automáticas de amostragem.';
 }
 
 function getZ(ci: number): number {
@@ -114,7 +131,7 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
     );
 }
 
-export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
+export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesChange }: Props) {
     const usesSampling = shouldUseStatisticalSampling(tech.survey_type);
 
     const mode = tech.infinite_population_mode ?? 'national_only';
@@ -154,28 +171,105 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
         }
     };
 
+    const handlePopulationChange = (localityId: string, value: string) => {
+        const parsed = parseInt(value, 10);
+        const nextPopulation = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        const updated = localities.map((loc) =>
+            loc.id === localityId ? { ...loc, population: nextPopulation } : loc,
+        );
+        onLocalitiesChange(updated);
+    };
+
     return (
         <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 3 â€” Dimensionamento Amostral</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 3 — Dimensionamento Amostral</h2>
             <p className="text-sm text-slate-500 mb-6">
-                Revise o cÃ¡lculo do tamanho da amostra com base na populaÃ§Ã£o cadastrada nas localidades e nos
-                parÃ¢metros estatÃ­sticos definidos na Etapa 1.
-                <Tooltip text="Revise este dimensionamento antes de elaborar o questionÃ¡rio." helpId="sample-size-review" />
+                Configure os parâmetros estatísticos e finalize o dimensionamento da amostra com base nas localidades cadastradas.
+                <Tooltip text="Revise este dimensionamento antes de elaborar o questionário." helpId="sample-size-review" />
             </p>
 
-            {/* ParÃ¢metros estatÃ­sticos */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">
+                {getMethodologyHint(tech.survey_type)}
+            </div>
+
+            {usesSampling && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4 mb-6">
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <label htmlFor="margin_of_error" className="flex items-center text-sm font-medium text-slate-700">
+                                Margem de Erro
+                                <Tooltip text="Variação máxima aceitável nos resultados, expressa em pontos percentuais. Padrão: 3%." />
+                            </label>
+                            <span className="text-sm font-bold text-blue-700 tabular-nums">{tech.margin_of_error.toFixed(1)}%</span>
+                        </div>
+                        <input
+                            id="margin_of_error"
+                            type="range"
+                            min={1}
+                            max={10}
+                            step={0.5}
+                            value={tech.margin_of_error}
+                            onChange={(e) => onTechChange({
+                                infinite_population_mode: mode,
+                                infinite_population_threshold: threshold,
+                                margin_of_error: parseFloat(e.target.value),
+                                confidence_interval: tech.confidence_interval,
+                            })}
+                            className="w-full accent-blue-600 cursor-pointer"
+                            aria-label="Margem de erro"
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-400">
+                            <span>1%</span>
+                            <span>5%</span>
+                            <span>10%</span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <label htmlFor="confidence_interval" className="flex items-center text-sm font-medium text-slate-700">
+                                Intervalo de Confiança
+                                <Tooltip text="Probabilidade de o resultado estar dentro da margem de erro. Padrão: 95%." />
+                            </label>
+                            <span className="text-sm font-bold text-blue-700 tabular-nums">{tech.confidence_interval}%</span>
+                        </div>
+                        <input
+                            id="confidence_interval"
+                            type="range"
+                            min={90}
+                            max={99}
+                            step={1}
+                            value={tech.confidence_interval}
+                            onChange={(e) => onTechChange({
+                                infinite_population_mode: mode,
+                                infinite_population_threshold: threshold,
+                                margin_of_error: tech.margin_of_error,
+                                confidence_interval: parseInt(e.target.value, 10),
+                            })}
+                            className="w-full accent-blue-600 cursor-pointer"
+                            aria-label="Intervalo de confiança"
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-400">
+                            <span>90%</span>
+                            <span>95%</span>
+                            <span>99%</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-white">
                 <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
                     <Calculator size={15} className="text-blue-600" />
-                    ParÃ¢metros estatÃ­sticos (Etapa 1)
+                    Parâmetros estatísticos
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <div className="bg-slate-50 rounded-lg p-3">
                         <p className="text-xs text-slate-500 mb-1">Margem de erro</p>
-                        <p className="font-bold text-slate-800">Â± {tech.margin_of_error}%</p>
+                        <p className="font-bold text-slate-800">± {tech.margin_of_error}%</p>
                     </div>
                     <div className="bg-slate-50 rounded-lg p-3">
-                        <p className="text-xs text-slate-500 mb-1">Intervalo de confianÃ§a</p>
+                        <p className="text-xs text-slate-500 mb-1">Intervalo de confiança</p>
                         <p className="font-bold text-slate-800">{tech.confidence_interval}%</p>
                     </div>
                     <div className="bg-slate-50 rounded-lg p-3">
@@ -183,8 +277,8 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
                         <p className="font-bold text-slate-800">Deff = {tech.deff ?? 1.0}</p>
                     </div>
                     <div className="bg-slate-50 rounded-lg p-3">
-                        <p className="text-xs text-slate-500 mb-1">Modo de cÃ¡lculo</p>
-                        <p className="font-bold text-slate-800 capitalize">{tech.stats_mode === 'auto' ? 'AutomÃ¡tico' : 'Manual'}</p>
+                        <p className="text-xs text-slate-500 mb-1">Modo de cálculo</p>
+                        <p className="font-bold text-slate-800 capitalize">{tech.stats_mode === 'auto' ? 'Automático' : 'Manual'}</p>
                     </div>
                 </div>
 
@@ -194,24 +288,24 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
                         <span>
                             {mode === 'force_all' ? (
                                 <>
-                                    <strong>PopulaÃ§Ã£o infinita forÃ§ada (todas as localidades):</strong>{' '}
-                                    n = ZÂ² Ã— p Ã— q / eÂ² â€” onde Z={Z.toFixed(3)}, p=0,5, e={E.toFixed(3)}.
+                                    <strong>População infinita forçada (todas as localidades):</strong>{' '}
+                                    n = Z² × p × q / e² — onde Z={Z.toFixed(3)}, p=0,5, e={E.toFixed(3)}.
                                 </>
                             ) : mode === 'auto_threshold' ? (
                                 <>
-                                    <strong>Limiar automÃ¡tico ({threshold.toLocaleString('pt-BR')} hab.):</strong>{' '}
-                                    Localidades com populaÃ§Ã£o â‰¥ {threshold.toLocaleString('pt-BR')} usam fÃ³rmula infinita;
-                                    demais usam correÃ§Ã£o finita. Z={Z.toFixed(3)}, e={E.toFixed(3)}.
+                                    <strong>Limiar automático ({threshold.toLocaleString('pt-BR')} hab.):</strong>{' '}
+                                    Localidades com população ≥ {threshold.toLocaleString('pt-BR')} usam fórmula infinita;
+                                    demais usam correção finita. Z={Z.toFixed(3)}, e={E.toFixed(3)}.
                                 </>
                             ) : isNational ? (
                                 <>
-                                    <strong>AbrangÃªncia nacional â€” populaÃ§Ã£o infinita:</strong>{' '}
-                                    n = ZÂ² Ã— p Ã— q / eÂ² â€” onde Z={Z.toFixed(3)}, p=0,5, e={E.toFixed(3)}.
+                                    <strong>Abrangência nacional — população infinita:</strong>{' '}
+                                    n = Z² × p × q / e² — onde Z={Z.toFixed(3)}, p=0,5, e={E.toFixed(3)}.
                                 </>
                             ) : (
                                 <>
-                                    <strong>FÃ³rmula amostral para populaÃ§Ãµes finitas:</strong>{' '}
-                                    n = (ZÂ² Ã— p Ã— q / eÂ²) / (1 + (ZÂ² Ã— p Ã— q / eÂ² âˆ’ 1) / N) â€” onde Z={Z.toFixed(3)}, p=0,5,
+                                    <strong>Fórmula amostral para populações finitas:</strong>{' '}
+                                    n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={Z.toFixed(3)}, p=0,5,
                                     e={E.toFixed(3)}.
                                 </>
                             )}
@@ -221,8 +315,8 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
 
                 {!usesSampling && (
                     <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
-                        Para esta tipologia metodolÃ³gica, nÃ£o hÃ¡ cÃ¡lculo amostral automÃ¡tico. As metas operacionais
-                        foram definidas manualmente na Etapa 2.
+                        Para esta tipologia metodológica, não há cálculo amostral automático. As metas operacionais
+                        foram definidas manualmente.
                     </div>
                 )}
             </div>
@@ -370,8 +464,8 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
                                     <th className="text-left px-4 py-3 font-semibold">Nome</th>
                                     <th className="text-left px-4 py-3 font-semibold">Zona</th>
                                     <th className="text-right px-4 py-3 font-semibold">
-                                        PopulaÃ§Ã£o base
-                                        <Tooltip text="PopulaÃ§Ã£o cadastrada na Etapa 2 para cada localidade efetiva." helpId="localities-population" />
+                                        População
+                                        <Tooltip text="População da localidade usada no dimensionamento. Informe os valores nesta etapa." helpId="localities-population" />
                                     </th>
                                     {usesSampling && (
                                         <th className="text-center px-4 py-3 font-semibold">
@@ -406,7 +500,15 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
                                             </td>
                                             <td className="px-4 py-3 text-xs text-slate-500">{ZONE_LABELS[loc.zone]}</td>
                                             <td className="px-4 py-3 text-right text-slate-700">
-                                                {loc.population > 0 ? loc.population.toLocaleString('pt-BR') : <span className="text-slate-400">â€”</span>}
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    value={loc.population > 0 ? loc.population : ''}
+                                                    onChange={(e) => handlePopulationChange(loc.id, e.target.value)}
+                                                    className="w-32 ml-auto text-right border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500"
+                                                    placeholder="0"
+                                                    aria-label={`População da localidade ${loc.name}`}
+                                                />
                                             </td>
                                             {usesSampling && (
                                                 <td className="px-4 py-3 text-center">
@@ -431,10 +533,9 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
                             </tbody>
                             <tfoot className="bg-slate-50 border-t border-slate-200">
                                 <tr>
-                                    <td className="px-4 py-3 font-semibold text-slate-700" colSpan={usesSampling ? 4 : 3}>
+                                    <td className="px-4 py-3 font-semibold text-slate-700" colSpan={3}>
                                         Total (localidades efetivas)
                                     </td>
-                                    {usesSampling && <td />}
                                     <td className="px-4 py-3 text-right font-bold text-emerald-700">
                                         {totalPopulation.toLocaleString('pt-BR')}
                                     </td>
@@ -450,8 +551,8 @@ export function Step3SampleSize({ localities, tech, onTechChange }: Props) {
             )}
 
             <p className="mt-4 text-xs text-slate-400">
-                Para ajustar parÃ¢metros estatÃ­sticos, volte Ã  <strong>Etapa 1</strong>. Para alterar localidades e
-                populaÃ§Ãµes, volte Ã  <strong>Etapa 2</strong>. Confirme os dados acima antes de elaborar o questionÃ¡rio.
+                Nesta etapa você define os parâmetros estatísticos e a população de cada localidade para o cálculo.
+                Use a Etapa 2 apenas para ajustar a estrutura territorial. Confirme os dados acima antes de elaborar o questionário.
             </p>
         </div>
     );

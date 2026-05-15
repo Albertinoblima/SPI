@@ -230,26 +230,9 @@ function getMethodologySuggestions(surveyType: string): string[] {
     return METHODOLOGY_TEMPLATES[surveyType] ?? METHODOLOGY_TEMPLATES['outros'] ?? [];
 }
 
-function getMethodologyHint(surveyType: string): string {
-    if (shouldUseStatisticalSampling(surveyType)) {
-        return 'Pesquisa quantitativa amostral: utilize margem de erro e intervalo de confiança para dimensionar entrevistas.';
-    }
-    if (surveyType === 'censo') {
-        return 'Levantamento censitário: cobertura total do universo. A quantidade por localidade deve ser definida manualmente.';
-    }
-    if (surveyType === 'qualitativa_grupo_focal' || surveyType === 'qualitativa_profundidade') {
-        return 'Pesquisa qualitativa: não utiliza margem de erro estatística. Defina metas de entrevistas por critério técnico na etapa de localidades.';
-    }
-    if (surveyType === 'quali_quanti') {
-        return 'Pesquisa mista: use amostragem apenas na fase quantitativa. Metas qualitativas devem ser definidas manualmente.';
-    }
-    return 'Defina o tipo para habilitar recomendações metodológicas e regras automáticas de amostragem.';
-}
-
 export function Step1TechnicalData({ data, onChange }: Props) {
     const set = (key: keyof SurveyTechData, value: string | number | boolean | null) =>
         onChange({ ...data, [key]: value });
-    const usesSampling = shouldUseStatisticalSampling(data.survey_type);
 
     const typeOptions = data.research_category === 'quantitative'
         ? QUANTITATIVE_TYPES
@@ -381,69 +364,6 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                         </select>
                     </Field>
                 </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
-                    {getMethodologyHint(data.survey_type)}
-                </div>
-
-                {/* Parâmetros amostrais — sliders (cálculo detalhado na Etapa 3) */}
-                {usesSampling && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-                        {/* Margem de Erro */}
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between mb-0.5">
-                                <label htmlFor="margin_of_error" className="flex items-center text-sm font-medium text-slate-700">
-                                    Margem de Erro
-                                    <Tooltip text="Variação máxima aceitável nos resultados, expressa em pontos percentuais. Padrão: 3%." />
-                                </label>
-                                <span className="text-sm font-bold text-blue-700 tabular-nums">{data.margin_of_error.toFixed(1)}%</span>
-                            </div>
-                            <input
-                                id="margin_of_error"
-                                type="range"
-                                min={1}
-                                max={10}
-                                step={0.5}
-                                value={data.margin_of_error}
-                                onChange={e => set('margin_of_error', parseFloat(e.target.value))}
-                                className="w-full accent-blue-600 cursor-pointer"
-                                aria-label="Margem de erro"
-                            />
-                            <div className="flex justify-between text-[10px] text-slate-400">
-                                <span>1%</span>
-                                <span>5%</span>
-                                <span>10%</span>
-                            </div>
-                        </div>
-
-                        {/* Intervalo de Confiança */}
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between mb-0.5">
-                                <label htmlFor="confidence_interval" className="flex items-center text-sm font-medium text-slate-700">
-                                    Intervalo de Confiança
-                                    <Tooltip text="Probabilidade de o resultado estar dentro da margem de erro. Padrão: 95%." />
-                                </label>
-                                <span className="text-sm font-bold text-blue-700 tabular-nums">{data.confidence_interval}%</span>
-                            </div>
-                            <input
-                                id="confidence_interval"
-                                type="range"
-                                min={90}
-                                max={99}
-                                step={1}
-                                value={data.confidence_interval}
-                                onChange={e => set('confidence_interval', parseInt(e.target.value, 10))}
-                                className="w-full accent-blue-600 cursor-pointer"
-                                aria-label="Intervalo de confiança"
-                            />
-                            <div className="flex justify-between text-[10px] text-slate-400">
-                                <span>90%</span>
-                                <span>95%</span>
-                                <span>99%</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Período */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

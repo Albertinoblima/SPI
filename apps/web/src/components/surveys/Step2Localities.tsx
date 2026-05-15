@@ -30,8 +30,6 @@ interface ScopeData {
 interface Props {
     localities: Locality[];
     onChange: (localities: Locality[]) => void;
-    marginOfError: number;
-    confidenceInterval: number;
     surveyType: string;
     scopeData: ScopeData;
     onScopeChange: (scopeData: ScopeData) => void;
