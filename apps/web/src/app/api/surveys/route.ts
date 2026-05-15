@@ -19,6 +19,14 @@ type SurveyLegalFields = {
     pesqele_registration_code?: string;
 };
 
+type SurveyGeographyFields = {
+    geographic_scope?: 'national' | 'state' | 'city' | 'specific_public' | '';
+    scope_country_name?: string;
+    scope_state_name?: string;
+    scope_city_name?: string;
+    specific_public_description?: string;
+};
+
 function normalizeDocument(value?: string) {
     return (value ?? '').replace(/\D/g, '');
 }
@@ -53,6 +61,25 @@ function validateLegalFields(fields: SurveyLegalFields): string | null {
         return 'Para divulgação pública, o registro no PesqEle é obrigatório.';
     }
 
+    return null;
+}
+
+function validateGeographyFields(fields: SurveyGeographyFields): string | null {
+    if (!fields.geographic_scope) {
+        return 'Selecione a abrangência territorial da pesquisa.';
+    }
+    if (fields.geographic_scope === 'national' && !fields.scope_country_name?.trim()) {
+        return 'Para pesquisa nacional, informe o país.';
+    }
+    if (fields.geographic_scope === 'state' && !fields.scope_state_name?.trim()) {
+        return 'Para pesquisa estadual, informe o estado.';
+    }
+    if (fields.geographic_scope === 'city' && (!fields.scope_state_name?.trim() || !fields.scope_city_name?.trim())) {
+        return 'Para pesquisa municipal, informe estado e cidade.';
+    }
+    if (fields.geographic_scope === 'specific_public' && !fields.specific_public_description?.trim()) {
+        return 'Para público específico, descreva o recorte do público-alvo.';
+    }
     return null;
 }
 
@@ -111,7 +138,9 @@ export async function POST(request: NextRequest) {
             registered_responsible_name, registered_responsible_registry,
             registered_responsible_body, contracting_entity_name,
             contracting_entity_document, survey_total_value, invoice_reference,
-            funding_source, is_public_disclosure, pesqele_registration_code } = body;
+            funding_source, is_public_disclosure, pesqele_registration_code,
+            geographic_scope, scope_country_name, scope_state_name,
+            scope_city_name, specific_public_description } = body;
 
         if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400);
 
@@ -129,6 +158,15 @@ export async function POST(request: NextRequest) {
             pesqele_registration_code,
         });
         if (legalValidationError) return apiError(legalValidationError, 400);
+
+        const geographyValidationError = validateGeographyFields({
+            geographic_scope,
+            scope_country_name,
+            scope_state_name,
+            scope_city_name,
+            specific_public_description,
+        });
+        if (geographyValidationError) return apiError(geographyValidationError, 400);
 
         const adminSupabase = createAdminClient();
 
@@ -161,6 +199,11 @@ export async function POST(request: NextRequest) {
                 funding_source: funding_source?.trim() || null,
                 is_public_disclosure: is_public_disclosure ?? false,
                 pesqele_registration_code: pesqele_registration_code?.trim() || null,
+                geographic_scope: geographic_scope || null,
+                scope_country_name: scope_country_name?.trim() || null,
+                scope_state_name: scope_state_name?.trim() || null,
+                scope_city_name: scope_city_name?.trim() || null,
+                specific_public_description: specific_public_description?.trim() || null,
                 requires_geolocation: requires_geolocation ?? true,
                 requires_photo: requires_photo ?? false,
                 requires_signature: requires_signature ?? false,

@@ -57,11 +57,28 @@ const initialWizardData: WizardData = {
         allow_offline: true,
         started_at: '',
         ended_at: '',
+        geographic_scope: '',
+        scope_country_name: 'Brasil',
+        scope_state_name: '',
+        scope_city_name: '',
+        specific_public_description: '',
     },
     localities: [],
     premises: [],
     questions: [],
 };
+
+function getEffectiveLocalities(localities: Locality[]): Locality[] {
+    return localities.filter((loc) => {
+        if (loc.geo_level === 'state') {
+            return !localities.some((child) => child.geo_level !== 'state' && child.parent_state_name === loc.name);
+        }
+        if (loc.geo_level === 'city') {
+            return !localities.some((child) => child.geo_level === 'locality' && child.parent_city_name === loc.name && child.parent_state_name === loc.parent_state_name);
+        }
+        return true;
+    });
+}
 
 export function SurveyWizard({ draftId }: { draftId?: string }) {
     const router = useRouter();
@@ -115,6 +132,11 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         allow_offline: s.allow_offline ?? true,
                         started_at: s.started_at ? s.started_at.slice(0, 10) : '',
                         ended_at: s.ended_at ? s.ended_at.slice(0, 10) : '',
+                        geographic_scope: (s.geographic_scope ?? '') as import('./Step1TechnicalData').SurveyTechData['geographic_scope'],
+                        scope_country_name: s.scope_country_name ?? 'Brasil',
+                        scope_state_name: s.scope_state_name ?? '',
+                        scope_city_name: s.scope_city_name ?? '',
+                        specific_public_description: s.specific_public_description ?? '',
                     },
                     localities: (s.survey_localities ?? []).map((l: Record<string, unknown>) => ({
                         id: l.id as string,
@@ -124,6 +146,9 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         population_type: (l.population_type as Locality['population_type']) ?? 'eleitores',
                         interviews_required: (l.interviews_required as number) ?? 0,
                         interviews_weight: (l.interviews_weight as number) ?? 0,
+                        geo_level: (l.geo_level as Locality['geo_level']) ?? 'locality',
+                        parent_state_name: (l.parent_state_name as string) ?? null,
+                        parent_city_name: (l.parent_city_name as string) ?? null,
                     })),
                     premises: s.survey_premises ?? [],
                     questions: s.questions ?? [],
@@ -140,7 +165,8 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     // e atualiza total_interviews no modo auto (mantendo deff e p do usuário).
     const updateLocalities = useCallback((localities: Locality[]) => {
         setData(prev => {
-            const totalPop = localities.reduce((s, l) => s + (l.population ?? 0), 0);
+            const effectiveLocalities = getEffectiveLocalities(localities);
+            const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
             const tech = prev.tech;
             if (tech.stats_mode !== 'auto') {
                 return { ...prev, localities };
@@ -177,6 +203,16 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
 
     const updateQuestions = useCallback((questions: Question[]) => {
         setData(prev => ({ ...prev, questions }));
+    }, []);
+
+    const updateScopeData = useCallback((scopeData: Pick<SurveyTechData, 'geographic_scope' | 'scope_country_name' | 'scope_state_name' | 'scope_city_name' | 'specific_public_description'>) => {
+        setData(prev => ({
+            ...prev,
+            tech: {
+                ...prev.tech,
+                ...scopeData,
+            },
+        }));
     }, []);
 
     const goNext = () => setCurrentStep(s => Math.min(s + 1, 4));
@@ -379,6 +415,14 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                 marginOfError={data.tech.margin_of_error}
                                 confidenceInterval={data.tech.confidence_interval}
                                 surveyType={data.tech.survey_type}
+                                scopeData={{
+                                    geographic_scope: data.tech.geographic_scope,
+                                    scope_country_name: data.tech.scope_country_name,
+                                    scope_state_name: data.tech.scope_state_name,
+                                    scope_city_name: data.tech.scope_city_name,
+                                    specific_public_description: data.tech.specific_public_description,
+                                }}
+                                onScopeChange={updateScopeData}
                             />
                         )}
                         {currentStep === 3 && (

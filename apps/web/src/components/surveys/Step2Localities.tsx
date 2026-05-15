@@ -1,19 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, Trash2, HelpCircle, Calculator, Users } from 'lucide-react';
 import Link from 'next/link';
-import { shouldUseStatisticalSampling } from './Step1TechnicalData';
+import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 
 export interface Locality {
     id: string;
     name: string;
+    geo_level: 'state' | 'city' | 'locality';
+    parent_state_name?: string | null;
+    parent_city_name?: string | null;
     zone: 'urban' | 'rural' | 'mixed';
     population: number;
     population_type: 'eleitores' | 'habitantes' | 'comerciantes' | 'comerciarios' | 'consumidores' | 'dona_de_casa' | 'industriarios' | 'funcionarios_publicos' | 'prestadores_servicos' | 'professores' | 'profissional_liberal' | 'publico_geral' | 'segmento_especifico' | 'sindicalistas';
     interviews_required?: number;
     interviews_weight?: number;
+}
+
+interface ScopeData {
+    geographic_scope: SurveyTechData['geographic_scope'];
+    scope_country_name: string;
+    scope_state_name: string;
+    scope_city_name: string;
+    specific_public_description: string;
 }
 
 interface Props {
@@ -22,6 +33,8 @@ interface Props {
     marginOfError: number;
     confidenceInterval: number;
     surveyType: string;
+    scopeData: ScopeData;
+    onScopeChange: (scopeData: ScopeData) => void;
 }
 
 function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
@@ -58,10 +71,9 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
 function getZ(ci: number): number {
     if (ci === 90) return 1.645;
     if (ci === 99) return 2.576;
-    return 1.96; // 95%
+    return 1.96;
 }
 
-/** Fórmula amostral para população finita */
 function calcInterviews(population: number, marginError: number, confidenceInterval: number): number {
     if (population <= 0 || marginError <= 0) return 0;
     const z = getZ(confidenceInterval);
@@ -72,86 +84,329 @@ function calcInterviews(population: number, marginError: number, confidenceInter
     return Math.ceil(n);
 }
 
-const ZONE_LABELS: Record<string, string> = {
+const ZONE_LABELS: Record<Locality['zone'], string> = {
     urban: 'Sede ou Urbana',
     rural: 'Interior ou Rural',
     mixed: 'Misto (Urbana + Rural)',
 };
 
-export function Step2Localities({ localities, onChange, marginOfError, confidenceInterval, surveyType }: Props) {
+const GEO_LEVEL_LABELS: Record<Locality['geo_level'], string> = {
+    state: 'Estado',
+    city: 'Cidade',
+    locality: 'Localidade específica',
+};
+
+function isSpecificAudienceSurvey(surveyType: string): boolean {
+    return ['publico_alvo', 'segmentacao_mercado', 'qualitativa_grupo_focal', 'qualitativa_profundidade', 'qualitativa_motivacional'].includes(surveyType);
+}
+
+function allowedLevelsByScope(scope: ScopeData['geographic_scope']): Array<Locality['geo_level']> {
+    if (scope === 'national') return ['state', 'city', 'locality'];
+    if (scope === 'state') return ['city', 'locality'];
+    if (scope === 'city') return ['locality'];
+    if (scope === 'specific_public') return ['locality'];
+    return ['locality'];
+}
+
+function getEffectiveLocalities(localities: Locality[]): Locality[] {
+    return localities.filter((loc) => {
+        if (loc.geo_level === 'state') {
+            return !localities.some((child) => child.geo_level !== 'state' && child.parent_state_name === loc.name);
+        }
+        if (loc.geo_level === 'city') {
+            return !localities.some((child) => child.geo_level === 'locality' && child.parent_city_name === loc.name && child.parent_state_name === loc.parent_state_name);
+        }
+        return true;
+    });
+}
+
+export function Step2Localities({
+    localities,
+    onChange,
+    marginOfError,
+    confidenceInterval,
+    surveyType,
+    scopeData,
+    onScopeChange,
+}: Props) {
+    const usesSampling = shouldUseStatisticalSampling(surveyType);
+    const specificAudience = isSpecificAudienceSurvey(surveyType);
+
+    const allowedLevels = useMemo(
+        () => allowedLevelsByScope(scopeData.geographic_scope),
+        [scopeData.geographic_scope]
+    );
+
     const [form, setForm] = useState<Omit<Locality, 'id' | 'interviews_weight'> & { interviews_required: number }>({
         name: '',
+        geo_level: 'locality',
+        parent_state_name: null,
+        parent_city_name: null,
         zone: 'urban',
         population: 0,
-        population_type: 'eleitores',
+        population_type: specificAudience ? 'segmento_especifico' : 'eleitores',
         interviews_required: 0,
     });
-    const [error, setError] = useState('');
-    const usesSampling = shouldUseStatisticalSampling(surveyType);
 
-    const totalInterviews = localities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
-    const totalPopulation = localities.reduce((acc, l) => acc + (l.population ?? 0), 0);
+    const [error, setError] = useState('');
+
+    const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
+    const totalInterviews = effectiveLocalities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
+    const totalPopulation = effectiveLocalities.reduce((acc, l) => acc + (l.population ?? 0), 0);
+
+    const stateOptions = useMemo(
+        () => Array.from(new Set(localities.filter(l => l.geo_level === 'state').map(l => l.name))).sort(),
+        [localities]
+    );
+
+    const cityOptions = useMemo(
+        () => Array.from(new Set(
+            localities
+                .filter(l => l.geo_level === 'city')
+                .filter(l => !form.parent_state_name || l.parent_state_name === form.parent_state_name)
+                .map(l => l.name)
+        )).sort(),
+        [localities, form.parent_state_name]
+    );
+
+    const validateScope = (): string | null => {
+        if (!scopeData.geographic_scope) return 'Selecione a abrangência territorial da pesquisa.';
+        if (scopeData.geographic_scope === 'national' && !scopeData.scope_country_name.trim()) return 'Informe o país da pesquisa nacional.';
+        if (scopeData.geographic_scope === 'state' && !scopeData.scope_state_name.trim()) return 'Informe o estado da pesquisa estadual.';
+        if (scopeData.geographic_scope === 'city' && (!scopeData.scope_state_name.trim() || !scopeData.scope_city_name.trim())) {
+            return 'Informe estado e cidade da pesquisa municipal.';
+        }
+        if (scopeData.geographic_scope === 'specific_public' && !scopeData.specific_public_description.trim()) {
+            return 'Descreva o recorte do público específico.';
+        }
+        return null;
+    };
 
     const handleAdd = () => {
-        if (!form.name.trim()) { setError('Informe o nome da localidade.'); return; }
-        if (form.population <= 0) { setError('A população deve ser maior que zero.'); return; }
-        setError('');
+        const scopeError = validateScope();
+        if (scopeError) {
+            setError(scopeError);
+            return;
+        }
+
+        if (!form.name.trim()) {
+            setError('Informe o nome da localidade.');
+            return;
+        }
+
+        if (!allowedLevels.includes(form.geo_level)) {
+            setError('Esse nível não é permitido para a abrangência selecionada.');
+            return;
+        }
+
+        const resolvedParentState = ((): string => {
+            if (scopeData.geographic_scope === 'state' || scopeData.geographic_scope === 'city') return scopeData.scope_state_name.trim();
+            if (form.geo_level === 'city' || form.geo_level === 'locality') return (form.parent_state_name ?? '').trim();
+            return '';
+        })();
+
+        const resolvedParentCity = ((): string => {
+            if (scopeData.geographic_scope === 'city') return scopeData.scope_city_name.trim();
+            if (form.geo_level === 'locality') return (form.parent_city_name ?? '').trim();
+            return '';
+        })();
+
+        if ((form.geo_level === 'city' || form.geo_level === 'locality') && !resolvedParentState) {
+            setError('Informe o estado de referência para esse cadastro.');
+            return;
+        }
+
+        if (form.geo_level === 'locality' && !resolvedParentCity) {
+            setError('Informe a cidade de referência para a localidade específica.');
+            return;
+        }
+
+        const duplicate = localities.some((loc) =>
+            loc.geo_level === form.geo_level
+            && loc.name.toLowerCase() === form.name.trim().toLowerCase()
+            && (loc.parent_state_name ?? '') === (resolvedParentState || '')
+            && (loc.parent_city_name ?? '') === (resolvedParentCity || '')
+        );
+
+        if (duplicate) {
+            setError('Este item já foi cadastrado na mesma hierarquia.');
+            return;
+        }
 
         const interviews = usesSampling
             ? calcInterviews(form.population, marginOfError, confidenceInterval)
             : form.interviews_required;
-        if (!usesSampling && interviews <= 0) {
-            setError('Informe a quantidade planejada de entrevistas para esta localidade.');
+
+        if (!usesSampling && form.population > 0 && interviews <= 0) {
+            setError('Informe entrevistas planejadas para esta localidade.');
             return;
         }
+
+        setError('');
+
         const newLoc: Locality = {
             id: `loc_${Date.now()}`,
             ...form,
             name: form.name.trim(),
+            parent_state_name: resolvedParentState || null,
+            parent_city_name: resolvedParentCity || null,
+            population_type: specificAudience ? 'segmento_especifico' : form.population_type,
             interviews_required: interviews,
         };
+
         const updated = [...localities, newLoc];
-        // Recalcular pesos
-        const total = updated.reduce((s, l) => s + (l.interviews_required ?? 0), 0);
-        const withWeights = updated.map(l => ({
-            ...l,
-            interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0,
+        const total = getEffectiveLocalities(updated).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
+        const withWeights = updated.map((loc) => ({
+            ...loc,
+            interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
         }));
+
         onChange(withWeights);
-        setForm({ name: '', zone: 'urban', population: 0, population_type: 'eleitores', interviews_required: 0 });
+
+        setForm({
+            name: '',
+            geo_level: allowedLevels[0] ?? 'locality',
+            parent_state_name: null,
+            parent_city_name: null,
+            zone: 'urban',
+            population: 0,
+            population_type: specificAudience ? 'segmento_especifico' : 'eleitores',
+            interviews_required: 0,
+        });
     };
 
     const handleRemove = (id: string) => {
-        const updated = localities.filter(l => l.id !== id);
-        const total = updated.reduce((s, l) => s + (l.interviews_required ?? 0), 0);
-        onChange(updated.map(l => ({ ...l, interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0 })));
+        const updated = localities.filter((loc) => loc.id !== id);
+        const total = getEffectiveLocalities(updated).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
+        onChange(updated.map((loc) => ({
+            ...loc,
+            interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
+        })));
     };
 
     const handleRecalcAll = () => {
         if (!usesSampling) {
-            const total = localities.reduce((s, l) => s + (l.interviews_required ?? 0), 0);
-            onChange(localities.map(l => ({ ...l, interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0 })));
+            const total = getEffectiveLocalities(localities).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
+            onChange(localities.map((loc) => ({
+                ...loc,
+                interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
+            })));
             return;
         }
 
-        const recalc = localities.map(l => ({
-            ...l,
-            interviews_required: calcInterviews(l.population, marginOfError, confidenceInterval),
+        const recalc = localities.map((loc) => ({
+            ...loc,
+            interviews_required: calcInterviews(loc.population, marginOfError, confidenceInterval),
         }));
-        const total = recalc.reduce((s, l) => s + (l.interviews_required ?? 0), 0);
-        onChange(recalc.map(l => ({ ...l, interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0 })));
+        const total = getEffectiveLocalities(recalc).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
+        onChange(recalc.map((loc) => ({
+            ...loc,
+            interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
+        })));
     };
+
+    const scopeSummary = (() => {
+        if (scopeData.geographic_scope === 'national') return `País: ${scopeData.scope_country_name || '—'}`;
+        if (scopeData.geographic_scope === 'state') return `Estado: ${scopeData.scope_state_name || '—'}`;
+        if (scopeData.geographic_scope === 'city') return `Estado: ${scopeData.scope_state_name || '—'} | Cidade: ${scopeData.scope_city_name || '—'}`;
+        if (scopeData.geographic_scope === 'specific_public') return `Público específico: ${scopeData.specific_public_description || '—'}`;
+        return 'Não definida';
+    })();
 
     return (
         <div>
             <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 — Localidades</h2>
             <p className="text-sm text-slate-500 mb-2">
                 {usesSampling
-                    ? 'Informe os municípios, zonas e população. O sistema calculará automaticamente o número de entrevistas necessárias com base na margem de erro e no intervalo de confiança definidos na etapa anterior.'
-                    : 'Informe os municípios e defina manualmente a quantidade planejada de entrevistas por localidade.'}
+                    ? 'Defina a abrangência territorial e cadastre níveis inferiores sem repetir níveis superiores. O sistema calcula entrevistas automaticamente para cada cadastro efetivo.'
+                    : 'Defina a abrangência territorial e cadastre níveis inferiores sem repetir níveis superiores, com metas operacionais manuais quando necessário.'}
             </p>
 
-            {/* Fórmula explicada */}
+            <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-white">
+                <h3 className="text-sm font-semibold text-slate-700 mb-4">Abrangência territorial da pesquisa</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-sm font-medium text-slate-700 block mb-1">Nível de abrangência</label>
+                        <select
+                            value={scopeData.geographic_scope}
+                            aria-label="Nível de abrangência territorial"
+                            onChange={(e) => {
+                                const nextScope = e.target.value as ScopeData['geographic_scope'];
+                                const nextLevels = allowedLevelsByScope(nextScope);
+                                onScopeChange({
+                                    ...scopeData,
+                                    geographic_scope: nextScope,
+                                    scope_country_name: nextScope === 'national' ? (scopeData.scope_country_name || 'Brasil') : scopeData.scope_country_name,
+                                });
+                                if (!nextLevels.includes(form.geo_level)) {
+                                    setForm((prev) => ({ ...prev, geo_level: nextLevels[0] ?? 'locality' }));
+                                }
+                            }}
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Selecione...</option>
+                            <option value="national">Nacional</option>
+                            <option value="state">Estadual</option>
+                            <option value="city">Municipal</option>
+                            <option value="specific_public">Público específico</option>
+                        </select>
+                    </div>
+
+                    {scopeData.geographic_scope === 'national' && (
+                        <div>
+                            <label className="text-sm font-medium text-slate-700 block mb-1">País</label>
+                            <input
+                                type="text"
+                                value={scopeData.scope_country_name}
+                                onChange={(e) => onScopeChange({ ...scopeData, scope_country_name: e.target.value })}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ex: Brasil"
+                            />
+                        </div>
+                    )}
+
+                    {(scopeData.geographic_scope === 'state' || scopeData.geographic_scope === 'city') && (
+                        <div>
+                            <label className="text-sm font-medium text-slate-700 block mb-1">Estado</label>
+                            <input
+                                type="text"
+                                value={scopeData.scope_state_name}
+                                onChange={(e) => onScopeChange({ ...scopeData, scope_state_name: e.target.value })}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ex: Ceará"
+                            />
+                        </div>
+                    )}
+
+                    {scopeData.geographic_scope === 'city' && (
+                        <div>
+                            <label className="text-sm font-medium text-slate-700 block mb-1">Cidade</label>
+                            <input
+                                type="text"
+                                value={scopeData.scope_city_name}
+                                onChange={(e) => onScopeChange({ ...scopeData, scope_city_name: e.target.value })}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ex: Fortaleza"
+                            />
+                        </div>
+                    )}
+
+                    {scopeData.geographic_scope === 'specific_public' && (
+                        <div className="sm:col-span-2">
+                            <label className="text-sm font-medium text-slate-700 block mb-1">Recorte do público específico</label>
+                            <textarea
+                                rows={2}
+                                value={scopeData.specific_public_description}
+                                onChange={(e) => onScopeChange({ ...scopeData, specific_public_description: e.target.value })}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 resize-y"
+                                placeholder="Ex: Comerciantes formais do setor alimentício com faturamento até R$ 200 mil/ano"
+                            />
+                        </div>
+                    )}
+                </div>
+                <p className="mt-3 text-xs text-slate-500">Resumo: {scopeSummary}</p>
+            </div>
+
             {usesSampling ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-800 flex items-start gap-2">
                     <Calculator size={15} className="mt-0.5 shrink-0 text-blue-600" />
@@ -166,44 +421,90 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                 </div>
             )}
 
-            {/* Formulário de adição */}
             <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-slate-50">
                 <h3 className="text-sm font-semibold text-slate-700 mb-4">
                     Adicionar localidade
-                    <Tooltip text="Cada localidade terá sua cota de entrevistas calculada proporcionalmente à população ou meta definida pela gestão." helpId="localities-method" />
+                    <Tooltip text="Cadastre níveis inferiores (estado, cidade, localidade) sem repetir os níveis superiores já definidos na abrangência." helpId="localities-method" />
                 </h3>
-                <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 mb-4 text-xs text-amber-900 flex items-start gap-2">
-                    <span className="text-amber-600 font-bold shrink-0">⚠</span>
-                    <span>
-                        <strong>Atenção:</strong> Tenha em mãos o <strong>extrato do plano da pesquisa</strong> antes de preencher este campo.
-                        O extrato deve conter as localidades previstas e o total de entrevistas por localidade.
-                    </span>
-                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
+                        <label htmlFor="loc-level" className="text-sm font-medium text-slate-700 block mb-1">Nível territorial</label>
+                        <select
+                            id="loc-level"
+                            value={form.geo_level}
+                            onChange={(e) => setForm((prev) => ({ ...prev, geo_level: e.target.value as Locality['geo_level'] }))}
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                        >
+                            {allowedLevels.map((level) => (
+                                <option key={level} value={level}>{GEO_LEVEL_LABELS[level]}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
                         <label htmlFor="loc-name" className="text-sm font-medium text-slate-700 block mb-1">
-                            Nome do município / localidade <span className="text-red-500">*</span>
+                            Nome: {GEO_LEVEL_LABELS[form.geo_level]} <span className="text-red-500">*</span>
                         </label>
                         <input
                             id="loc-name"
                             type="text"
                             value={form.name}
-                            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ex: Fortaleza"
+                            placeholder={form.geo_level === 'state' ? 'Ex: Ceará' : form.geo_level === 'city' ? 'Ex: Fortaleza' : 'Ex: Bairro Aldeota'}
                         />
                     </div>
+
+                    {(scopeData.geographic_scope === 'national' && (form.geo_level === 'city' || form.geo_level === 'locality')) && (
+                        <div>
+                            <label htmlFor="loc-parent-state" className="text-sm font-medium text-slate-700 block mb-1">Estado de referência</label>
+                            <input
+                                id="loc-parent-state"
+                                list="state-options"
+                                type="text"
+                                value={form.parent_state_name ?? ''}
+                                onChange={(e) => setForm((prev) => ({ ...prev, parent_state_name: e.target.value }))}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ex: Ceará"
+                            />
+                            <datalist id="state-options">
+                                {stateOptions.map((stateName) => (
+                                    <option key={stateName} value={stateName} />
+                                ))}
+                            </datalist>
+                        </div>
+                    )}
+
+                    {((scopeData.geographic_scope === 'national' || scopeData.geographic_scope === 'state') && form.geo_level === 'locality') && (
+                        <div>
+                            <label htmlFor="loc-parent-city" className="text-sm font-medium text-slate-700 block mb-1">Cidade de referência</label>
+                            <input
+                                id="loc-parent-city"
+                                list="city-options"
+                                type="text"
+                                value={form.parent_city_name ?? ''}
+                                onChange={(e) => setForm((prev) => ({ ...prev, parent_city_name: e.target.value }))}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ex: Fortaleza"
+                            />
+                            <datalist id="city-options">
+                                {cityOptions.map((cityName) => (
+                                    <option key={cityName} value={cityName} />
+                                ))}
+                            </datalist>
+                        </div>
+                    )}
 
                     <div>
                         <label htmlFor="loc-zone" className="text-sm font-medium text-slate-700 block mb-1">
                             Zona
-                            <Tooltip text="Urbana: área citadina. Rural: zona rural. Misto: ambas as zonas." helpId="localities-zone" />
+                            <Tooltip text="Urbana, rural ou mista para organização operacional de campo." helpId="localities-zone" />
                         </label>
                         <select
                             id="loc-zone"
                             value={form.zone}
-                            onChange={e => setForm(f => ({ ...f, zone: e.target.value as Locality['zone'] }))}
-                            aria-label="Zona da localidade"
+                            onChange={(e) => setForm((prev) => ({ ...prev, zone: e.target.value as Locality['zone'] }))}
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="urban">Sede ou Urbana</option>
@@ -215,30 +516,27 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     <div>
                         <label htmlFor="loc-pop" className="text-sm font-medium text-slate-700 block mb-1">
                             Quantidade
-                            <Tooltip text="Número de eleitores ou habitantes da localidade. Base para o cálculo amostral." helpId="localities-population" />
+                            <Tooltip text="População base para cálculo ou estimativa operacional. Pode ser 0 em nível apenas de agrupamento." helpId="localities-population" />
                         </label>
                         <input
                             id="loc-pop"
                             type="number"
-                            min={1}
+                            min={0}
                             value={form.population || ''}
-                            onChange={e => setForm(f => ({ ...f, population: parseInt(e.target.value) || 0 }))}
+                            onChange={(e) => setForm((prev) => ({ ...prev, population: parseInt(e.target.value, 10) || 0 }))}
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                             placeholder="Ex: 50000"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="loc-pop-type" className="text-sm font-medium text-slate-700 block mb-1">
-                            Público Alvo
-                            <Tooltip text="Defina o público alvo desta localidade conforme o extrato do plano da pesquisa." helpId="localities-population" />
-                        </label>
+                        <label htmlFor="loc-pop-type" className="text-sm font-medium text-slate-700 block mb-1">Público-alvo</label>
                         <select
                             id="loc-pop-type"
                             value={form.population_type}
-                            onChange={e => setForm(f => ({ ...f, population_type: e.target.value as Locality['population_type'] }))}
-                            aria-label="Público Alvo"
+                            onChange={(e) => setForm((prev) => ({ ...prev, population_type: e.target.value as Locality['population_type'] }))}
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                            disabled={specificAudience}
                         >
                             <option value="comerciantes">Comerciantes</option>
                             <option value="comerciarios">Comerciários</option>
@@ -261,14 +559,14 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                         <div>
                             <label htmlFor="loc-interviews" className="text-sm font-medium text-slate-700 block mb-1">
                                 Entrevistas planejadas
-                                <Tooltip text="Meta operacional definida pela gestão para esta localidade." helpId="localities-manual-target" />
+                                <Tooltip text="Meta operacional da localidade (pode ser 0 para nível de agrupamento)." helpId="localities-manual-target" />
                             </label>
                             <input
                                 id="loc-interviews"
                                 type="number"
-                                min={1}
+                                min={0}
                                 value={form.interviews_required || ''}
-                                onChange={e => setForm(f => ({ ...f, interviews_required: parseInt(e.target.value) || 0 }))}
+                                onChange={(e) => setForm((prev) => ({ ...prev, interviews_required: parseInt(e.target.value, 10) || 0 }))}
                                 className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                                 placeholder="Ex: 120"
                             />
@@ -278,9 +576,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
 
                 {usesSampling && form.population > 0 && marginOfError > 0 && (
                     <p className="mt-3 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-                        📊 Estimativa: <strong className="text-blue-700">
-                            {calcInterviews(form.population, marginOfError, confidenceInterval)} entrevistas
-                        </strong> para {form.population.toLocaleString('pt-BR')} {form.population_type}
+                        📊 Estimativa: <strong className="text-blue-700">{calcInterviews(form.population, marginOfError, confidenceInterval)} entrevistas</strong>
                     </p>
                 )}
 
@@ -292,16 +588,15 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     className="mt-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition"
                 >
                     <Plus size={18} />
-                    Adicionar Localidade
+                    Adicionar nível inferior
                 </button>
             </div>
 
-            {/* Tabela de localidades */}
             {localities.length > 0 ? (
                 <div>
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-slate-700">
-                            {localities.length} localidade{localities.length > 1 ? 's' : ''} adicionada{localities.length > 1 ? 's' : ''}
+                            {localities.length} item{localities.length > 1 ? 's' : ''} cadastrado{localities.length > 1 ? 's' : ''}
                         </h3>
                         <button
                             type="button"
@@ -317,32 +612,30 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-600">
                                 <tr>
-                                    <th className="text-left px-4 py-3 font-semibold">Localidade</th>
+                                    <th className="text-left px-4 py-3 font-semibold">Nível</th>
+                                    <th className="text-left px-4 py-3 font-semibold">Nome</th>
+                                    <th className="text-left px-4 py-3 font-semibold">Hierarquia</th>
                                     <th className="text-left px-4 py-3 font-semibold">Zona</th>
                                     <th className="text-right px-4 py-3 font-semibold">População</th>
                                     <th className="text-right px-4 py-3 font-semibold">Entrevistas</th>
                                     <th className="text-right px-4 py-3 font-semibold">Peso</th>
-                                    <th className="px-4 py-3"></th>
+                                    <th className="px-4 py-3" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {localities.map(loc => (
+                                {localities.map((loc) => (
                                     <tr key={loc.id} className="hover:bg-slate-50">
+                                        <td className="px-4 py-3 text-slate-600">{GEO_LEVEL_LABELS[loc.geo_level]}</td>
                                         <td className="px-4 py-3 font-medium text-slate-800">{loc.name}</td>
+                                        <td className="px-4 py-3 text-slate-500 text-xs">
+                                            {loc.parent_state_name ? `Estado: ${loc.parent_state_name}` : '—'}
+                                            {loc.parent_city_name ? ` | Cidade: ${loc.parent_city_name}` : ''}
+                                        </td>
                                         <td className="px-4 py-3 text-slate-600">{ZONE_LABELS[loc.zone]}</td>
-                                        <td className="px-4 py-3 text-right text-slate-600">
-                                            {loc.population.toLocaleString('pt-BR')}
-                                            <span className="text-xs text-slate-400 ml-1">
-                                                {loc.population_type}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-bold text-blue-700">
-                                            {loc.interviews_required?.toLocaleString('pt-BR')}
-                                        </td>
+                                        <td className="px-4 py-3 text-right text-slate-600">{loc.population.toLocaleString('pt-BR')}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-blue-700">{(loc.interviews_required ?? 0).toLocaleString('pt-BR')}</td>
                                         <td className="px-4 py-3 text-right text-slate-500 text-xs">
-                                            {loc.interviews_weight !== undefined
-                                                ? `${(loc.interviews_weight * 100).toFixed(1)}%`
-                                                : '—'}
+                                            {loc.interviews_weight !== undefined ? `${(loc.interviews_weight * 100).toFixed(1)}%` : '—'}
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <button
@@ -359,10 +652,8 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                             </tbody>
                             <tfoot className="bg-slate-50 border-t border-slate-200">
                                 <tr>
-                                    <td className="px-4 py-3 font-semibold text-slate-700" colSpan={3}>Total</td>
-                                    <td className="px-4 py-3 text-right font-bold text-blue-700 text-base">
-                                        {totalInterviews.toLocaleString('pt-BR')} entrevistas
-                                    </td>
+                                    <td className="px-4 py-3 font-semibold text-slate-700" colSpan={5}>Total (níveis efetivos)</td>
+                                    <td className="px-4 py-3 text-right font-bold text-blue-700 text-base">{totalInterviews.toLocaleString('pt-BR')} entrevistas</td>
                                     <td className="px-4 py-3 text-right text-slate-500 text-xs">100%</td>
                                     <td />
                                 </tr>
@@ -370,15 +661,12 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                         </table>
                     </div>
 
-                    {/* Banner de resumo amostral */}
                     {usesSampling && (
                         <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Users size={18} className="text-emerald-600 shrink-0" />
                                 <div>
-                                    <p className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">
-                                        Universo total pesquisado
-                                    </p>
+                                    <p className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">Universo total pesquisado</p>
                                     <p className="text-lg font-extrabold text-emerald-800">
                                         {totalPopulation.toLocaleString('pt-BR')}
                                         <span className="text-xs font-normal text-emerald-600 ml-1">pessoas / eleitores</span>
@@ -389,26 +677,20 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                             <div className="flex items-center gap-3">
                                 <Calculator size={18} className="text-blue-600 shrink-0" />
                                 <div>
-                                    <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide">
-                                        Total de entrevistas (Etapa 2)
-                                    </p>
+                                    <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide">Total de entrevistas (Etapa 2)</p>
                                     <p className="text-lg font-extrabold text-blue-800">
                                         {totalInterviews.toLocaleString('pt-BR')}
                                         <span className="text-xs font-normal text-blue-600 ml-1">entrevistas</span>
                                     </p>
                                 </div>
                             </div>
-                            <div className="text-xs text-slate-500 max-w-xs">
-                                Este é o total definitivo — calculado pela fórmula de população finita para cada município individualmente.
-                                Atualizado automaticamente na Etapa 1.
-                            </div>
                         </div>
                     )}
                 </div>
             ) : (
                 <div className="text-center text-slate-400 py-10 border-2 border-dashed border-slate-200 rounded-xl">
-                    <p className="text-lg mb-1">Nenhuma localidade adicionada</p>
-                    <p className="text-sm">Adicione ao menos uma localidade para calcular o número de entrevistas</p>
+                    <p className="text-lg mb-1">Nenhum nível territorial cadastrado</p>
+                    <p className="text-sm">Defina a abrangência e adicione pelo menos um nível inferior</p>
                 </div>
             )}
         </div>

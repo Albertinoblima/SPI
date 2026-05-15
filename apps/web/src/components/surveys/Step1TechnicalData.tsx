@@ -42,6 +42,11 @@ export interface SurveyTechData {
     allow_offline: boolean;
     started_at: string;
     ended_at: string;
+    geographic_scope: 'national' | 'state' | 'city' | 'specific_public' | '';
+    scope_country_name: string;
+    scope_state_name: string;
+    scope_city_name: string;
+    specific_public_description: string;
 }
 
 interface Props {
