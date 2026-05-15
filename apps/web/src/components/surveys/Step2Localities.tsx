@@ -96,6 +96,12 @@ const GEO_LEVEL_LABELS: Record<Locality['geo_level'], string> = {
     locality: 'Localidade específica',
 };
 
+const GEO_LEVEL_ACTION_LABELS: Record<Locality['geo_level'], string> = {
+    state: 'Adicionar estado',
+    city: 'Adicionar cidade',
+    locality: 'Adicionar localidade específica',
+};
+
 function isSpecificAudienceSurvey(surveyType: string): boolean {
     return ['publico_alvo', 'segmentacao_mercado', 'qualitativa_grupo_focal', 'qualitativa_profundidade', 'qualitativa_motivacional'].includes(surveyType);
 }
@@ -106,6 +112,22 @@ function allowedLevelsByScope(scope: ScopeData['geographic_scope']): Array<Local
     if (scope === 'city') return ['locality'];
     if (scope === 'specific_public') return ['locality'];
     return ['locality'];
+}
+
+function getGuidedFlowMessage(scope: ScopeData['geographic_scope']): string {
+    if (scope === 'national') {
+        return 'Fluxo nacional: informe o país uma vez e adicione estados, cidades e/ou localidades específicas sem repetir níveis superiores.';
+    }
+    if (scope === 'state') {
+        return 'Fluxo estadual: informe o estado uma vez e adicione apenas cidades e localidades específicas desse estado.';
+    }
+    if (scope === 'city') {
+        return 'Fluxo municipal: informe estado e cidade uma vez e adicione apenas localidades específicas desse município.';
+    }
+    if (scope === 'specific_public') {
+        return 'Fluxo para público específico: descreva o recorte e adicione as localidades específicas de coleta.';
+    }
+    return 'Selecione a abrangência para habilitar o fluxo guiado por níveis.';
 }
 
 function getEffectiveLocalities(localities: Locality[]): Locality[] {
@@ -168,6 +190,14 @@ export function Step2Localities({
         )).sort(),
         [localities, form.parent_state_name]
     );
+
+    const localitiesByLevel = useMemo(() => {
+        return {
+            state: localities.filter(l => l.geo_level === 'state').length,
+            city: localities.filter(l => l.geo_level === 'city').length,
+            locality: localities.filter(l => l.geo_level === 'locality').length,
+        };
+    }, [localities]);
 
     const validateScope = (): string | null => {
         if (!scopeData.geographic_scope) return 'Selecione a abrangência territorial da pesquisa.';
@@ -423,25 +453,32 @@ export function Step2Localities({
 
             <div className="border border-slate-200 rounded-xl p-5 mb-6 bg-slate-50">
                 <h3 className="text-sm font-semibold text-slate-700 mb-4">
-                    Adicionar localidade
+                    Cadastro guiado de níveis inferiores
                     <Tooltip text="Cadastre níveis inferiores (estado, cidade, localidade) sem repetir os níveis superiores já definidos na abrangência." helpId="localities-method" />
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="loc-level" className="text-sm font-medium text-slate-700 block mb-1">Nível territorial</label>
-                        <select
-                            id="loc-level"
-                            value={form.geo_level}
-                            onChange={(e) => setForm((prev) => ({ ...prev, geo_level: e.target.value as Locality['geo_level'] }))}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                        >
-                            {allowedLevels.map((level) => (
-                                <option key={level} value={level}>{GEO_LEVEL_LABELS[level]}</option>
-                            ))}
-                        </select>
-                    </div>
+                <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-800">
+                    {getGuidedFlowMessage(scopeData.geographic_scope)}
+                </div>
 
+                <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {allowedLevels.map((level) => (
+                        <button
+                            key={level}
+                            type="button"
+                            onClick={() => setForm((prev) => ({ ...prev, geo_level: level }))}
+                            className={`rounded-lg border px-3 py-2 text-left text-sm transition ${form.geo_level === level
+                                ? 'border-blue-500 bg-blue-100 text-blue-800'
+                                : 'border-slate-300 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+                                }`}
+                        >
+                            <div className="font-semibold">{GEO_LEVEL_ACTION_LABELS[level]}</div>
+                            <div className="text-xs opacity-80">Já cadastrados: {localitiesByLevel[level]}</div>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="loc-name" className="text-sm font-medium text-slate-700 block mb-1">
                             Nome: {GEO_LEVEL_LABELS[form.geo_level]} <span className="text-red-500">*</span>
