@@ -14,6 +14,9 @@ import {
     GitCommit,
     Database,
     TrendingUp,
+    Github,
+    GitBranch,
+    GitPullRequest,
 } from 'lucide-react';
 
 interface VercelDeployment {
@@ -55,10 +58,37 @@ interface AnalyticsRow {
     active_users: number;
 }
 
+interface GitHubCommit {
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+    url: string;
+}
+
+interface GitHubWorkflowRun {
+    id: number;
+    name: string;
+    status: string;
+    conclusion: string | null;
+    branch: string;
+    event: string;
+    createdAt: string;
+    updatedAt: string;
+    url: string;
+    durationMs: number | null;
+}
+
 interface HealthData {
     vercel: {
         deployments: VercelDeployment[];
         apiError: string | null;
+    };
+    github: {
+        commits: GitHubCommit[];
+        workflowRuns: GitHubWorkflowRun[];
+        apiError: string | null;
+        repo: string | null;
     };
     supabase: {
         systemStats: SystemStats | null;
@@ -67,6 +97,24 @@ interface HealthData {
         analytics: AnalyticsRow[];
     };
 }
+
+const SUPABASE_PROJECT_REF = 'icnclqtwtcbrmuxpujwb';
+
+const WORKFLOW_CONCLUSION_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+    success: { label: 'Sucesso', color: 'text-green-400', icon: <CheckCircle className="w-4 h-4" /> },
+    failure: { label: 'Falha', color: 'text-red-400', icon: <XCircle className="w-4 h-4" /> },
+    cancelled: { label: 'Cancelado', color: 'text-gray-400', icon: <XCircle className="w-4 h-4" /> },
+    skipped: { label: 'Ignorado', color: 'text-gray-500', icon: <Clock className="w-4 h-4" /> },
+    timed_out: { label: 'Timeout', color: 'text-orange-400', icon: <AlertTriangle className="w-4 h-4" /> },
+    action_required: { label: 'Ação Req.', color: 'text-yellow-400', icon: <AlertTriangle className="w-4 h-4" /> },
+};
+
+const WORKFLOW_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    completed: { label: 'Concluído', color: 'text-gray-400' },
+    in_progress: { label: 'Em andamento', color: 'text-yellow-400' },
+    queued: { label: 'Na fila', color: 'text-blue-400' },
+    waiting: { label: 'Aguardando', color: 'text-blue-300' },
+};
 
 const STATE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
     READY: { label: 'Publicado', color: 'text-green-400', icon: <CheckCircle className="w-4 h-4" /> },
@@ -130,30 +178,66 @@ export default function SystemHealthPage() {
     const latestDeploy = data?.vercel.deployments[0];
     const errorCounts = data?.supabase.errorCounts24h ?? {};
     const totalErrors24h = Object.values(errorCounts).reduce((a, b) => a + b, 0);
+    const githubRepo = data?.github.repo ?? 'Albertinoblima/SPI';
 
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                         <Activity className="w-6 h-6 text-emerald-400" />
                         Saúde do Sistema
                     </h1>
                     <p className="text-gray-400 text-sm mt-1">
-                        Monitoramento em tempo real — Vercel + Supabase
+                        Monitoramento em tempo real — GitHub + Vercel + Supabase
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Quick-access links */}
+                    <a
+                        href={`https://github.com/${githubRepo}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-sm transition-colors border border-gray-700"
+                    >
+                        <Github className="w-4 h-4" />
+                        GitHub
+                        <ExternalLink className="w-3 h-3 opacity-50" />
+                    </a>
+                    <a
+                        href="https://vercel.com/dashboard"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-sm transition-colors border border-gray-700"
+                    >
+                        <Zap className="w-4 h-4 text-black bg-white rounded-full p-0.5" />
+                        Vercel
+                        <ExternalLink className="w-3 h-3 opacity-50" />
+                    </a>
+                    <a
+                        href={`https://app.supabase.com/project/${SUPABASE_PROJECT_REF}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-sm transition-colors border border-gray-700"
+                    >
+                        <Database className="w-4 h-4 text-emerald-400" />
+                        Supabase
+                        <ExternalLink className="w-3 h-3 opacity-50" />
+                    </a>
+
+                    <div className="w-px h-6 bg-gray-700" />
+
                     {lastRefresh && (
                         <span className="text-xs text-gray-500">
-                            Atualizado às {lastRefresh.toLocaleTimeString('pt-BR')}
+                            {lastRefresh.toLocaleTimeString('pt-BR')}
                         </span>
                     )}
                     <button
                         onClick={fetchHealth}
                         disabled={loading}
-                        className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 border border-gray-700"
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Atualizar
@@ -253,6 +337,129 @@ export default function SystemHealthPage() {
                             </p>
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* GitHub Monitoring */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+                    <h2 className="text-white font-semibold flex items-center gap-2">
+                        <Github className="w-4 h-4 text-white" />
+                        GitHub — Monitoramento
+                    </h2>
+                    <a
+                        href={`https://github.com/${githubRepo}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1"
+                    >
+                        {githubRepo} <ExternalLink className="w-3 h-3" />
+                    </a>
+                </div>
+
+                {data?.github.apiError && (
+                    <div className="px-5 py-3 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-400 text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        {data.github.apiError}
+                        {data.github.apiError.includes('GITHUB_TOKEN') && (
+                            <span className="text-gray-500 ml-1">— Adicione GITHUB_TOKEN e GITHUB_REPO nas variáveis de ambiente e faça rebuild.</span>
+                        )}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-800">
+                    {/* Commits recentes */}
+                    <div>
+                        <p className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800 flex items-center gap-2">
+                            <GitCommit className="w-3.5 h-3.5" />
+                            Commits Recentes
+                        </p>
+                        <div className="divide-y divide-gray-800">
+                            {loading ? (
+                                Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="px-5 py-3 flex gap-3 animate-pulse">
+                                        <div className="w-12 h-4 bg-gray-800 rounded" />
+                                        <div className="flex-1 h-4 bg-gray-800 rounded" />
+                                    </div>
+                                ))
+                            ) : (data?.github.commits ?? []).length === 0 ? (
+                                <p className="px-5 py-6 text-gray-500 text-sm text-center">Nenhum commit encontrado</p>
+                            ) : (
+                                (data?.github.commits ?? []).map((c) => (
+                                    <a
+                                        key={c.sha}
+                                        href={c.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-start gap-3 px-5 py-3 hover:bg-gray-800/40 transition group"
+                                    >
+                                        <span className="font-mono text-xs text-blue-400 shrink-0 mt-0.5 group-hover:underline">
+                                            {c.sha}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-gray-200 truncate">{c.message}</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                {c.author} · {new Date(c.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </a>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Workflow Runs */}
+                    <div>
+                        <p className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800 flex items-center gap-2">
+                            <GitPullRequest className="w-3.5 h-3.5" />
+                            Workflow Runs
+                        </p>
+                        <div className="divide-y divide-gray-800">
+                            {loading ? (
+                                Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="px-5 py-3 flex gap-3 animate-pulse">
+                                        <div className="w-16 h-4 bg-gray-800 rounded" />
+                                        <div className="flex-1 h-4 bg-gray-800 rounded" />
+                                    </div>
+                                ))
+                            ) : (data?.github.workflowRuns ?? []).length === 0 ? (
+                                <p className="px-5 py-6 text-gray-500 text-sm text-center">Nenhum workflow encontrado</p>
+                            ) : (
+                                (data?.github.workflowRuns ?? []).map((run) => {
+                                    const conclusionCfg = run.conclusion
+                                        ? WORKFLOW_CONCLUSION_CONFIG[run.conclusion]
+                                        : null;
+                                    const statusCfg = WORKFLOW_STATUS_CONFIG[run.status];
+                                    return (
+                                        <a
+                                            key={run.id}
+                                            href={run.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-3 px-5 py-3 hover:bg-gray-800/40 transition"
+                                        >
+                                            <div className={`flex items-center gap-1 text-sm font-medium w-28 shrink-0 ${conclusionCfg?.color ?? statusCfg?.color ?? 'text-gray-400'}`}>
+                                                {conclusionCfg?.icon ?? null}
+                                                {conclusionCfg?.label ?? statusCfg?.label ?? run.status}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-gray-200 truncate">{run.name}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                    <GitBranch className="w-3 h-3" />{run.branch}
+                                                    {run.durationMs && (
+                                                        <span className="ml-1">&bull; {formatDuration(run.durationMs)}</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <span className="text-xs text-gray-500 shrink-0">
+                                                {new Date(run.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </a>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 

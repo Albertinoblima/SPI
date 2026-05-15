@@ -1,6 +1,96 @@
-// GET /api/admin/system/health - Saúde do sistema: Vercel + Supabase
-import { NextRequest, NextResponse } from 'next/server';
+// GET /api/admin/system/health - Saúde do sistema: Vercel + Supabase + GitHub
+import { NextRequest } from 'next/server';
 import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+
+interface GitHubCommit {
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+    url: string;
+}
+
+interface GitHubWorkflowRun {
+    id: number;
+    name: string;
+    status: string;
+    conclusion: string | null;
+    branch: string;
+    event: string;
+    createdAt: string;
+    updatedAt: string;
+    url: string;
+    durationMs: number | null;
+}
+
+async function fetchGitHubData(): Promise<{
+    commits: GitHubCommit[];
+    workflowRuns: GitHubWorkflowRun[];
+    error?: string;
+}> {
+    const token = process.env.GITHUB_TOKEN;
+    const repo = process.env.GITHUB_REPO; // e.g. "Albertinoblima/SPI"
+
+    if (!token || !repo) {
+        return { commits: [], workflowRuns: [], error: 'GITHUB_TOKEN ou GITHUB_REPO não configurados' };
+    }
+
+    const headers: HeadersInit = {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+    };
+
+    try {
+        const [commitsRes, runsRes] = await Promise.all([
+            fetch(`https://api.github.com/repos/${repo}/commits?per_page=5`, {
+                headers,
+                next: { revalidate: 60 },
+            }),
+            fetch(`https://api.github.com/repos/${repo}/actions/runs?per_page=5`, {
+                headers,
+                next: { revalidate: 60 },
+            }),
+        ]);
+
+        if (!commitsRes.ok && !runsRes.ok) {
+            return { commits: [], workflowRuns: [], error: `GitHub API retornou ${commitsRes.status}` };
+        }
+
+        const [commitsJson, runsJson] = await Promise.all([
+            commitsRes.ok ? commitsRes.json() : [],
+            runsRes.ok ? runsRes.json() : { workflow_runs: [] },
+        ]);
+
+        const commits: GitHubCommit[] = (Array.isArray(commitsJson) ? commitsJson : []).map((c: any) => ({
+            sha: c.sha?.slice(0, 7) ?? '',
+            message: c.commit?.message?.split('\n')[0] ?? '',
+            author: c.commit?.author?.name ?? '',
+            date: c.commit?.author?.date ?? '',
+            url: c.html_url ?? '',
+        }));
+
+        const runs: GitHubWorkflowRun[] = (runsJson.workflow_runs ?? []).map((r: any) => ({
+            id: r.id,
+            name: r.name ?? '',
+            status: r.status ?? '',
+            conclusion: r.conclusion ?? null,
+            branch: r.head_branch ?? '',
+            event: r.event ?? '',
+            createdAt: r.created_at ?? '',
+            updatedAt: r.updated_at ?? '',
+            url: r.html_url ?? '',
+            durationMs:
+                r.created_at && r.updated_at
+                    ? new Date(r.updated_at).getTime() - new Date(r.created_at).getTime()
+                    : null,
+        }));
+
+        return { commits, workflowRuns: runs };
+    } catch {
+        return { commits: [], workflowRuns: [], error: 'Falha ao conectar à API do GitHub' };
+    }
+}
 
 interface VercelDeployment {
     uid: string;
@@ -56,11 +146,13 @@ export async function GET(request: NextRequest) {
     // Buscar dados em paralelo
     const [
         vercelResult,
+        githubResult,
         { data: recentErrors },
         { data: analytics },
         { data: systemStats },
     ] = await Promise.all([
         fetchVercelDeployments(),
+        fetchGitHubData(),
         auth.supabase
             .from('error_logs')
             .select('id, error_code, error_message, severity, http_path, created_at, resolved, tenant_id')
@@ -101,6 +193,12 @@ export async function GET(request: NextRequest) {
                     d.ready && d.buildingAt ? d.ready - d.buildingAt : null,
             })),
             apiError: vercelResult.error ?? null,
+        },
+        github: {
+            commits: githubResult.commits,
+            workflowRuns: githubResult.workflowRuns,
+            apiError: githubResult.error ?? null,
+            repo: process.env.GITHUB_REPO ?? null,
         },
         supabase: {
             systemStats,
