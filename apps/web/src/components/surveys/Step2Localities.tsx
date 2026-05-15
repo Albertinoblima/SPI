@@ -5,6 +5,7 @@ import { Plus, Trash2, HelpCircle, Calculator, Users } from 'lucide-react';
 import Link from 'next/link';
 import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
+import { TSE_AGE_LABELS, type TseVoterProportions } from '@/lib/geo/tse-voter-profiles';
 
 export interface Locality {
     id: string;
@@ -195,6 +196,26 @@ export function Step2Localities({
         suggestedPopulation: null,
         suggestedCity: null,
         suggestedConfidence: null,
+    });
+
+    const [voterLookup, setVoterLookup] = useState<{
+        loading: boolean;
+        message: string | null;
+        total: number | null;
+        cityName: string | null;
+        confidence: number | null;
+        matchType: 'exact' | 'smart' | 'none' | null;
+        proportions: TseVoterProportions | null;
+        showProportions: boolean;
+    }>({
+        loading: false,
+        message: null,
+        total: null,
+        cityName: null,
+        confidence: null,
+        matchType: null,
+        proportions: null,
+        showProportions: false,
     });
 
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
@@ -430,6 +451,57 @@ export function Step2Localities({
         }));
     };
 
+    const handleQueryVoters = async () => {
+        const { resolvedParentState, resolvedParentCity } = resolveHierarchy();
+        const stateForLookup = resolvedParentState;
+        const cityForLookup = form.geo_level === 'city' ? form.name.trim() : resolvedParentCity;
+
+        if (!stateForLookup || !cityForLookup) {
+            setVoterLookup((prev) => ({ ...prev, loading: false, message: 'Informe estado e cidade para consultar o eleitorado via TSE.' }));
+            return;
+        }
+
+        setVoterLookup({ loading: true, message: null, total: null, cityName: null, confidence: null, matchType: null, proportions: null, showProportions: false });
+
+        try {
+            const res = await fetch(`/api/geo/voters?state=${encodeURIComponent(stateForLookup)}&city=${encodeURIComponent(cityForLookup)}`);
+            const payload = await res.json();
+
+            if (!payload?.success) {
+                setVoterLookup({ loading: false, message: payload?.error ?? 'Falha ao consultar TSE.', total: null, cityName: null, confidence: null, matchType: null, proportions: null, showProportions: false });
+                return;
+            }
+
+            const { total, cityName, match_type, confidence, proportions, warning } = payload.data ?? {};
+
+            if (!total || match_type === 'none') {
+                setVoterLookup({ loading: false, message: warning ?? 'Município não encontrado no TSE.', total: null, cityName: null, confidence: null, matchType: 'none', proportions: null, showProportions: false });
+                return;
+            }
+
+            if (match_type === 'exact') {
+                setForm((prev) => ({ ...prev, population: total }));
+                setVoterLookup({ loading: false, message: `TSE: ${(total as number).toLocaleString('pt-BR')} eleitores em ${cityName}.`, total: total as number, cityName: cityName as string, confidence: null, matchType: 'exact', proportions: proportions as TseVoterProportions ?? null, showProportions: false });
+                return;
+            }
+
+            // smart match — pede confirmação
+            setVoterLookup({ loading: false, message: warning as string ?? `Sugestão: "${cityName}". Confirme para aplicar.`, total: total as number, cityName: cityName as string, confidence: confidence as number ?? null, matchType: 'smart', proportions: proportions as TseVoterProportions ?? null, showProportions: false });
+        } catch {
+            setVoterLookup({ loading: false, message: 'Falha ao consultar eleitorado no TSE. Preencha manualmente.', total: null, cityName: null, confidence: null, matchType: null, proportions: null, showProportions: false });
+        }
+    };
+
+    const applyVoterSuggestion = () => {
+        if (!voterLookup.total || voterLookup.total <= 0) return;
+        setForm((prev) => ({ ...prev, population: voterLookup.total as number }));
+        setVoterLookup((prev) => ({
+            ...prev,
+            matchType: 'exact',
+            message: `Aplicado: ${(voterLookup.total as number).toLocaleString('pt-BR')} eleitores em ${voterLookup.cityName}.`,
+        }));
+    };
+
     const handleAdd = () => {
         const scopeError = validateScope();
         if (scopeError) {
@@ -517,6 +589,16 @@ export function Step2Localities({
             suggestedPopulation: null,
             suggestedCity: null,
             suggestedConfidence: null,
+        });
+        setVoterLookup({
+            loading: false,
+            message: null,
+            total: null,
+            cityName: null,
+            confidence: null,
+            matchType: null,
+            proportions: null,
+            showProportions: false,
         });
     };
 
@@ -803,6 +885,16 @@ export function Step2Localities({
                                 >
                                     {populationLookup.loading ? 'Consultando IBGE...' : 'Sugerir população via IBGE'}
                                 </button>
+                                {form.population_type === 'eleitores' && (
+                                    <button
+                                        type="button"
+                                        onClick={handleQueryVoters}
+                                        disabled={voterLookup.loading}
+                                        className="text-xs px-3 py-1.5 rounded-md border border-violet-300 text-violet-700 bg-violet-50 hover:bg-violet-100 disabled:opacity-60"
+                                    >
+                                        {voterLookup.loading ? 'Consultando TSE...' : 'Consultar eleitorado (TSE)'}
+                                    </button>
+                                )}
                                 <span className="text-[11px] text-slate-500">Consulta gratuita com fallback manual.</span>
                             </div>
                         )}
@@ -824,6 +916,85 @@ export function Step2Localities({
                                     <span className="text-[11px] text-slate-500">
                                         Confianca: {(populationLookup.suggestedConfidence * 100).toFixed(1)}%
                                     </span>
+                                )}
+                            </div>
+                        )}
+                        {/* Resultado da consulta TSE */}
+                        {voterLookup.message && (
+                            <p className="mt-2 text-xs text-violet-800 bg-violet-50 border border-violet-200 rounded px-2.5 py-1.5">
+                                {voterLookup.message}
+                            </p>
+                        )}
+                        {voterLookup.matchType === 'smart' && voterLookup.total && (
+                            <div className="mt-2 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={applyVoterSuggestion}
+                                    className="text-xs px-3 py-1.5 rounded-md border border-violet-300 text-violet-700 bg-violet-50 hover:bg-violet-100"
+                                >
+                                    Aplicar sugestão TSE
+                                </button>
+                                {voterLookup.confidence != null && (
+                                    <span className="text-[11px] text-slate-500">Confiança: {(voterLookup.confidence * 100).toFixed(1)}%</span>
+                                )}
+                            </div>
+                        )}
+                        {/* Painel de proporções eleitorais */}
+                        {voterLookup.proportions && (voterLookup.matchType === 'exact' || voterLookup.matchType === 'smart') && (
+                            <div className="mt-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setVoterLookup((prev) => ({ ...prev, showProportions: !prev.showProportions }))}
+                                    className="text-[11px] text-violet-700 underline underline-offset-2 hover:text-violet-900"
+                                >
+                                    {voterLookup.showProportions ? 'Ocultar' : 'Ver'} proporções do eleitorado
+                                </button>
+                                {voterLookup.showProportions && (
+                                    <div className="mt-2 p-3 bg-violet-50 border border-violet-200 rounded-lg text-xs space-y-3">
+                                        <div>
+                                            <p className="font-semibold text-violet-800 mb-1.5">Distribuição por Sexo</p>
+                                            <div className="flex gap-4">
+                                                <span className="flex items-center gap-1">
+                                                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-400" />
+                                                    Masculino: <strong>{voterLookup.proportions.sex.m.toFixed(1)}%</strong>
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-pink-400" />
+                                                    Feminino: <strong>{voterLookup.proportions.sex.f.toFixed(1)}%</strong>
+                                                </span>
+                                                {voterLookup.proportions.sex.n > 0 && (
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-400" />
+                                                        Outro: <strong>{voterLookup.proportions.sex.n.toFixed(1)}%</strong>
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Barra visual sexo */}
+                                            <div className="flex h-2.5 rounded overflow-hidden mt-1.5 w-full max-w-xs">
+                                                <div style={{ width: `${voterLookup.proportions.sex.m}%` }} className="bg-blue-400" />
+                                                <div style={{ width: `${voterLookup.proportions.sex.f}%` }} className="bg-pink-400" />
+                                                {voterLookup.proportions.sex.n > 0 && (
+                                                    <div style={{ width: `${voterLookup.proportions.sex.n}%` }} className="bg-slate-400" />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-violet-800 mb-1.5">Distribuição por Faixa Etária</p>
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                {(Object.entries(voterLookup.proportions.age) as [string, number][]).map(([key, pct]) => (
+                                                    <div key={key} className="flex items-center gap-1.5">
+                                                        <div className="w-20 h-1.5 bg-slate-200 rounded overflow-hidden">
+                                                            <div style={{ width: `${Math.min(pct, 100)}%` }} className="h-full bg-violet-500" />
+                                                        </div>
+                                                        <span className="text-slate-700">{TSE_AGE_LABELS[key] ?? key}: <strong>{pct.toFixed(1)}%</strong></span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 pt-1">
+                                            Fonte: TSE — Perfil do Eleitorado. As proporções podem ser usadas como referência para cotas de campo na Etapa 4.
+                                        </p>
+                                    </div>
                                 )}
                             </div>
                         )}
