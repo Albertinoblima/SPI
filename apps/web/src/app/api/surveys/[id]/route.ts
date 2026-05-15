@@ -28,6 +28,11 @@ type SurveyGeographyFields = {
     specific_public_description?: string | null;
 };
 
+type SurveySamplingFields = {
+    geographic_scope?: 'national' | 'state' | 'city' | 'specific_public' | '' | null;
+    population_size?: number | null;
+};
+
 const LEGAL_FIELDS: Array<keyof SurveyLegalFields> = [
     'is_registered_research',
     'registered_responsible_name',
@@ -106,6 +111,17 @@ function validateGeographyFields(fields: SurveyGeographyFields): string | null {
     return null;
 }
 
+function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingFields {
+    if (fields.geographic_scope === 'national') {
+        return {
+            ...fields,
+            population_size: null,
+        };
+    }
+
+    return fields;
+}
+
 async function getAuthContext() {
     const supabase = createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -154,7 +170,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Verificar ownership
         const { data: existing } = await adminSupabase
             .from('surveys')
-            .select('id, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code, geographic_scope, scope_country_name, scope_state_name, scope_city_name, specific_public_description')
+            .select('id, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code, geographic_scope, scope_country_name, scope_state_name, scope_city_name, specific_public_description, population_size')
             .eq('id', params.id)
             .eq('tenant_id', ctx.userData.tenant_id).single();
         if (!existing) return apiError('Pesquisa não encontrada', 404);
@@ -215,6 +231,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             if ('specific_public_description' in surveyFields) {
                 surveyFields.specific_public_description = surveyFields.specific_public_description?.trim() || null;
             }
+        }
+
+        const normalizedSampling = normalizeSamplingByScope({
+            geographic_scope: (surveyFields.geographic_scope as SurveySamplingFields['geographic_scope'])
+                ?? (existing.geographic_scope as SurveySamplingFields['geographic_scope']),
+            population_size: (surveyFields.population_size as number | null | undefined)
+                ?? (existing.population_size as number | null | undefined),
+        });
+
+        if (normalizedSampling.population_size === null) {
+            surveyFields.population_size = null;
         }
 
         // Atualizar survey

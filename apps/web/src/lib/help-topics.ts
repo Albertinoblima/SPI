@@ -135,6 +135,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         content: [
             'Em pesquisas eleitorais, prefira base de eleitores validada.',
             'Em estudos territoriais gerais, use habitantes.',
+            'Para abrangencia nacional, o sistema aplica populacao infinita no calculo amostral.',
             'Bases inconsistentes distorcem cotas e inferência final.',
             'O valor informado aqui alimenta o dimensionamento amostral na Etapa 3.',
         ],
@@ -290,6 +291,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         content: [
             'Confira o total de entrevistas calculado com base na populacao base de cada localidade.',
             'Os parametros estatisticos (margem de erro, intervalo de confianca, Deff) vem da Etapa 1.',
+            'Quando a abrangencia e nacional, o metodo usa populacao infinita (sem correcao finita por N).',
             'As populacoes base por localidade foram definidas na Etapa 2.',
             'Volte as etapas anteriores para ajustar qualquer parametro antes de prosseguir.',
             'Esta etapa e somente de revisao; nenhum dado e alterado aqui.',

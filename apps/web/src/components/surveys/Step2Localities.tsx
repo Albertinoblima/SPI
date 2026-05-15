@@ -74,12 +74,14 @@ function getZ(ci: number): number {
     return 1.96;
 }
 
-function calcInterviews(population: number, marginError: number, confidenceInterval: number): number {
-    if (population <= 0 || marginError <= 0) return 0;
+function calcInterviews(population: number, marginError: number, confidenceInterval: number, useInfinitePopulation = false): number {
+    if (marginError <= 0) return 0;
     const z = getZ(confidenceInterval);
     const p = 0.5;
     const e = marginError / 100;
     const n0 = (z * z * p * (1 - p)) / (e * e);
+    if (useInfinitePopulation) return Math.ceil(n0);
+    if (population <= 0) return 0;
     const n = n0 / (1 + (n0 - 1) / population);
     return Math.ceil(n);
 }
@@ -152,6 +154,7 @@ export function Step2Localities({
     onScopeChange,
 }: Props) {
     const usesSampling = shouldUseStatisticalSampling(surveyType);
+    const forceInfinitePopulation = scopeData.geographic_scope === 'national';
     const specificAudience = isSpecificAudienceSurvey(surveyType);
 
     const allowedLevels = useMemo(
@@ -264,7 +267,7 @@ export function Step2Localities({
         }
 
         const interviews = usesSampling
-            ? calcInterviews(form.population, marginOfError, confidenceInterval)
+            ? calcInterviews(form.population, marginOfError, confidenceInterval, forceInfinitePopulation)
             : form.interviews_required;
 
         if (!usesSampling && form.population > 0 && interviews <= 0) {
@@ -326,7 +329,7 @@ export function Step2Localities({
 
         const recalc = localities.map((loc) => ({
             ...loc,
-            interviews_required: calcInterviews(loc.population, marginOfError, confidenceInterval),
+            interviews_required: calcInterviews(loc.population, marginOfError, confidenceInterval, forceInfinitePopulation),
         }));
         const total = getEffectiveLocalities(recalc).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
         onChange(recalc.map((loc) => ({
@@ -441,8 +444,17 @@ export function Step2Localities({
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-800 flex items-start gap-2">
                     <Calculator size={15} className="mt-0.5 shrink-0 text-blue-600" />
                     <span>
-                        <strong>Fórmula amostral para populações finitas:</strong>{' '}
-                        n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
+                        {forceInfinitePopulation ? (
+                            <>
+                                <strong>Abrangência nacional com população infinita:</strong>{' '}
+                                n = Z² × p × q / e² — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
+                            </>
+                        ) : (
+                            <>
+                                <strong>Fórmula amostral para populações finitas:</strong>{' '}
+                                n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={getZ(confidenceInterval).toFixed(3)}, p=0,5, e={marginOfError / 100}.
+                            </>
+                        )}
                     </span>
                 </div>
             ) : (
@@ -613,7 +625,7 @@ export function Step2Localities({
 
                 {usesSampling && form.population > 0 && marginOfError > 0 && (
                     <p className="mt-3 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-                        📊 Estimativa: <strong className="text-blue-700">{calcInterviews(form.population, marginOfError, confidenceInterval)} entrevistas</strong>
+                        📊 Estimativa: <strong className="text-blue-700">{calcInterviews(form.population, marginOfError, confidenceInterval, forceInfinitePopulation)} entrevistas</strong>
                     </p>
                 )}
 

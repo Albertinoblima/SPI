@@ -358,12 +358,17 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             margin_of_error: data.margin_of_error,
                             confidence_interval: data.confidence_interval,
                             total_interviews: data.total_interviews,
-                            population_size: data.population_size,
+                            population_size: data.geographic_scope === 'national' ? null : data.population_size,
                             deff: data.deff,
                             p_proportion: data.p_proportion,
                             stats_mode: data.stats_mode,
                         }}
-                        onChange={(stats: SamplingStats) => onChange({ ...data, ...stats })}
+                        forceInfinitePopulation={data.geographic_scope === 'national'}
+                        onChange={(stats: SamplingStats) => onChange({
+                            ...data,
+                            ...stats,
+                            population_size: data.geographic_scope === 'national' ? null : stats.population_size,
+                        })}
                     />
                 ) : (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900">

@@ -27,6 +27,11 @@ type SurveyGeographyFields = {
     specific_public_description?: string;
 };
 
+type SurveySamplingFields = {
+    geographic_scope?: 'national' | 'state' | 'city' | 'specific_public' | '';
+    population_size?: number | null;
+};
+
 function normalizeDocument(value?: string) {
     return (value ?? '').replace(/\D/g, '');
 }
@@ -81,6 +86,17 @@ function validateGeographyFields(fields: SurveyGeographyFields): string | null {
         return 'Para público específico, descreva o recorte do público-alvo.';
     }
     return null;
+}
+
+function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingFields {
+    if (fields.geographic_scope === 'national') {
+        return {
+            ...fields,
+            population_size: null,
+        };
+    }
+
+    return fields;
 }
 
 export async function GET() {
@@ -142,6 +158,11 @@ export async function POST(request: NextRequest) {
             geographic_scope, scope_country_name, scope_state_name,
             scope_city_name, specific_public_description } = body;
 
+        const normalizedSampling = normalizeSamplingByScope({
+            geographic_scope,
+            population_size,
+        });
+
         if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400);
 
         const legalValidationError = validateLegalFields({
@@ -181,7 +202,7 @@ export async function POST(request: NextRequest) {
                 margin_of_error: margin_of_error || null,
                 confidence_interval: confidence_interval || null,
                 total_interviews: total_interviews || null,
-                population_size: population_size || null,
+                population_size: normalizedSampling.population_size ?? null,
                 deff: deff ?? 1.0,
                 p_proportion: p_proportion ?? 0.5,
                 stats_mode: stats_mode || 'auto',

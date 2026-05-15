@@ -82,6 +82,26 @@ function getEffectiveLocalities(localities: Locality[]): Locality[] {
     });
 }
 
+function shouldForceInfinitePopulation(scope: SurveyTechData['geographic_scope']): boolean {
+    return scope === 'national';
+}
+
+function computeAutoTotalInterviews(tech: SurveyTechData, totalPopulation: number): number {
+    const Z: Record<number, number> = { 90: 1.645, 95: 1.96, 99: 2.576 };
+    const z = Z[tech.confidence_interval] ?? 1.96;
+    const E = tech.margin_of_error / 100;
+    const p = tech.p_proportion ?? 0.5;
+    const n0 = (z * z * p * (1 - p)) / (E * E);
+
+    const useInfinitePopulation = shouldForceInfinitePopulation(tech.geographic_scope);
+    const popForCalc = !useInfinitePopulation && totalPopulation > 0 ? totalPopulation : null;
+    const nWithPop = popForCalc && popForCalc > 0
+        ? n0 / (1 + (n0 - 1) / popForCalc)
+        : n0;
+
+    return Math.ceil(nWithPop * (tech.deff ?? 1));
+}
+
 export function SurveyWizard({ draftId }: { draftId?: string }) {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
@@ -160,7 +180,28 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             .finally(() => setLoadingDraft(false));
     }, [draftId]);
     const updateTech = useCallback((tech: SurveyTechData) => {
-        setData(prev => ({ ...prev, tech }));
+        setData(prev => {
+            const effectiveLocalities = getEffectiveLocalities(prev.localities);
+            const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
+            const forceInfinite = shouldForceInfinitePopulation(tech.geographic_scope);
+
+            const normalizedTech: SurveyTechData = {
+                ...tech,
+                population_size: forceInfinite ? null : tech.population_size,
+            };
+
+            if (normalizedTech.stats_mode !== 'auto' || !shouldUseStatisticalSampling(normalizedTech.survey_type)) {
+                return { ...prev, tech: normalizedTech };
+            }
+
+            return {
+                ...prev,
+                tech: {
+                    ...normalizedTech,
+                    total_interviews: computeAutoTotalInterviews(normalizedTech, totalPop),
+                },
+            };
+        });
     }, []);
 
     // Quando localidades mudam, recalcula population_size (soma das populações)
@@ -177,22 +218,14 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             if (!usesSampling) {
                 return { ...prev, localities };
             }
-            const Z: Record<number, number> = { 90: 1.645, 95: 1.96, 99: 2.576 };
-            const z = Z[tech.confidence_interval] ?? 1.96;
-            const E = tech.margin_of_error / 100;
-            const p = tech.p_proportion ?? 0.5;
-            const n0 = (z * z * p * (1 - p)) / (E * E);
-            const popForCalc = totalPop > 0 ? totalPop : null;
-            const nWithPop = popForCalc && popForCalc > 0
-                ? n0 / (1 + (n0 - 1) / popForCalc)
-                : n0;
-            const total_interviews = Math.ceil(nWithPop * (tech.deff ?? 1));
+            const forceInfinite = shouldForceInfinitePopulation(tech.geographic_scope);
+            const total_interviews = computeAutoTotalInterviews(tech, totalPop);
             return {
                 ...prev,
                 localities,
                 tech: {
                     ...tech,
-                    population_size: totalPop > 0 ? totalPop : null,
+                    population_size: forceInfinite ? null : (totalPop > 0 ? totalPop : null),
                     total_interviews,
                 },
             };
@@ -208,13 +241,28 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     }, []);
 
     const updateScopeData = useCallback((scopeData: Pick<SurveyTechData, 'geographic_scope' | 'scope_country_name' | 'scope_state_name' | 'scope_city_name' | 'specific_public_description'>) => {
-        setData(prev => ({
-            ...prev,
-            tech: {
+        setData(prev => {
+            const effectiveLocalities = getEffectiveLocalities(prev.localities);
+            const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
+
+            const nextTech: SurveyTechData = {
                 ...prev.tech,
                 ...scopeData,
-            },
-        }));
+            };
+
+            if (shouldForceInfinitePopulation(nextTech.geographic_scope)) {
+                nextTech.population_size = null;
+            }
+
+            if (nextTech.stats_mode === 'auto' && shouldUseStatisticalSampling(nextTech.survey_type)) {
+                nextTech.total_interviews = computeAutoTotalInterviews(nextTech, totalPop);
+            }
+
+            return {
+                ...prev,
+                tech: nextTech,
+            };
+        });
     }, []);
 
     const goNext = () => setCurrentStep(s => Math.min(s + 1, 5));

@@ -20,6 +20,7 @@ export interface SamplingStats {
 interface Props {
     value: SamplingStats;
     onChange: (v: SamplingStats) => void;
+    forceInfinitePopulation?: boolean;
 }
 
 // ─── Helpers estatísticos ────────────────────────────────────────────────────
@@ -84,9 +85,11 @@ function Tip({ text, helpId }: { text: string; helpId?: string }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export function StatisticsCalculator({ value, onChange }: Props) {
+export function StatisticsCalculator({ value, onChange, forceInfinitePopulation = false }: Props) {
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [manualOverride, setManualOverride] = useState(false);
+
+    const effectivePopulationSize = forceInfinitePopulation ? null : value.population_size;
 
     const set = <K extends keyof SamplingStats>(key: K, val: SamplingStats[K]) => {
         const next = { ...value, [key]: val };
@@ -96,7 +99,7 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                 next.confidence_interval,
                 next.margin_of_error,
                 next.p_proportion,
-                next.population_size,
+                forceInfinitePopulation ? null : next.population_size,
                 next.deff,
             );
         }
@@ -110,7 +113,7 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                 value.confidence_interval,
                 value.margin_of_error,
                 value.p_proportion,
-                value.population_size,
+                effectivePopulationSize,
                 value.deff,
             );
             onChange({ ...value, stats_mode: 'auto', total_interviews: n });
@@ -125,7 +128,7 @@ export function StatisticsCalculator({ value, onChange }: Props) {
             value.confidence_interval,
             value.margin_of_error,
             value.p_proportion,
-            value.population_size,
+            effectivePopulationSize,
             value.deff,
         );
         onChange({ ...value, total_interviews: n });
@@ -135,13 +138,13 @@ export function StatisticsCalculator({ value, onChange }: Props) {
         value.confidence_interval,
         value.margin_of_error,
         value.p_proportion,
-        value.population_size,
+        effectivePopulationSize,
         value.deff,
     );
 
     const isOverridden = value.stats_mode === 'auto' && value.total_interviews !== calculatedN;
-    const hasPopulation = value.population_size != null && value.population_size > 0;
-    const populationIsLarge = hasPopulation && value.population_size! >= 100_000;
+    const hasPopulation = effectivePopulationSize != null && effectivePopulationSize > 0;
+    const populationIsLarge = hasPopulation && effectivePopulationSize! >= 100_000;
 
     return (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 flex flex-col gap-4">
@@ -399,11 +402,19 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                             <p className="text-[11px] text-slate-400 mt-1 font-mono">
                                 {buildFormula(value.confidence_interval, value.margin_of_error, value.p_proportion)} ≈ {calculatedN.toLocaleString('pt-BR')}
                                 {value.deff !== 1 && ` × Deff ${value.deff.toFixed(1)}`}
-                                {hasPopulation ? ` (pop. finita N=${value.population_size!.toLocaleString('pt-BR')})` : ''}
+                                {hasPopulation ? ` (pop. finita N=${effectivePopulationSize!.toLocaleString('pt-BR')})` : ''}
                             </p>
 
                             {/* Status da população */}
-                            {!hasPopulation ? (
+                            {forceInfinitePopulation ? (
+                                <div className="mt-3 flex items-start gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 text-xs text-indigo-700">
+                                    <MapPin size={13} className="mt-0.5 shrink-0" />
+                                    <span>
+                                        <strong>População infinita ativa</strong> — para abrangência nacional, o sistema usa a
+                                        fórmula sem correção de população finita.
+                                    </span>
+                                </div>
+                            ) : !hasPopulation ? (
                                 <div className="mt-3 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600">
                                     <MapPin size={13} className="mt-0.5 shrink-0 text-slate-400" />
                                     <span>
@@ -416,7 +427,7 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                                 <div className="mt-3 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-700">
                                     <MapPin size={13} className="mt-0.5 shrink-0" />
                                     <span>
-                                        ✓ População total (Etapa 2): <strong>{value.population_size!.toLocaleString('pt-BR')}</strong> pessoas.
+                                        ✓ População total (Etapa 2): <strong>{effectivePopulationSize!.toLocaleString('pt-BR')}</strong> pessoas.
                                         Para este universo, a correção de pop. finita tem impacto mínimo.
                                     </span>
                                 </div>
@@ -425,7 +436,7 @@ export function StatisticsCalculator({ value, onChange }: Props) {
                                     <MapPin size={13} className="mt-0.5 shrink-0" />
                                     <span>
                                         ✓ Fator de correção de pop. finita aplicado —
-                                        população total (Etapa 2): <strong>{value.population_size!.toLocaleString('pt-BR')}</strong> pessoas.
+                                        população total (Etapa 2): <strong>{effectivePopulationSize!.toLocaleString('pt-BR')}</strong> pessoas.
                                     </span>
                                 </div>
                             )}

@@ -19,6 +19,7 @@ interface Props {
         | 'deff'
         | 'p_proportion'
         | 'stats_mode'
+        | 'geographic_scope'
     >;
 }
 
@@ -28,11 +29,13 @@ function getZ(ci: number): number {
     return 1.96;
 }
 
-function calcInterviews(population: number, marginError: number, confidenceInterval: number): number {
-    if (population <= 0 || marginError <= 0) return 0;
+function calcInterviews(population: number, marginError: number, confidenceInterval: number, useInfinitePopulation = false): number {
+    if (marginError <= 0) return 0;
     const z = getZ(confidenceInterval);
     const e = marginError / 100;
     const n0 = (z * z * 0.25) / (e * e);
+    if (useInfinitePopulation) return Math.ceil(n0);
+    if (population <= 0) return 0;
     const n = n0 / (1 + (n0 - 1) / population);
     return Math.ceil(n);
 }
@@ -99,6 +102,7 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
 
 export function Step3SampleSize({ localities, tech }: Props) {
     const usesSampling = shouldUseStatisticalSampling(tech.survey_type);
+    const forceInfinitePopulation = tech.geographic_scope === 'national';
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
 
     const totalPopulation = effectiveLocalities.reduce((acc, l) => acc + (l.population ?? 0), 0);
@@ -107,14 +111,14 @@ export function Step3SampleSize({ localities, tech }: Props) {
     const localitiesWithCalc = useMemo(() => {
         return effectiveLocalities.map((loc) => {
             const calc = usesSampling
-                ? calcInterviews(loc.population, tech.margin_of_error, tech.confidence_interval)
+                ? calcInterviews(loc.population, tech.margin_of_error, tech.confidence_interval, forceInfinitePopulation)
                 : (loc.interviews_required ?? 0);
             return {
                 ...loc,
                 calc_interviews: calc,
             };
         });
-    }, [effectiveLocalities, usesSampling, tech.margin_of_error, tech.confidence_interval]);
+    }, [effectiveLocalities, usesSampling, tech.margin_of_error, tech.confidence_interval, forceInfinitePopulation]);
 
     const Z = getZ(tech.confidence_interval);
     const E = tech.margin_of_error / 100;
@@ -157,9 +161,18 @@ export function Step3SampleSize({ localities, tech }: Props) {
                     <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 flex items-start gap-2">
                         <Calculator size={14} className="mt-0.5 shrink-0 text-blue-600" />
                         <span>
-                            <strong>Fórmula amostral para populações finitas:</strong>{' '}
-                            n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={Z.toFixed(3)}, p=0,5,
-                            e={E.toFixed(3)}.
+                            {forceInfinitePopulation ? (
+                                <>
+                                    <strong>População infinita aplicada (abrangência nacional):</strong>{' '}
+                                    n = Z² × p × q / e² — onde Z={Z.toFixed(3)}, p=0,5, e={E.toFixed(3)}.
+                                </>
+                            ) : (
+                                <>
+                                    <strong>Fórmula amostral para populações finitas:</strong>{' '}
+                                    n = (Z² × p × q / e²) / (1 + (Z² × p × q / e² − 1) / N) — onde Z={Z.toFixed(3)}, p=0,5,
+                                    e={E.toFixed(3)}.
+                                </>
+                            )}
                         </span>
                     </div>
                 )}
