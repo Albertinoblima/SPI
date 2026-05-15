@@ -327,7 +327,7 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     />
                 </Field>
 
-                {/* Tipo + Objetivo */}
+                {/* Tipo + Foco */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Field>
                         <Label htmlFor="survey_type" tooltip="Classifica e o foco específico da pesquisa para fins de relatório e análise.">
@@ -354,89 +354,109 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     </Field>
 
                     <Field>
-                        <Label htmlFor="target_audience" tooltip="Quem são os entrevistados? Ex: Eleitores com título ativo no município.">
-                            Público-alvo
+                        <Label htmlFor="population_type" tooltip="Define a base de dados que alimentará as localidades (Etapa 2) e o dimensionamento amostral (Etapa 3). 'Eleitores' usa dados do TSE; 'Habitantes' usa IBGE.">
+                            Base Populacional
                         </Label>
-                        <input
-                            id="target_audience"
-                            type="text"
-                            value={data.target_audience}
-                            onChange={e => set('target_audience', e.target.value)}
+                        <select
+                            id="population_type"
+                            aria-label="Base populacional da pesquisa"
+                            value={data.population_type ?? 'eleitores'}
+                            onChange={e => set('population_type', e.target.value)}
                             className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ex: Eleitores registrados no município"
-                        />
+                        >
+                            <option value="eleitores">Eleitores (TSE)</option>
+                            <option value="habitantes">Habitantes (IBGE)</option>
+                            <option value="consumidores">Consumidores</option>
+                            <option value="publico_geral">Público em Geral</option>
+                            <option value="comerciantes">Comerciantes</option>
+                            <option value="comerciarios">Comerciários</option>
+                            <option value="dona_de_casa">Dona de Casa</option>
+                            <option value="industriarios">Industriários</option>
+                            <option value="funcionarios_publicos">Funcionários Públicos</option>
+                            <option value="prestadores_servicos">Prestadores de Serviços</option>
+                            <option value="professores">Professores</option>
+                            <option value="profissional_liberal">Profissional Liberal</option>
+                            <option value="segmento_especifico">Segmento Específico</option>
+                            <option value="sindicalistas">Sindicalistas</option>
+                        </select>
                     </Field>
                 </div>
 
-                {/* Tipo de população base (define qual fonte de dados IBGE/TSE usada nas etapas seguintes) */}
+                {/* Público-alvo (descrição livre) */}
                 <Field>
-                    <Label htmlFor="population_type" tooltip="Define a base populacional de referência. Se 'Eleitores', os dados do TSE serão usados automaticamente nas localidades. Se 'Habitantes', usa o IBGE.">
-                        Base Populacional
-                        <Tooltip text="Define a base de dados que alimentará as localidades (Etapa 2) e o dimensionamento amostral (Etapa 3). 'Eleitores' usa dados do TSE; 'Habitantes' usa IBGE." />
+                    <Label htmlFor="target_audience" tooltip="Quem são os entrevistados? Ex: Eleitores com título ativo no município.">
+                        Público-alvo
                     </Label>
-                    <select
-                        id="population_type"
-                        aria-label="Base populacional da pesquisa"
-                        value={data.population_type ?? 'eleitores'}
-                        onChange={e => set('population_type', e.target.value)}
+                    <input
+                        id="target_audience"
+                        type="text"
+                        value={data.target_audience}
+                        onChange={e => set('target_audience', e.target.value)}
                         className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="eleitores">Eleitores (TSE)</option>
-                        <option value="habitantes">Habitantes (IBGE)</option>
-                        <option value="consumidores">Consumidores</option>
-                        <option value="publico_geral">Público em Geral</option>
-                        <option value="comerciantes">Comerciantes</option>
-                        <option value="comerciarios">Comerciários</option>
-                        <option value="dona_de_casa">Dona de Casa</option>
-                        <option value="industriarios">Industriários</option>
-                        <option value="funcionarios_publicos">Funcionários Públicos</option>
-                        <option value="prestadores_servicos">Prestadores de Serviços</option>
-                        <option value="professores">Professores</option>
-                        <option value="profissional_liberal">Profissional Liberal</option>
-                        <option value="segmento_especifico">Segmento Específico</option>
-                        <option value="sindicalistas">Sindicalistas</option>
-                    </select>
+                        placeholder="Ex: Eleitores registrados no município"
+                    />
                 </Field>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
                     {getMethodologyHint(data.survey_type)}
                 </div>
 
-                {/* Parâmetros amostrais básicos (cálculo detalhado na Etapa 3) */}
+                {/* Parâmetros amostrais — sliders (cálculo detalhado na Etapa 3) */}
                 {usesSampling && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <Field>
-                            <Label htmlFor="margin_of_error" tooltip="Variação máxima aceitável nos resultados, expressa em pontos percentuais. Padrão: 3%.">
-                                Margem de Erro (%) <span className="text-red-500">*</span>
-                            </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+                        {/* Margem de Erro */}
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between mb-0.5">
+                                <label htmlFor="margin_of_error" className="flex items-center text-sm font-medium text-slate-700">
+                                    Margem de Erro
+                                    <Tooltip text="Variação máxima aceitável nos resultados, expressa em pontos percentuais. Padrão: 3%." />
+                                </label>
+                                <span className="text-sm font-bold text-blue-700 tabular-nums">{data.margin_of_error.toFixed(1)}%</span>
+                            </div>
                             <input
                                 id="margin_of_error"
-                                type="number"
+                                type="range"
                                 min={1}
-                                max={20}
+                                max={10}
                                 step={0.5}
                                 value={data.margin_of_error}
-                                onChange={e => set('margin_of_error', parseFloat(e.target.value) || 3)}
-                                className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                                placeholder="3"
+                                onChange={e => set('margin_of_error', parseFloat(e.target.value))}
+                                className="w-full accent-blue-600 cursor-pointer"
+                                aria-label="Margem de erro"
                             />
-                        </Field>
-                        <Field>
-                            <Label htmlFor="confidence_interval" tooltip="Probabilidade de o resultado estar dentro da margem de erro. Padrão: 95%.">
-                                Intervalo de Confiança (%)
-                            </Label>
-                            <select
+                            <div className="flex justify-between text-[10px] text-slate-400">
+                                <span>1%</span>
+                                <span>5%</span>
+                                <span>10%</span>
+                            </div>
+                        </div>
+
+                        {/* Intervalo de Confiança */}
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between mb-0.5">
+                                <label htmlFor="confidence_interval" className="flex items-center text-sm font-medium text-slate-700">
+                                    Intervalo de Confiança
+                                    <Tooltip text="Probabilidade de o resultado estar dentro da margem de erro. Padrão: 95%." />
+                                </label>
+                                <span className="text-sm font-bold text-blue-700 tabular-nums">{data.confidence_interval}%</span>
+                            </div>
+                            <input
                                 id="confidence_interval"
-                                aria-label="Intervalo de confiança"
+                                type="range"
+                                min={90}
+                                max={99}
+                                step={1}
                                 value={data.confidence_interval}
                                 onChange={e => set('confidence_interval', parseInt(e.target.value, 10))}
-                                className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value={90}>90%</option>
-                                <option value={95}>95%</option>
-                                <option value={99}>99%</option>
-                            </select>
-                        </Field>
+                                className="w-full accent-blue-600 cursor-pointer"
+                                aria-label="Intervalo de confiança"
+                            />
+                            <div className="flex justify-between text-[10px] text-slate-400">
+                                <span>90%</span>
+                                <span>95%</span>
+                                <span>99%</span>
+                            </div>
+                        </div>
                     </div>
                 )}
 
