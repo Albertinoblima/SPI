@@ -13,6 +13,7 @@ import {
     LogOut,
     LogIn,
     Menu,
+    Activity,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import AdminNotificationBell from '@/components/notifications/AdminNotificationBell';
@@ -46,6 +47,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             label: 'Suporte',
             href: '/admin/support',
             icon: MessageSquare,
+        },
+        {
+            label: 'Saúde do Sistema',
+            href: '/admin/system/health',
+            icon: Activity,
         },
         {
             label: 'Auditoria',
