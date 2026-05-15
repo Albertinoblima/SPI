@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, HelpCircle, Calculator, Users } from 'lucide-react';
+import { Plus, Trash2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { shouldUseStatisticalSampling, type SurveyTechData, type PopulationType } from './Step1TechnicalData';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
-import { TSE_AGE_LABELS, type TseVoterProportions } from '@/lib/geo/tse-voter-profiles';
 
 export interface Locality {
     id: string;
@@ -76,24 +75,6 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
     );
 }
 
-function getZ(ci: number): number {
-    if (ci === 90) return 1.645;
-    if (ci === 99) return 2.576;
-    return 1.96;
-}
-
-function calcInterviews(population: number, marginError: number, confidenceInterval: number, useInfinitePopulation = false): number {
-    if (marginError <= 0) return 0;
-    const z = getZ(confidenceInterval);
-    const p = 0.5;
-    const e = marginError / 100;
-    const n0 = (z * z * p * (1 - p)) / (e * e);
-    if (useInfinitePopulation) return Math.ceil(n0);
-    if (population <= 0) return 0;
-    const n = n0 / (1 + (n0 - 1) / population);
-    return Math.ceil(n);
-}
-
 const ZONE_LABELS: Record<Locality['zone'], string> = {
     urban: 'Sede ou Urbana',
     rural: 'Interior ou Rural',
@@ -155,15 +136,12 @@ function getEffectiveLocalities(localities: Locality[]): Locality[] {
 export function Step2Localities({
     localities,
     onChange,
-    marginOfError,
-    confidenceInterval,
     surveyType,
     scopeData,
     onScopeChange,
     defaultPopulationType = 'eleitores',
 }: Props) {
     const usesSampling = shouldUseStatisticalSampling(surveyType);
-    const forceInfinitePopulation = scopeData.geographic_scope === 'national';
     const specificAudience = isSpecificAudienceSurvey(surveyType);
 
     const allowedLevels = useMemo(
@@ -186,43 +164,7 @@ export function Step2Localities({
     const [geoSource, setGeoSource] = useState<'ibge' | 'fallback' | null>(null);
     const [ibgeStates, setIbgeStates] = useState<GeoStateOption[]>([]);
     const [ibgeCities, setIbgeCities] = useState<string[]>([]);
-    const [populationLookup, setPopulationLookup] = useState<{
-        loading: boolean;
-        message: string | null;
-        suggestedPopulation: number | null;
-        suggestedCity: string | null;
-        suggestedConfidence: number | null;
-    }>({
-        loading: false,
-        message: null,
-        suggestedPopulation: null,
-        suggestedCity: null,
-        suggestedConfidence: null,
-    });
-
-    const [voterLookup, setVoterLookup] = useState<{
-        loading: boolean;
-        message: string | null;
-        total: number | null;
-        cityName: string | null;
-        confidence: number | null;
-        matchType: 'exact' | 'smart' | 'none' | null;
-        proportions: TseVoterProportions | null;
-        showProportions: boolean;
-    }>({
-        loading: false,
-        message: null,
-        total: null,
-        cityName: null,
-        confidence: null,
-        matchType: null,
-        proportions: null,
-        showProportions: false,
-    });
-
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
-    const totalInterviews = effectiveLocalities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0);
-    const totalPopulation = effectiveLocalities.reduce((acc, l) => acc + (l.population ?? 0), 0);
 
     const activeStateForCitySuggestions = useMemo(() => {
         if (scopeData.geographic_scope === 'city' || scopeData.geographic_scope === 'state') {
@@ -352,158 +294,6 @@ export function Step2Localities({
         };
     };
 
-    const handleSuggestPopulation = async () => {
-        const { resolvedParentState, resolvedParentCity } = resolveHierarchy();
-
-        const stateForLookup = resolvedParentState;
-        const cityForLookup = form.geo_level === 'city' ? form.name.trim() : resolvedParentCity;
-
-        if (!stateForLookup || !cityForLookup) {
-            setPopulationLookup({
-                loading: false,
-                message: 'Informe estado e cidade para sugerir população via IBGE.',
-                suggestedPopulation: null,
-                suggestedCity: null,
-                suggestedConfidence: null,
-            });
-            return;
-        }
-
-        setPopulationLookup({
-            loading: true,
-            message: null,
-            suggestedPopulation: null,
-            suggestedCity: null,
-            suggestedConfidence: null,
-        });
-
-        try {
-            const response = await fetch(
-                `/api/geo/population?state=${encodeURIComponent(stateForLookup)}&city=${encodeURIComponent(cityForLookup)}`,
-            );
-            const payload = await response.json();
-
-            const population = Number(payload?.data?.population ?? 0);
-            if (payload?.success && Number.isFinite(population) && population > 0) {
-                const matchType = String(payload?.data?.match_type ?? 'none');
-                const matchedCity = (payload?.data?.cityName as string | undefined) ?? cityForLookup;
-                const confidence = Number(payload?.data?.confidence ?? 0);
-
-                if (matchType === 'exact') {
-                    setForm((prev) => ({ ...prev, population }));
-                    setPopulationLookup({
-                        loading: false,
-                        message: `População exata do IBGE para ${matchedCity}: ${population.toLocaleString('pt-BR')} habitantes.`,
-                        suggestedPopulation: null,
-                        suggestedCity: null,
-                        suggestedConfidence: null,
-                    });
-                    return;
-                }
-
-                if (matchType === 'smart') {
-                    setPopulationLookup({
-                        loading: false,
-                        message: payload?.data?.warning ?? `Sugestão inteligente encontrada: ${matchedCity}. Confirme para aplicar.`,
-                        suggestedPopulation: population,
-                        suggestedCity: matchedCity,
-                        suggestedConfidence: Number.isFinite(confidence) ? confidence : null,
-                    });
-                    return;
-                }
-
-                setForm((prev) => ({ ...prev, population }));
-                setPopulationLookup({
-                    loading: false,
-                    message: `População obtida do IBGE: ${population.toLocaleString('pt-BR')} habitantes.`,
-                    suggestedPopulation: null,
-                    suggestedCity: null,
-                    suggestedConfidence: null,
-                });
-                return;
-            }
-
-            setPopulationLookup({
-                loading: false,
-                message: payload?.data?.warning ?? 'Não foi possível sugerir população para esta localidade.',
-                suggestedPopulation: null,
-                suggestedCity: null,
-                suggestedConfidence: null,
-            });
-        } catch {
-            setPopulationLookup({
-                loading: false,
-                message: 'Falha ao consultar população no IBGE. Você pode preencher manualmente.',
-                suggestedPopulation: null,
-                suggestedCity: null,
-                suggestedConfidence: null,
-            });
-        }
-    };
-
-    const applySuggestedPopulation = () => {
-        if (!populationLookup.suggestedPopulation || populationLookup.suggestedPopulation <= 0) return;
-        setForm((prev) => ({ ...prev, population: populationLookup.suggestedPopulation as number }));
-        setPopulationLookup((prev) => ({
-            loading: false,
-            message: `Sugestão aplicada para ${prev.suggestedCity}: ${(prev.suggestedPopulation as number).toLocaleString('pt-BR')} habitantes.`,
-            suggestedPopulation: null,
-            suggestedCity: null,
-            suggestedConfidence: null,
-        }));
-    };
-
-    const handleQueryVoters = async () => {
-        const { resolvedParentState, resolvedParentCity } = resolveHierarchy();
-        const stateForLookup = resolvedParentState;
-        const cityForLookup = form.geo_level === 'city' ? form.name.trim() : resolvedParentCity;
-
-        if (!stateForLookup || !cityForLookup) {
-            setVoterLookup((prev) => ({ ...prev, loading: false, message: 'Informe estado e cidade para consultar o eleitorado via TSE.' }));
-            return;
-        }
-
-        setVoterLookup({ loading: true, message: null, total: null, cityName: null, confidence: null, matchType: null, proportions: null, showProportions: false });
-
-        try {
-            const res = await fetch(`/api/geo/voters?state=${encodeURIComponent(stateForLookup)}&city=${encodeURIComponent(cityForLookup)}`);
-            const payload = await res.json();
-
-            if (!payload?.success) {
-                setVoterLookup({ loading: false, message: payload?.error ?? 'Falha ao consultar TSE.', total: null, cityName: null, confidence: null, matchType: null, proportions: null, showProportions: false });
-                return;
-            }
-
-            const { total, cityName, match_type, confidence, proportions, warning } = payload.data ?? {};
-
-            if (!total || match_type === 'none') {
-                setVoterLookup({ loading: false, message: warning ?? 'Município não encontrado no TSE.', total: null, cityName: null, confidence: null, matchType: 'none', proportions: null, showProportions: false });
-                return;
-            }
-
-            if (match_type === 'exact') {
-                setForm((prev) => ({ ...prev, population: total }));
-                setVoterLookup({ loading: false, message: `TSE: ${(total as number).toLocaleString('pt-BR')} eleitores em ${cityName}.`, total: total as number, cityName: cityName as string, confidence: null, matchType: 'exact', proportions: proportions as TseVoterProportions ?? null, showProportions: false });
-                return;
-            }
-
-            // smart match — pede confirmação
-            setVoterLookup({ loading: false, message: warning as string ?? `Sugestão: "${cityName}". Confirme para aplicar.`, total: total as number, cityName: cityName as string, confidence: confidence as number ?? null, matchType: 'smart', proportions: proportions as TseVoterProportions ?? null, showProportions: false });
-        } catch {
-            setVoterLookup({ loading: false, message: 'Falha ao consultar eleitorado no TSE. Preencha manualmente.', total: null, cityName: null, confidence: null, matchType: null, proportions: null, showProportions: false });
-        }
-    };
-
-    const applyVoterSuggestion = () => {
-        if (!voterLookup.total || voterLookup.total <= 0) return;
-        setForm((prev) => ({ ...prev, population: voterLookup.total as number }));
-        setVoterLookup((prev) => ({
-            ...prev,
-            matchType: 'exact',
-            message: `Aplicado: ${(voterLookup.total as number).toLocaleString('pt-BR')} eleitores em ${voterLookup.cityName}.`,
-        }));
-    };
-
     const handleAdd = () => {
         const scopeError = validateScope();
         if (scopeError) {
@@ -585,50 +375,12 @@ export function Step2Localities({
             population_type: specificAudience ? 'segmento_especifico' : defaultPopulationType,
             interviews_required: 0,
         });
-        setPopulationLookup({
-            loading: false,
-            message: null,
-            suggestedPopulation: null,
-            suggestedCity: null,
-            suggestedConfidence: null,
-        });
-        setVoterLookup({
-            loading: false,
-            message: null,
-            total: null,
-            cityName: null,
-            confidence: null,
-            matchType: null,
-            proportions: null,
-            showProportions: false,
-        });
     };
 
     const handleRemove = (id: string) => {
         const updated = localities.filter((loc) => loc.id !== id);
         const total = getEffectiveLocalities(updated).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
         onChange(updated.map((loc) => ({
-            ...loc,
-            interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
-        })));
-    };
-
-    const handleRecalcAll = () => {
-        if (!usesSampling) {
-            const total = getEffectiveLocalities(localities).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
-            onChange(localities.map((loc) => ({
-                ...loc,
-                interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
-            })));
-            return;
-        }
-
-        const recalc = localities.map((loc) => ({
-            ...loc,
-            interviews_required: calcInterviews(loc.population, marginOfError, confidenceInterval, forceInfinitePopulation),
-        }));
-        const total = getEffectiveLocalities(recalc).reduce((sum, loc) => sum + (loc.interviews_required ?? 0), 0);
-        onChange(recalc.map((loc) => ({
             ...loc,
             interviews_weight: total > 0 ? (loc.interviews_required ?? 0) / total : 0,
         })));
@@ -841,143 +593,6 @@ export function Step2Localities({
                         </select>
                     </div>
 
-                    <div>
-                        <label htmlFor="loc-pop" className="text-sm font-medium text-slate-700 block mb-1">
-                            População
-                            <Tooltip text="População da localidade para estimativas e planejamento. Pode ser 0 em nível apenas de agrupamento." helpId="localities-population" />
-                        </label>
-                        <input
-                            id="loc-pop"
-                            type="number"
-                            min={0}
-                            value={form.population || ''}
-                            onChange={(e) => setForm((prev) => ({ ...prev, population: parseInt(e.target.value, 10) || 0 }))}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ex: 50000"
-                        />
-                        {(form.geo_level === 'city' || form.geo_level === 'locality') && (
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleSuggestPopulation}
-                                    disabled={populationLookup.loading}
-                                    className="text-xs px-3 py-1.5 rounded-md border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-60"
-                                >
-                                    {populationLookup.loading ? 'Consultando IBGE...' : 'Sugerir população via IBGE'}
-                                </button>
-                                {form.population_type === 'eleitores' && (
-                                    <button
-                                        type="button"
-                                        onClick={handleQueryVoters}
-                                        disabled={voterLookup.loading}
-                                        className="text-xs px-3 py-1.5 rounded-md border border-violet-300 text-violet-700 bg-violet-50 hover:bg-violet-100 disabled:opacity-60"
-                                    >
-                                        {voterLookup.loading ? 'Consultando TSE...' : 'Consultar eleitorado (TSE)'}
-                                    </button>
-                                )}
-                                <span className="text-[11px] text-slate-500">Consulta gratuita com fallback manual.</span>
-                            </div>
-                        )}
-                        {populationLookup.message && (
-                            <p className="mt-2 text-xs text-slate-600 bg-slate-100 border border-slate-200 rounded px-2.5 py-1.5">
-                                {populationLookup.message}
-                            </p>
-                        )}
-                        {populationLookup.suggestedPopulation && (
-                            <div className="mt-2 flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={applySuggestedPopulation}
-                                    className="text-xs px-3 py-1.5 rounded-md border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                                >
-                                    Aplicar sugestão inteligente
-                                </button>
-                                {populationLookup.suggestedConfidence != null && (
-                                    <span className="text-[11px] text-slate-500">
-                                        Confianca: {(populationLookup.suggestedConfidence * 100).toFixed(1)}%
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {/* Resultado da consulta TSE */}
-                        {voterLookup.message && (
-                            <p className="mt-2 text-xs text-violet-800 bg-violet-50 border border-violet-200 rounded px-2.5 py-1.5">
-                                {voterLookup.message}
-                            </p>
-                        )}
-                        {voterLookup.matchType === 'smart' && voterLookup.total && (
-                            <div className="mt-2 flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={applyVoterSuggestion}
-                                    className="text-xs px-3 py-1.5 rounded-md border border-violet-300 text-violet-700 bg-violet-50 hover:bg-violet-100"
-                                >
-                                    Aplicar sugestão TSE
-                                </button>
-                                {voterLookup.confidence != null && (
-                                    <span className="text-[11px] text-slate-500">Confiança: {(voterLookup.confidence * 100).toFixed(1)}%</span>
-                                )}
-                            </div>
-                        )}
-                        {/* Painel de proporções eleitorais */}
-                        {voterLookup.proportions && (voterLookup.matchType === 'exact' || voterLookup.matchType === 'smart') && (
-                            <div className="mt-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setVoterLookup((prev) => ({ ...prev, showProportions: !prev.showProportions }))}
-                                    className="text-[11px] text-violet-700 underline underline-offset-2 hover:text-violet-900"
-                                >
-                                    {voterLookup.showProportions ? 'Ocultar' : 'Ver'} proporções do eleitorado
-                                </button>
-                                {voterLookup.showProportions && (
-                                    <div className="mt-2 p-3 bg-violet-50 border border-violet-200 rounded-lg text-xs space-y-3">
-                                        <div>
-                                            <p className="font-semibold text-violet-800 mb-1.5">Distribuição por Sexo</p>
-                                            <div className="flex gap-4">
-                                                <span className="flex items-center gap-1">
-                                                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-400" />
-                                                    Masculino: <strong>{voterLookup.proportions.sex.m.toFixed(1)}%</strong>
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-pink-400" />
-                                                    Feminino: <strong>{voterLookup.proportions.sex.f.toFixed(1)}%</strong>
-                                                </span>
-                                                {voterLookup.proportions.sex.n > 0 && (
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-400" />
-                                                        Outro: <strong>{voterLookup.proportions.sex.n.toFixed(1)}%</strong>
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {/* Barra visual sexo */}
-                                            <div className="mt-1.5 w-full max-w-xs space-y-1">
-                                                <progress className="h-2.5 w-full accent-blue-400" max={100} value={Math.min(voterLookup.proportions.sex.m, 100)} />
-                                                <progress className="h-2.5 w-full accent-pink-400" max={100} value={Math.min(voterLookup.proportions.sex.f, 100)} />
-                                                {voterLookup.proportions.sex.n > 0 && (
-                                                    <progress className="h-2.5 w-full accent-slate-400" max={100} value={Math.min(voterLookup.proportions.sex.n, 100)} />
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-violet-800 mb-1.5">Distribuição por Faixa Etária</p>
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                                {(Object.entries(voterLookup.proportions.age) as [string, number][]).map(([key, pct]) => (
-                                                    <div key={key} className="flex items-center gap-1.5">
-                                                        <progress className="h-1.5 w-20 accent-violet-500" max={100} value={Math.min(pct, 100)} />
-                                                        <span className="text-slate-700">{TSE_AGE_LABELS[key] ?? key}: <strong>{pct.toFixed(1)}%</strong></span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-slate-500 pt-1">
-                                            Fonte: TSE — Perfil do Eleitorado. As proporções podem ser usadas como referência para cotas de campo na Etapa 4.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
                     {!usesSampling && (
                         <div>
                             <label htmlFor="loc-interviews" className="text-sm font-medium text-slate-700 block mb-1">
@@ -1025,7 +640,6 @@ export function Step2Localities({
                                     <th className="text-left px-4 py-3 font-semibold">Nome</th>
                                     <th className="text-left px-4 py-3 font-semibold">Hierarquia</th>
                                     <th className="text-left px-4 py-3 font-semibold">Zona</th>
-                                    <th className="text-right px-4 py-3 font-semibold">População</th>
                                     {!usesSampling && (
                                         <>
                                             <th className="text-right px-4 py-3 font-semibold">Entrevistas</th>
@@ -1045,7 +659,6 @@ export function Step2Localities({
                                             {loc.parent_city_name ? ` | Cidade: ${loc.parent_city_name}` : ''}
                                         </td>
                                         <td className="px-4 py-3 text-slate-600">{ZONE_LABELS[loc.zone]}</td>
-                                        <td className="px-4 py-3 text-right text-slate-600">{loc.population.toLocaleString('pt-BR')}</td>
                                         {!usesSampling && (
                                             <>
                                                 <td className="px-4 py-3 text-right font-bold text-blue-700">{(loc.interviews_required ?? 0).toLocaleString('pt-BR')}</td>
@@ -1070,7 +683,6 @@ export function Step2Localities({
                             <tfoot className="bg-slate-50 border-t border-slate-200">
                                 <tr>
                                     <td className="px-4 py-3 font-semibold text-slate-700" colSpan={4}>Total (níveis efetivos)</td>
-                                    <td className="px-4 py-3 text-right font-bold text-emerald-700">{totalPopulation.toLocaleString('pt-BR')}</td>
                                     {!usesSampling && (
                                         <>
                                             <td className="px-4 py-3 text-right font-bold text-blue-700 text-base">{effectiveLocalities.reduce((acc, l) => acc + (l.interviews_required ?? 0), 0).toLocaleString('pt-BR')} entrevistas</td>
