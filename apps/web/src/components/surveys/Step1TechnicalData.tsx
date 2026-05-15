@@ -28,6 +28,13 @@ export interface SurveyTechData {
     registered_responsible_name: string;
     registered_responsible_registry: string;
     registered_responsible_body: string;
+    contracting_entity_name: string;
+    contracting_entity_document: string;
+    survey_total_value: number | null;
+    invoice_reference: string;
+    funding_source: string;
+    is_public_disclosure: boolean;
+    pesqele_registration_code: string;
     non_registered_disclaimer: string;
     requires_geolocation: boolean;
     requires_photo: boolean;
@@ -214,7 +221,7 @@ function getMethodologyHint(surveyType: string): string {
 }
 
 export function Step1TechnicalData({ data, onChange }: Props) {
-    const set = (key: keyof SurveyTechData, value: string | number | boolean) =>
+    const set = (key: keyof SurveyTechData, value: string | number | boolean | null) =>
         onChange({ ...data, [key]: value });
     const usesSampling = shouldUseStatisticalSampling(data.survey_type);
 
@@ -466,28 +473,106 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                         <Tooltip text="Quando houver exigencia regulatoria, identifique o responsavel tecnico e seus dados de registro." helpId="registered-research" />
                     </label>
                     {data.is_registered_research && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <input
-                                type="text"
-                                value={data.registered_responsible_name}
-                                onChange={e => set('registered_responsible_name', e.target.value)}
-                                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                placeholder="Responsável técnico"
+                        <div className="space-y-4">
+                            <p className="text-xs text-slate-600">
+                                Informe os dados legais obrigatórios da contratação e transparência financeira.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <input
+                                    type="text"
+                                    value={data.registered_responsible_name}
+                                    onChange={e => set('registered_responsible_name', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Responsável técnico *"
+                                    required={data.is_registered_research}
+                                />
+                                <input
+                                    type="text"
+                                    value={data.registered_responsible_registry}
+                                    onChange={e => set('registered_responsible_registry', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Número do cadastro *"
+                                    required={data.is_registered_research}
+                                />
+                                <input
+                                    type="text"
+                                    value={data.registered_responsible_body}
+                                    onChange={e => set('registered_responsible_body', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Órgão de classe *"
+                                    required={data.is_registered_research}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input
+                                    type="text"
+                                    value={data.contracting_entity_name}
+                                    onChange={e => set('contracting_entity_name', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Contratante (nome da empresa ou entidade) *"
+                                    required={data.is_registered_research}
+                                />
+                                <input
+                                    type="text"
+                                    value={data.contracting_entity_document}
+                                    onChange={e => set('contracting_entity_document', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="CNPJ ou CPF do contratante *"
+                                    required={data.is_registered_research}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    value={data.survey_total_value ?? ''}
+                                    onChange={e => set('survey_total_value', e.target.value === '' ? null : Number(e.target.value))}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Valor total da pesquisa (R$) *"
+                                    required={data.is_registered_research}
+                                />
+                                <input
+                                    type="text"
+                                    value={data.invoice_reference}
+                                    onChange={e => set('invoice_reference', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Nota fiscal (número/série/chave) *"
+                                    required={data.is_registered_research}
+                                />
+                            </div>
+
+                            <textarea
+                                rows={3}
+                                value={data.funding_source}
+                                onChange={e => set('funding_source', e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 resize-y"
+                                placeholder="Origem dos recursos (recursos próprios, fundo partidário, doações etc.) *"
                             />
-                            <input
-                                type="text"
-                                value={data.registered_responsible_registry}
-                                onChange={e => set('registered_responsible_registry', e.target.value)}
-                                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                placeholder="Número do cadastro"
-                            />
-                            <input
-                                type="text"
-                                value={data.registered_responsible_body}
-                                onChange={e => set('registered_responsible_body', e.target.value)}
-                                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                placeholder="Órgão de classe"
-                            />
+
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                <input
+                                    type="checkbox"
+                                    checked={data.is_public_disclosure}
+                                    onChange={e => set('is_public_disclosure', e.target.checked)}
+                                    className="accent-blue-600 w-4 h-4"
+                                />
+                                Pesquisa para fins de divulgação pública
+                            </label>
+
+                            {data.is_public_disclosure && (
+                                <input
+                                    type="text"
+                                    value={data.pesqele_registration_code}
+                                    onChange={e => set('pesqele_registration_code', e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Registro no PesqEle (obrigatório para divulgação pública) *"
+                                    required={data.is_public_disclosure}
+                                />
+                            )}
                         </div>
                     )}
                     {!data.is_registered_research && (

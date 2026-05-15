@@ -43,6 +43,13 @@ const initialWizardData: WizardData = {
         registered_responsible_name: '',
         registered_responsible_registry: '',
         registered_responsible_body: '',
+        contracting_entity_name: '',
+        contracting_entity_document: '',
+        survey_total_value: null,
+        invoice_reference: '',
+        funding_source: '',
+        is_public_disclosure: false,
+        pesqele_registration_code: '',
         non_registered_disclaimer: '',
         requires_geolocation: true,
         requires_photo: false,
@@ -94,6 +101,13 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         registered_responsible_name: s.registered_responsible_name ?? '',
                         registered_responsible_registry: s.registered_responsible_registry ?? '',
                         registered_responsible_body: s.registered_responsible_body ?? '',
+                        contracting_entity_name: s.contracting_entity_name ?? '',
+                        contracting_entity_document: s.contracting_entity_document ?? '',
+                        survey_total_value: s.survey_total_value ?? null,
+                        invoice_reference: s.invoice_reference ?? '',
+                        funding_source: s.funding_source ?? '',
+                        is_public_disclosure: s.is_public_disclosure ?? false,
+                        pesqele_registration_code: s.pesqele_registration_code ?? '',
                         non_registered_disclaimer: s.non_registered_disclaimer ?? '',
                         requires_geolocation: s.requires_geolocation ?? true,
                         requires_photo: s.requires_photo ?? false,
@@ -168,9 +182,39 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const goNext = () => setCurrentStep(s => Math.min(s + 1, 4));
     const goPrev = () => setCurrentStep(s => Math.max(s - 1, 1));
 
+    const validateRegisteredResearchRequirements = () => {
+        if (!data.tech.is_registered_research) return null;
+
+        const legalRequired = [
+            data.tech.registered_responsible_name,
+            data.tech.registered_responsible_registry,
+            data.tech.registered_responsible_body,
+            data.tech.contracting_entity_name,
+            data.tech.contracting_entity_document,
+            data.tech.invoice_reference,
+            data.tech.funding_source,
+        ];
+
+        if (legalRequired.some(value => !value?.trim()) || !data.tech.survey_total_value || data.tech.survey_total_value <= 0) {
+            return 'Pesquisa registrada exige dados legais obrigatórios: responsável técnico, contratante (nome e CNPJ/CPF), valor da pesquisa, nota fiscal e origem dos recursos.';
+        }
+
+        if (data.tech.is_public_disclosure && !data.tech.pesqele_registration_code.trim()) {
+            return 'Para divulgação pública, informe o registro no PesqEle.';
+        }
+
+        return null;
+    };
+
     const handleSaveDraft = async () => {
         if (!data.tech.title.trim()) {
             setAlert({ type: 'error', message: 'Preencha ao menos o título da pesquisa antes de salvar.' });
+            setCurrentStep(1);
+            return;
+        }
+        const legalValidationError = validateRegisteredResearchRequirements();
+        if (legalValidationError) {
+            setAlert({ type: 'error', message: legalValidationError });
             setCurrentStep(1);
             return;
         }
@@ -240,6 +284,12 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const handleFinish = async () => {
         if (!data.tech.title.trim()) {
             setAlert({ type: 'error', message: 'Preencha o título da pesquisa.' });
+            setCurrentStep(1);
+            return;
+        }
+        const legalValidationError = validateRegisteredResearchRequirements();
+        if (legalValidationError) {
+            setAlert({ type: 'error', message: legalValidationError });
             setCurrentStep(1);
             return;
         }

@@ -89,11 +89,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     {
         id: 'registered-research',
         title: 'Pesquisa Registrada',
-        short: 'Quando exigido, informe responsavel tecnico, numero de registro e orgao de classe.',
+        short: 'Quando marcada, informe os dados legais obrigatorios da contratacao, transparencia financeira e, se houver divulgacao publica, o registro no PesqEle.',
         content: [
-            'Esses dados fortalecem rastreabilidade e conformidade.',
-            'Use formato oficial do cadastro para facilitar auditoria.',
-            'Mantenha o registro atualizado em cada nova onda de pesquisa.',
+            'Responsavel tecnico: nome, numero do cadastro e orgao de classe oficial.',
+            'Contratante: nome da entidade/empresa e CNPJ ou CPF valido.',
+            'Transparencia financeira: valor total da pesquisa, nota fiscal e origem dos recursos.',
+            'Se for para divulgacao publica, o registro no Sistema PesqEle e obrigatorio.',
         ],
     },
     {

@@ -5,6 +5,57 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { apiError, apiSuccess } from '@/lib/api-middleware';
 
+type SurveyLegalFields = {
+    is_registered_research?: boolean;
+    registered_responsible_name?: string;
+    registered_responsible_registry?: string;
+    registered_responsible_body?: string;
+    contracting_entity_name?: string;
+    contracting_entity_document?: string;
+    survey_total_value?: number | null;
+    invoice_reference?: string;
+    funding_source?: string;
+    is_public_disclosure?: boolean;
+    pesqele_registration_code?: string;
+};
+
+function normalizeDocument(value?: string) {
+    return (value ?? '').replace(/\D/g, '');
+}
+
+function validateLegalFields(fields: SurveyLegalFields): string | null {
+    const isRegistered = fields.is_registered_research ?? false;
+    if (!isRegistered) return null;
+
+    const requiredTextValues = [
+        fields.registered_responsible_name,
+        fields.registered_responsible_registry,
+        fields.registered_responsible_body,
+        fields.contracting_entity_name,
+        fields.invoice_reference,
+        fields.funding_source,
+    ];
+
+    if (requiredTextValues.some(value => !value?.trim())) {
+        return 'Pesquisa registrada exige preenchimento do responsável técnico, nota fiscal e origem dos recursos.';
+    }
+
+    const normalizedDocument = normalizeDocument(fields.contracting_entity_document);
+    if (!(normalizedDocument.length === 11 || normalizedDocument.length === 14)) {
+        return 'Informe um CNPJ ou CPF válido para o contratante.';
+    }
+
+    if (!fields.survey_total_value || fields.survey_total_value <= 0) {
+        return 'Informe o valor da pesquisa com um montante maior que zero.';
+    }
+
+    if (fields.is_public_disclosure && !fields.pesqele_registration_code?.trim()) {
+        return 'Para divulgação pública, o registro no PesqEle é obrigatório.';
+    }
+
+    return null;
+}
+
 export async function GET() {
     try {
         const supabase = createClient();
@@ -58,9 +109,26 @@ export async function POST(request: NextRequest) {
             requires_photo, requires_signature, allow_offline,
             started_at, ended_at, is_registered_research,
             registered_responsible_name, registered_responsible_registry,
-            registered_responsible_body } = body;
+            registered_responsible_body, contracting_entity_name,
+            contracting_entity_document, survey_total_value, invoice_reference,
+            funding_source, is_public_disclosure, pesqele_registration_code } = body;
 
         if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400);
+
+        const legalValidationError = validateLegalFields({
+            is_registered_research,
+            registered_responsible_name,
+            registered_responsible_registry,
+            registered_responsible_body,
+            contracting_entity_name,
+            contracting_entity_document,
+            survey_total_value,
+            invoice_reference,
+            funding_source,
+            is_public_disclosure,
+            pesqele_registration_code,
+        });
+        if (legalValidationError) return apiError(legalValidationError, 400);
 
         const adminSupabase = createAdminClient();
 
@@ -86,6 +154,13 @@ export async function POST(request: NextRequest) {
                 registered_responsible_name: registered_responsible_name?.trim() || null,
                 registered_responsible_registry: registered_responsible_registry?.trim() || null,
                 registered_responsible_body: registered_responsible_body?.trim() || null,
+                contracting_entity_name: contracting_entity_name?.trim() || null,
+                contracting_entity_document: normalizeDocument(contracting_entity_document) || null,
+                survey_total_value: survey_total_value ?? null,
+                invoice_reference: invoice_reference?.trim() || null,
+                funding_source: funding_source?.trim() || null,
+                is_public_disclosure: is_public_disclosure ?? false,
+                pesqele_registration_code: pesqele_registration_code?.trim() || null,
                 requires_geolocation: requires_geolocation ?? true,
                 requires_photo: requires_photo ?? false,
                 requires_signature: requires_signature ?? false,

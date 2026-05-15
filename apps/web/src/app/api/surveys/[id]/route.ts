@@ -6,6 +6,71 @@ import { apiError, apiSuccess } from '@/lib/api-middleware';
 
 interface RouteParams { params: { id: string } }
 
+type SurveyLegalFields = {
+    is_registered_research?: boolean;
+    registered_responsible_name?: string | null;
+    registered_responsible_registry?: string | null;
+    registered_responsible_body?: string | null;
+    contracting_entity_name?: string | null;
+    contracting_entity_document?: string | null;
+    survey_total_value?: number | null;
+    invoice_reference?: string | null;
+    funding_source?: string | null;
+    is_public_disclosure?: boolean;
+    pesqele_registration_code?: string | null;
+};
+
+const LEGAL_FIELDS: Array<keyof SurveyLegalFields> = [
+    'is_registered_research',
+    'registered_responsible_name',
+    'registered_responsible_registry',
+    'registered_responsible_body',
+    'contracting_entity_name',
+    'contracting_entity_document',
+    'survey_total_value',
+    'invoice_reference',
+    'funding_source',
+    'is_public_disclosure',
+    'pesqele_registration_code',
+];
+
+function normalizeDocument(value?: string | null) {
+    return (value ?? '').replace(/\D/g, '');
+}
+
+function validateLegalFields(fields: SurveyLegalFields): string | null {
+    const isRegistered = fields.is_registered_research ?? false;
+    if (!isRegistered) return null;
+
+    const requiredTextValues = [
+        fields.registered_responsible_name,
+        fields.registered_responsible_registry,
+        fields.registered_responsible_body,
+        fields.contracting_entity_name,
+        fields.invoice_reference,
+        fields.funding_source,
+    ];
+
+    if (requiredTextValues.some(value => !value?.trim())) {
+        return 'Pesquisa registrada exige preenchimento do responsável técnico, nota fiscal e origem dos recursos.';
+    }
+
+    const normalizedDocument = normalizeDocument(fields.contracting_entity_document);
+    if (!(normalizedDocument.length === 11 || normalizedDocument.length === 14)) {
+        return 'Informe um CNPJ ou CPF válido para o contratante.';
+    }
+
+    if (!fields.survey_total_value || fields.survey_total_value <= 0) {
+        return 'Informe o valor da pesquisa com um montante maior que zero.';
+    }
+
+    if (fields.is_public_disclosure && !fields.pesqele_registration_code?.trim()) {
+        return 'Para divulgação pública, o registro no PesqEle é obrigatório.';
+    }
+
+    return null;
+}
+
 async function getAuthContext() {
     const supabase = createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -53,11 +118,47 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         // Verificar ownership
         const { data: existing } = await adminSupabase
-            .from('surveys').select('id').eq('id', params.id)
+            .from('surveys')
+            .select('id, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code')
+            .eq('id', params.id)
             .eq('tenant_id', ctx.userData.tenant_id).single();
         if (!existing) return apiError('Pesquisa não encontrada', 404);
 
         const { localities, premises, questions, ...surveyFields } = body;
+
+        const hasLegalFieldInPayload = LEGAL_FIELDS.some((key) => key in surveyFields);
+        if (hasLegalFieldInPayload) {
+            const legalValidationError = validateLegalFields({
+                ...existing,
+                ...surveyFields,
+            });
+            if (legalValidationError) return apiError(legalValidationError, 400);
+
+            if ('contracting_entity_document' in surveyFields) {
+                surveyFields.contracting_entity_document = normalizeDocument(surveyFields.contracting_entity_document) || null;
+            }
+            if ('registered_responsible_name' in surveyFields) {
+                surveyFields.registered_responsible_name = surveyFields.registered_responsible_name?.trim() || null;
+            }
+            if ('registered_responsible_registry' in surveyFields) {
+                surveyFields.registered_responsible_registry = surveyFields.registered_responsible_registry?.trim() || null;
+            }
+            if ('registered_responsible_body' in surveyFields) {
+                surveyFields.registered_responsible_body = surveyFields.registered_responsible_body?.trim() || null;
+            }
+            if ('contracting_entity_name' in surveyFields) {
+                surveyFields.contracting_entity_name = surveyFields.contracting_entity_name?.trim() || null;
+            }
+            if ('invoice_reference' in surveyFields) {
+                surveyFields.invoice_reference = surveyFields.invoice_reference?.trim() || null;
+            }
+            if ('funding_source' in surveyFields) {
+                surveyFields.funding_source = surveyFields.funding_source?.trim() || null;
+            }
+            if ('pesqele_registration_code' in surveyFields) {
+                surveyFields.pesqele_registration_code = surveyFields.pesqele_registration_code?.trim() || null;
+            }
+        }
 
         // Atualizar survey
         const { data: updated, error: updateError } = await adminSupabase
