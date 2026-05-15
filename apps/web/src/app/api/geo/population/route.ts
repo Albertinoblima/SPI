@@ -18,6 +18,18 @@ type IbgeAggregateResult = {
     }>;
 };
 
+type CityCandidate = {
+    id: number;
+    name: string;
+};
+
+type ResolveCityResult = {
+    cityCode: number | null;
+    cityName: string | null;
+    matchType: 'exact' | 'smart' | 'none';
+    confidence: number;
+};
+
 const CITY_LIST_CACHE_SECONDS = 60 * 60 * 24 * 30;
 const POPULATION_CACHE_SECONDS = 60 * 60 * 24 * 7;
 
@@ -30,6 +42,46 @@ function toPopulationUrls(cityCode: number): string[] {
         `https://servicodados.ibge.gov.br/api/v3/agregados/9514/periodos/2022/variaveis/93?localidades=N6[${cityCode}]`,
         `https://servicodados.ibge.gov.br/api/v3/agregados/4714/periodos/2022/variaveis/93?localidades=N6[${cityCode}]`,
     ];
+}
+
+function levenshteinDistance(a: string, b: string): number {
+    const dp: number[][] = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+
+    for (let i = 0; i <= a.length; i += 1) dp[i][0] = i;
+    for (let j = 0; j <= b.length; j += 1) dp[0][j] = j;
+
+    for (let i = 1; i <= a.length; i += 1) {
+        for (let j = 1; j <= b.length; j += 1) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost,
+            );
+        }
+    }
+
+    return dp[a.length][b.length];
+}
+
+function similarityScore(input: string, candidate: string): number {
+    if (!input || !candidate) return 0;
+    if (input === candidate) return 1;
+
+    if (candidate.startsWith(input) || input.startsWith(candidate)) {
+        return 0.92;
+    }
+
+    const inputTokens = input.split(' ').filter(Boolean);
+    const candidateTokens = candidate.split(' ').filter(Boolean);
+    if (inputTokens.length > 0 && inputTokens.every((token) => candidateTokens.includes(token))) {
+        return 0.88;
+    }
+
+    const maxLen = Math.max(input.length, candidate.length);
+    if (maxLen === 0) return 0;
+    const distance = levenshteinDistance(input, candidate);
+    return 1 - (distance / maxLen);
 }
 
 function extractPopulationFromAggregate(payload: IbgeAggregateResult): number | null {
@@ -50,7 +102,7 @@ function extractPopulationFromAggregate(payload: IbgeAggregateResult): number | 
     return Math.round(parsed);
 }
 
-async function resolveCityCode(stateCode: number, cityName: string): Promise<number | null> {
+async function resolveCityCandidate(stateCode: number, cityName: string): Promise<ResolveCityResult> {
     const response = await fetch(toIbgeCitiesUrl(stateCode), {
         next: { revalidate: CITY_LIST_CACHE_SECONDS },
     });
@@ -60,15 +112,42 @@ async function resolveCityCode(stateCode: number, cityName: string): Promise<num
     }
 
     const payload = (await response.json()) as IbgeCityResponse[];
+    const candidates: CityCandidate[] = payload.map((city) => ({ id: city.id, name: city.nome }));
     const normalizedCity = normalizeGeoText(cityName);
 
-    const exactMatch = payload.find((city) => normalizeGeoText(city.nome) === normalizedCity);
-    if (exactMatch) return exactMatch.id;
+    const exactMatch = candidates.find((city) => normalizeGeoText(city.name) === normalizedCity);
+    if (exactMatch) {
+        return {
+            cityCode: exactMatch.id,
+            cityName: exactMatch.name,
+            matchType: 'exact',
+            confidence: 1,
+        };
+    }
 
-    const startsWithMatch = payload.find((city) => normalizeGeoText(city.nome).startsWith(normalizedCity));
-    if (startsWithMatch) return startsWithMatch.id;
+    let best: { city: CityCandidate; score: number } | null = null;
+    for (const city of candidates) {
+        const score = similarityScore(normalizedCity, normalizeGeoText(city.name));
+        if (!best || score > best.score) {
+            best = { city, score };
+        }
+    }
 
-    return null;
+    if (best && best.score >= 0.72) {
+        return {
+            cityCode: best.city.id,
+            cityName: best.city.name,
+            matchType: 'smart',
+            confidence: Number(best.score.toFixed(3)),
+        };
+    }
+
+    return {
+        cityCode: null,
+        cityName: null,
+        matchType: 'none',
+        confidence: 0,
+    };
 }
 
 async function fetchPopulation(cityCode: number): Promise<number | null> {
@@ -111,23 +190,32 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const cityCode = await resolveCityCode(stateCode, cityParam);
-        if (!cityCode) {
+        const cityResolution = await resolveCityCandidate(stateCode, cityParam);
+        if (!cityResolution.cityCode) {
             return apiSuccess({
                 source: 'ibge',
                 population: null,
                 stateCode,
+                match_type: 'none',
                 warning: 'Municipio nao encontrado na base do IBGE para o estado informado.',
             });
         }
 
-        const population = await fetchPopulation(cityCode);
+        const population = await fetchPopulation(cityResolution.cityCode);
+
+        const warning = cityResolution.matchType === 'smart'
+            ? `Nao houve correspondencia exata para "${cityParam}". Sugestao inteligente: ${cityResolution.cityName}.`
+            : null;
 
         return apiSuccess({
             source: population ? 'ibge' : 'fallback',
             population,
-            cityCode,
+            cityCode: cityResolution.cityCode,
+            cityName: cityResolution.cityName,
             stateCode,
+            match_type: cityResolution.matchType,
+            confidence: cityResolution.confidence,
+            warning,
         });
     } catch {
         return apiSuccess({

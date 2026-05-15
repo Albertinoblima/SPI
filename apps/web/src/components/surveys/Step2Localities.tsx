@@ -183,9 +183,18 @@ export function Step2Localities({
     const [geoSource, setGeoSource] = useState<'ibge' | 'fallback' | null>(null);
     const [ibgeStates, setIbgeStates] = useState<GeoStateOption[]>([]);
     const [ibgeCities, setIbgeCities] = useState<string[]>([]);
-    const [populationLookup, setPopulationLookup] = useState<{ loading: boolean; message: string | null }>({
+    const [populationLookup, setPopulationLookup] = useState<{
+        loading: boolean;
+        message: string | null;
+        suggestedPopulation: number | null;
+        suggestedCity: string | null;
+        suggestedConfidence: number | null;
+    }>({
         loading: false,
         message: null,
+        suggestedPopulation: null,
+        suggestedCity: null,
+        suggestedConfidence: null,
     });
 
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
@@ -330,11 +339,20 @@ export function Step2Localities({
             setPopulationLookup({
                 loading: false,
                 message: 'Informe estado e cidade para sugerir população via IBGE.',
+                suggestedPopulation: null,
+                suggestedCity: null,
+                suggestedConfidence: null,
             });
             return;
         }
 
-        setPopulationLookup({ loading: true, message: null });
+        setPopulationLookup({
+            loading: true,
+            message: null,
+            suggestedPopulation: null,
+            suggestedCity: null,
+            suggestedConfidence: null,
+        });
 
         try {
             const response = await fetch(
@@ -344,10 +362,40 @@ export function Step2Localities({
 
             const population = Number(payload?.data?.population ?? 0);
             if (payload?.success && Number.isFinite(population) && population > 0) {
+                const matchType = String(payload?.data?.match_type ?? 'none');
+                const matchedCity = (payload?.data?.cityName as string | undefined) ?? cityForLookup;
+                const confidence = Number(payload?.data?.confidence ?? 0);
+
+                if (matchType === 'exact') {
+                    setForm((prev) => ({ ...prev, population }));
+                    setPopulationLookup({
+                        loading: false,
+                        message: `População exata do IBGE para ${matchedCity}: ${population.toLocaleString('pt-BR')} habitantes.`,
+                        suggestedPopulation: null,
+                        suggestedCity: null,
+                        suggestedConfidence: null,
+                    });
+                    return;
+                }
+
+                if (matchType === 'smart') {
+                    setPopulationLookup({
+                        loading: false,
+                        message: payload?.data?.warning ?? `Sugestão inteligente encontrada: ${matchedCity}. Confirme para aplicar.`,
+                        suggestedPopulation: population,
+                        suggestedCity: matchedCity,
+                        suggestedConfidence: Number.isFinite(confidence) ? confidence : null,
+                    });
+                    return;
+                }
+
                 setForm((prev) => ({ ...prev, population }));
                 setPopulationLookup({
                     loading: false,
-                    message: `População sugerida pelo IBGE: ${population.toLocaleString('pt-BR')} habitantes.`,
+                    message: `População obtida do IBGE: ${population.toLocaleString('pt-BR')} habitantes.`,
+                    suggestedPopulation: null,
+                    suggestedCity: null,
+                    suggestedConfidence: null,
                 });
                 return;
             }
@@ -355,13 +403,31 @@ export function Step2Localities({
             setPopulationLookup({
                 loading: false,
                 message: payload?.data?.warning ?? 'Não foi possível sugerir população para esta localidade.',
+                suggestedPopulation: null,
+                suggestedCity: null,
+                suggestedConfidence: null,
             });
         } catch {
             setPopulationLookup({
                 loading: false,
                 message: 'Falha ao consultar população no IBGE. Você pode preencher manualmente.',
+                suggestedPopulation: null,
+                suggestedCity: null,
+                suggestedConfidence: null,
             });
         }
+    };
+
+    const applySuggestedPopulation = () => {
+        if (!populationLookup.suggestedPopulation || populationLookup.suggestedPopulation <= 0) return;
+        setForm((prev) => ({ ...prev, population: populationLookup.suggestedPopulation as number }));
+        setPopulationLookup((prev) => ({
+            loading: false,
+            message: `Sugestão aplicada para ${prev.suggestedCity}: ${(prev.suggestedPopulation as number).toLocaleString('pt-BR')} habitantes.`,
+            suggestedPopulation: null,
+            suggestedCity: null,
+            suggestedConfidence: null,
+        }));
     };
 
     const handleAdd = () => {
@@ -445,7 +511,13 @@ export function Step2Localities({
             population_type: specificAudience ? 'segmento_especifico' : 'eleitores',
             interviews_required: 0,
         });
-        setPopulationLookup({ loading: false, message: null });
+        setPopulationLookup({
+            loading: false,
+            message: null,
+            suggestedPopulation: null,
+            suggestedCity: null,
+            suggestedConfidence: null,
+        });
     };
 
     const handleRemove = (id: string) => {
@@ -738,6 +810,22 @@ export function Step2Localities({
                             <p className="mt-2 text-xs text-slate-600 bg-slate-100 border border-slate-200 rounded px-2.5 py-1.5">
                                 {populationLookup.message}
                             </p>
+                        )}
+                        {populationLookup.suggestedPopulation && (
+                            <div className="mt-2 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={applySuggestedPopulation}
+                                    className="text-xs px-3 py-1.5 rounded-md border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                                >
+                                    Aplicar sugestão inteligente
+                                </button>
+                                {populationLookup.suggestedConfidence != null && (
+                                    <span className="text-[11px] text-slate-500">
+                                        Confianca: {(populationLookup.suggestedConfidence * 100).toFixed(1)}%
+                                    </span>
+                                )}
+                            </div>
                         )}
                     </div>
 
