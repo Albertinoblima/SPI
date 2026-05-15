@@ -158,17 +158,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     },
     {
         id: 'premises-overview',
-        title: 'Premissas e Cotas',
-        short: 'Premissas ajudam a equilibrar o perfil dos entrevistados e melhorar a representatividade da coleta.',
+        title: 'Estratificação da Amostra',
+        short: 'A estratificação da amostra define o perfil dos entrevistados e melhora a representatividade da coleta.',
         content: [
-            'Use premissas para controlar segmentos como sexo, idade, renda e territorio.',
+            'Use a estratificação para controlar segmentos como sexo, idade, renda e território.',
             'Defina cotas quando houver meta percentual por segmento.',
             'Revise as cotas com base na populacao de referencia e no objetivo da pesquisa.',
         ],
     },
     {
         id: 'premises-label',
-        title: 'Rotulo da Premissa',
+        title: 'Rótulo da Estratificação',
         short: 'O rotulo e o nome exibido para o entrevistador e nos relatorios analiticos.',
         content: [
             'Use nomes claros e sem ambiguidade.',
@@ -198,7 +198,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     },
     {
         id: 'premises-multi-select',
-        title: 'Multipla Selecao em Premissas',
+        title: 'Múltipla Seleção na Estratificação',
         short: 'Ative apenas quando o respondente puder pertencer legitimamente a mais de um grupo ao mesmo tempo.',
         content: [
             'Exemplo valido: bairros frequentados, canais de informacao.',

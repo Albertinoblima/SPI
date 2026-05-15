@@ -107,7 +107,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         name: l.name as string,
                         zone: l.zone as 'urban' | 'rural' | 'mixed',
                         population: (l.population as number) ?? 0,
-                        population_type: (l.population_type as 'voters' | 'inhabitants') ?? 'voters',
+                        population_type: (l.population_type as Locality['population_type']) ?? 'eleitores',
                         interviews_required: (l.interviews_required as number) ?? 0,
                         interviews_weight: (l.interviews_weight as number) ?? 0,
                     })),

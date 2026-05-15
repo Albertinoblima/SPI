@@ -111,6 +111,54 @@ const PRESET_CATEGORIES: Array<{
             label: 'Bairro / Região', category: 'bairro', allow_multiple: false,
             options: [],
         },
+        {
+            label: 'Estado Civil', category: 'estado_civil', allow_multiple: false,
+            options: [
+                { label: 'Solteiro(a)', value: 'solteiro' },
+                { label: 'Casado(a)', value: 'casado' },
+                { label: 'Divorciado(a)', value: 'divorciado' },
+                { label: 'Viúvo(a)', value: 'viuvo' },
+                { label: 'União estável', value: 'uniao_estavel' },
+            ],
+        },
+        {
+            label: 'Religião', category: 'religiao', allow_multiple: false,
+            options: [
+                { label: 'Católica', value: 'catolica' },
+                { label: 'Evangélica', value: 'evangelica' },
+                { label: 'Espírita', value: 'espirita' },
+                { label: 'Umbanda / Candomblé', value: 'umbanda_candomble' },
+                { label: 'Sem religião', value: 'sem_religiao' },
+                { label: 'Outra', value: 'outra' },
+            ],
+        },
+        {
+            label: 'Profissão', category: 'profissao', allow_multiple: false,
+            options: [
+                { label: 'Comerciante', value: 'comerciante' },
+                { label: 'Comerciário', value: 'comerciario' },
+                { label: 'Industriário', value: 'industriario' },
+                { label: 'Funcionário Público', value: 'funcionario_publico' },
+                { label: 'Prestador de Serviços', value: 'prestador_servicos' },
+                { label: 'Professor(a)', value: 'professor' },
+                { label: 'Profissional Liberal', value: 'profissional_liberal' },
+                { label: 'Dona de Casa', value: 'dona_de_casa' },
+                { label: 'Sindicalista', value: 'sindicalista' },
+                { label: 'Outra', value: 'outra' },
+            ],
+        },
+        {
+            label: 'Interesse', category: 'interesse', allow_multiple: true,
+            options: [
+                { label: 'Atividades Sociais', value: 'atividades_sociais' },
+                { label: 'Cultura', value: 'cultura' },
+                { label: 'Lazer e Entretenimento', value: 'lazer_entretenimento' },
+                { label: 'Conhecimento e Desenvolvimento Tecnológico', value: 'conhecimento_tecnologico' },
+                { label: 'Economia', value: 'economia' },
+                { label: 'Política', value: 'politica' },
+                { label: 'Religião', value: 'religiao' },
+            ],
+        },
     ];
 
 function PremiseCard({ premise, onRemove, onUpdate }: {
@@ -302,23 +350,57 @@ export function Step3Premises({ premises, onChange }: Props) {
 
     const existingCategories = new Set(premises.map(p => p.category));
 
+    const ESTRATIFICACAO_ALTERNATIVAS = [
+        'Aspecto Sócio Econômico da Amostra',
+        'Aspecto Sócio Econômico',
+        'Perfil do Entrevistado',
+        'Base Estrutural da Amostra',
+        'Base Sócio Econômica da Amostra',
+        'Característica dos Entrevistados',
+        'Característica do Perfil da Amostra',
+        'Característica do Perfil dos Entrevistados',
+        'Estratificação do Perfil Amostral',
+        'Estrutura Sócio Econômica da Amostra',
+        'Perfil dos Entrevistados',
+        'Perfil Estratificado da Amostra',
+    ];
+
     return (
         <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 3 — Premissas da Pesquisa</h2>
-            <p className="text-sm text-slate-500 mb-6">
-                Defina as cotas e o perfil esperado do entrevistado. As premissas garantem que a amostra represente
-                adequadamente diferentes segmentos da população.
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 3 — Estratificação da Amostra</h2>
+            <p className="text-sm text-slate-500 mb-4">
+                Defina o perfil do entrevistado e as cotas esperadas. A estratificação garante que a amostra represente
+                adequadamente os diferentes segmentos da população pesquisada.
                 <span className="inline-flex ml-1 align-middle">
-                    <Tooltip text="Use premissas para controlar composicao da coleta e manter aderencia ao desenho metodologico." helpId="premises-overview" />
+                    <Tooltip text="Use a estratificação para controlar a composição da coleta e manter aderência ao desenho metodológico." helpId="premises-overview" />
                 </span>
             </p>
 
+            {/* Seletor de nomenclatura da estratificação */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <label className="text-sm font-semibold text-blue-900 block mb-2">
+                    Denominação da Estratificação da Amostra
+                    <Tooltip text="Selecione o nome técnico que será utilizado para identificar este bloco nos relatórios e documentos da pesquisa." helpId="premises-overview" />
+                </label>
+                <select
+                    className="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 bg-white text-slate-700 text-sm"
+                    aria-label="Denominação da estratificação"
+                    defaultValue=""
+                >
+                    <option value="" disabled>— Selecione uma denominação —</option>
+                    {ESTRATIFICACAO_ALTERNATIVAS.map(alt => (
+                        <option key={alt} value={alt}>{alt}</option>
+                    ))}
+                </select>
+            </div>
+
             {/* Atalhos de premissas comuns */}
             <div className="mb-6">
-                <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
-                    Premissas rápidas (clique para adicionar)
-                    <Tooltip text="Adiciona premissas pré-configuradas com as opções mais comuns. Você poderá editar as opções após adicionar." helpId="premises-overview" />
+                <h3 className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                    3. Perfil do Entrevistado — Adicionar rapidamente
+                    <Tooltip text="Adiciona critérios pré-configurados para estratificação. Você poderá editar as opções após adicionar." helpId="premises-overview" />
                 </h3>
+                <p className="text-xs text-slate-400 mb-3">Clique nos critérios abaixo para incluir na estratificação:</p>
                 <div className="flex flex-wrap gap-2">
                     {PRESET_CATEGORIES.map(preset => (
                         <button

@@ -11,7 +11,7 @@ export interface Locality {
     name: string;
     zone: 'urban' | 'rural' | 'mixed';
     population: number;
-    population_type: 'voters' | 'inhabitants';
+    population_type: 'eleitores' | 'habitantes' | 'comerciantes' | 'comerciarios' | 'consumidores' | 'dona_de_casa' | 'industriarios' | 'funcionarios_publicos' | 'prestadores_servicos' | 'professores' | 'profissional_liberal' | 'publico_geral' | 'segmento_especifico' | 'sindicalistas';
     interviews_required?: number;
     interviews_weight?: number;
 }
@@ -83,7 +83,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
         name: '',
         zone: 'urban',
         population: 0,
-        population_type: 'voters',
+        population_type: 'eleitores',
         interviews_required: 0,
     });
     const [error, setError] = useState('');
@@ -118,7 +118,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
             interviews_weight: total > 0 ? (l.interviews_required ?? 0) / total : 0,
         }));
         onChange(withWeights);
-        setForm({ name: '', zone: 'urban', population: 0, population_type: 'voters', interviews_required: 0 });
+        setForm({ name: '', zone: 'urban', population: 0, population_type: 'eleitores', interviews_required: 0 });
     };
 
     const handleRemove = (id: string) => {
@@ -172,6 +172,13 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     Adicionar localidade
                     <Tooltip text="Cada localidade terá sua cota de entrevistas calculada proporcionalmente à população ou meta definida pela gestão." helpId="localities-method" />
                 </h3>
+                <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 mb-4 text-xs text-amber-900 flex items-start gap-2">
+                    <span className="text-amber-600 font-bold shrink-0">⚠</span>
+                    <span>
+                        <strong>Atenção:</strong> Tenha em mãos o <strong>extrato do plano da pesquisa</strong> antes de preencher este campo.
+                        O extrato deve conter as localidades previstas e o total de entrevistas por localidade.
+                    </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="loc-name" className="text-sm font-medium text-slate-700 block mb-1">
@@ -223,18 +230,30 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
 
                     <div>
                         <label htmlFor="loc-pop-type" className="text-sm font-medium text-slate-700 block mb-1">
-                            Tipo de população
-                            <Tooltip text="Eleitores: total de eleitores registrados. Habitantes: total de residentes." helpId="localities-population" />
+                            Público Alvo
+                            <Tooltip text="Defina o público alvo desta localidade conforme o extrato do plano da pesquisa." helpId="localities-population" />
                         </label>
                         <select
                             id="loc-pop-type"
                             value={form.population_type}
                             onChange={e => setForm(f => ({ ...f, population_type: e.target.value as Locality['population_type'] }))}
-                            aria-label="Tipo de população"
+                            aria-label="Público Alvo"
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="voters">Eleitores</option>
-                            <option value="inhabitants">Habitantes</option>
+                            <option value="comerciantes">Comerciantes</option>
+                            <option value="comerciarios">Comerciários</option>
+                            <option value="consumidores">Consumidores</option>
+                            <option value="eleitores">Eleitores</option>
+                            <option value="dona_de_casa">Dona de Casa</option>
+                            <option value="industriarios">Industriários</option>
+                            <option value="funcionarios_publicos">Funcionários Públicos</option>
+                            <option value="prestadores_servicos">Prestadores de Serviços</option>
+                            <option value="professores">Professores</option>
+                            <option value="profissional_liberal">Profissional Liberal</option>
+                            <option value="publico_geral">Público em Geral</option>
+                            <option value="segmento_especifico">Segmento Específico</option>
+                            <option value="sindicalistas">Sindicalistas</option>
+                            <option value="habitantes">Habitantes</option>
                         </select>
                     </div>
 
@@ -261,7 +280,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                     <p className="mt-3 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
                         📊 Estimativa: <strong className="text-blue-700">
                             {calcInterviews(form.population, marginOfError, confidenceInterval)} entrevistas
-                        </strong> para {form.population.toLocaleString('pt-BR')} {form.population_type === 'voters' ? 'eleitores' : 'habitantes'}
+                        </strong> para {form.population.toLocaleString('pt-BR')} {form.population_type}
                     </p>
                 )}
 
@@ -314,7 +333,7 @@ export function Step2Localities({ localities, onChange, marginOfError, confidenc
                                         <td className="px-4 py-3 text-right text-slate-600">
                                             {loc.population.toLocaleString('pt-BR')}
                                             <span className="text-xs text-slate-400 ml-1">
-                                                {loc.population_type === 'voters' ? 'eleit.' : 'hab.'}
+                                                {loc.population_type}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-right font-bold text-blue-700">
