@@ -40,6 +40,7 @@ const initialWizardData: WizardData = {
         stats_mode: 'auto',
         infinite_population_mode: 'national_only',
         infinite_population_threshold: 50000,
+        population_type: 'eleitores',
         objective: '',
         methodology: '',
         target_audience: '',
@@ -171,6 +172,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         stats_mode: s.stats_mode ?? 'auto',
                         infinite_population_mode: s.infinite_population_mode ?? 'national_only',
                         infinite_population_threshold: s.infinite_population_threshold ?? 50000,
+                        population_type: s.population_type ?? 'eleitores',
                         objective: s.objective ?? '',
                         methodology: s.methodology ?? '',
                         target_audience: s.target_audience ?? '',
@@ -532,6 +534,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                     specific_public_description: data.tech.specific_public_description,
                                 }}
                                 onScopeChange={updateScopeData}
+                                defaultPopulationType={data.tech.population_type}
                             />
                         )}
                         {currentStep === 3 && (

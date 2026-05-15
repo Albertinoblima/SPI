@@ -3,9 +3,24 @@
 import { HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
-import { StatisticsCalculator, type SamplingStats } from './StatisticsCalculator';
 
 export type ResearchCategory = 'quantitative' | 'qualitative';
+
+export type PopulationType =
+    | 'eleitores'
+    | 'habitantes'
+    | 'comerciantes'
+    | 'comerciarios'
+    | 'consumidores'
+    | 'dona_de_casa'
+    | 'industriarios'
+    | 'funcionarios_publicos'
+    | 'prestadores_servicos'
+    | 'professores'
+    | 'profissional_liberal'
+    | 'publico_geral'
+    | 'segmento_especifico'
+    | 'sindicalistas';
 
 export interface SurveyTechData {
     title: string;
@@ -24,6 +39,8 @@ export interface SurveyTechData {
     infinite_population_mode: 'national_only' | 'auto_threshold' | 'force_all';
     /** Limiar (hab.) a partir do qual população é tratada como infinita (auto_threshold) */
     infinite_population_threshold: number;
+    /** Tipo de público-alvo padrão para as localidades */
+    population_type: PopulationType;
     // ── Demais campos ──
     objective: string;
     methodology: string;
@@ -351,32 +368,75 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     </Field>
                 </div>
 
+                {/* Tipo de população base (define qual fonte de dados IBGE/TSE usada nas etapas seguintes) */}
+                <Field>
+                    <Label htmlFor="population_type" tooltip="Define a base populacional de referência. Se 'Eleitores', os dados do TSE serão usados automaticamente nas localidades. Se 'Habitantes', usa o IBGE.">
+                        Base Populacional
+                        <Tooltip text="Define a base de dados que alimentará as localidades (Etapa 2) e o dimensionamento amostral (Etapa 3). 'Eleitores' usa dados do TSE; 'Habitantes' usa IBGE." />
+                    </Label>
+                    <select
+                        id="population_type"
+                        aria-label="Base populacional da pesquisa"
+                        value={data.population_type ?? 'eleitores'}
+                        onChange={e => set('population_type', e.target.value)}
+                        className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="eleitores">Eleitores (TSE)</option>
+                        <option value="habitantes">Habitantes (IBGE)</option>
+                        <option value="consumidores">Consumidores</option>
+                        <option value="publico_geral">Público em Geral</option>
+                        <option value="comerciantes">Comerciantes</option>
+                        <option value="comerciarios">Comerciários</option>
+                        <option value="dona_de_casa">Dona de Casa</option>
+                        <option value="industriarios">Industriários</option>
+                        <option value="funcionarios_publicos">Funcionários Públicos</option>
+                        <option value="prestadores_servicos">Prestadores de Serviços</option>
+                        <option value="professores">Professores</option>
+                        <option value="profissional_liberal">Profissional Liberal</option>
+                        <option value="segmento_especifico">Segmento Específico</option>
+                        <option value="sindicalistas">Sindicalistas</option>
+                    </select>
+                </Field>
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
                     {getMethodologyHint(data.survey_type)}
                 </div>
 
-                {/* Calculadora de Amostragem */}
-                {usesSampling ? (
-                    <StatisticsCalculator
-                        value={{
-                            margin_of_error: data.margin_of_error,
-                            confidence_interval: data.confidence_interval,
-                            total_interviews: data.total_interviews,
-                            population_size: data.geographic_scope === 'national' ? null : data.population_size,
-                            deff: data.deff,
-                            p_proportion: data.p_proportion,
-                            stats_mode: data.stats_mode,
-                        }}
-                        forceInfinitePopulation={data.geographic_scope === 'national'}
-                        onChange={(stats: SamplingStats) => onChange({
-                            ...data,
-                            ...stats,
-                            population_size: data.geographic_scope === 'national' ? null : stats.population_size,
-                        })}
-                    />
-                ) : (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900">
-                        Para este tipo de pesquisa, a quantidade de entrevistas será definida manualmente por localidade na Etapa 2.
+                {/* Parâmetros amostrais básicos (cálculo detalhado na Etapa 3) */}
+                {usesSampling && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <Field>
+                            <Label htmlFor="margin_of_error" tooltip="Variação máxima aceitável nos resultados, expressa em pontos percentuais. Padrão: 3%.">
+                                Margem de Erro (%) <span className="text-red-500">*</span>
+                            </Label>
+                            <input
+                                id="margin_of_error"
+                                type="number"
+                                min={1}
+                                max={20}
+                                step={0.5}
+                                value={data.margin_of_error}
+                                onChange={e => set('margin_of_error', parseFloat(e.target.value) || 3)}
+                                className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                                placeholder="3"
+                            />
+                        </Field>
+                        <Field>
+                            <Label htmlFor="confidence_interval" tooltip="Probabilidade de o resultado estar dentro da margem de erro. Padrão: 95%.">
+                                Intervalo de Confiança (%)
+                            </Label>
+                            <select
+                                id="confidence_interval"
+                                aria-label="Intervalo de confiança"
+                                value={data.confidence_interval}
+                                onChange={e => set('confidence_interval', parseInt(e.target.value, 10))}
+                                className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value={90}>90%</option>
+                                <option value={95}>95%</option>
+                                <option value={99}>99%</option>
+                            </select>
+                        </Field>
                     </div>
                 )}
 

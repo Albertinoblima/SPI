@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, HelpCircle, Calculator, Users } from 'lucide-react';
 import Link from 'next/link';
-import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
+import { shouldUseStatisticalSampling, type SurveyTechData, type PopulationType } from './Step1TechnicalData';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 import { TSE_AGE_LABELS, type TseVoterProportions } from '@/lib/geo/tse-voter-profiles';
 
@@ -15,7 +15,7 @@ export interface Locality {
     parent_city_name?: string | null;
     zone: 'urban' | 'rural' | 'mixed';
     population: number;
-    population_type: 'eleitores' | 'habitantes' | 'comerciantes' | 'comerciarios' | 'consumidores' | 'dona_de_casa' | 'industriarios' | 'funcionarios_publicos' | 'prestadores_servicos' | 'professores' | 'profissional_liberal' | 'publico_geral' | 'segmento_especifico' | 'sindicalistas';
+    population_type: PopulationType;
     interviews_required?: number;
     interviews_weight?: number;
 }
@@ -36,6 +36,7 @@ interface Props {
     surveyType: string;
     scopeData: ScopeData;
     onScopeChange: (scopeData: ScopeData) => void;
+    defaultPopulationType?: PopulationType;
 }
 
 interface GeoStateOption {
@@ -159,6 +160,7 @@ export function Step2Localities({
     surveyType,
     scopeData,
     onScopeChange,
+    defaultPopulationType = 'eleitores',
 }: Props) {
     const usesSampling = shouldUseStatisticalSampling(surveyType);
     const forceInfinitePopulation = scopeData.geographic_scope === 'national';
@@ -580,7 +582,7 @@ export function Step2Localities({
             parent_city_name: null,
             zone: 'urban',
             population: 0,
-            population_type: specificAudience ? 'segmento_especifico' : 'eleitores',
+            population_type: specificAudience ? 'segmento_especifico' : defaultPopulationType,
             interviews_required: 0,
         });
         setPopulationLookup({
@@ -784,6 +786,7 @@ export function Step2Localities({
                         <input
                             id="loc-name"
                             type="text"
+                            list={form.geo_level === 'state' ? 'state-options-global' : form.geo_level === 'city' ? 'city-options-global' : undefined}
                             value={form.name}
                             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
