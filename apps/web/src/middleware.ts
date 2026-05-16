@@ -38,7 +38,16 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Rotas públicas (auth)
-    const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname.startsWith('/login') || pathname.startsWith('/signup');
+    const isAuthRoute =
+        pathname === '/login' ||
+        pathname === '/signup' ||
+        pathname === '/forgot-password' ||
+        pathname === '/reset-password' ||
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/signup') ||
+        pathname.startsWith('/forgot-password') ||
+        pathname.startsWith('/reset-password') ||
+        pathname.startsWith('/auth/callback');
 
     // Rotas protegidas do dashboard
     const isDashboardRoute =
