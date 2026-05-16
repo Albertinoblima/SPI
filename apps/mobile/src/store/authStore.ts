@@ -2,10 +2,15 @@
 import { create } from 'zustand';
 import { supabase, getSupabaseConfigError } from '@/services/supabase';
 import type { User } from '@political-research/shared-types';
+import type { Session } from '@supabase/supabase-js';
+import {
+    mobileLoginSchema,
+    normalizeMobileAuthErrorMessage,
+} from '@/utils/auth';
 
 interface AuthState {
     user: User | null;
-    session: any | null;
+    session: Session | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (email: string, password: string, fullName: string) => Promise<void>;
@@ -22,11 +27,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         const configError = getSupabaseConfigError();
         if (configError) throw new Error(configError);
 
+        const credentials = mobileLoginSchema.parse({ email, password });
+
         const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+            email: credentials.email,
+            password: credentials.password,
         });
-        if (error) throw error;
+        if (error) throw new Error(normalizeMobileAuthErrorMessage(error.message));
         set({ session: data.session, user: data.user as any });
     },
 
@@ -43,18 +50,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     signOut: async () => {
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) throw new Error(normalizeMobileAuthErrorMessage(error.message));
         set({ user: null, session: null });
     },
 
     checkSession: async () => {
         const configError = getSupabaseConfigError();
         if (configError) {
-            set({ loading: false });
+            set({ user: null, session: null, loading: false });
             return;
         }
 
-        const { data } = await supabase.auth.getSession();
+        set({ loading: true });
+
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+            set({ user: null, session: null, loading: false });
+            return;
+        }
+
         set({
             session: data.session,
             user: data.session?.user as any,
@@ -62,3 +78,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
     },
 }));
+
+export async function initializeAuthSession() {
+    await useAuthStore.getState().checkSession();
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        useAuthStore.setState({
+            session,
+            user: session?.user as any,
+            loading: false,
+        });
+    });
+
+    return () => {
+        data.subscription.unsubscribe();
+    };
+}

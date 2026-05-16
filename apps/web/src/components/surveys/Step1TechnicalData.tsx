@@ -157,6 +157,51 @@ const QUALITATIVE_TYPES: { value: string; label: string }[] = [
     { value: 'qualitativa_profundidade', label: 'Entrevista em Profundidade' },
 ];
 
+const POPULATION_TYPE_OPTIONS: { value: PopulationType; label: string }[] = [
+    { value: 'eleitores', label: 'Eleitores (TSE)' },
+    { value: 'habitantes', label: 'Habitantes (IBGE)' },
+    { value: 'consumidores', label: 'Consumidores' },
+    { value: 'publico_geral', label: 'Público em Geral' },
+    { value: 'comerciantes', label: 'Comerciantes' },
+    { value: 'comerciarios', label: 'Comerciários' },
+    { value: 'dona_de_casa', label: 'Dona de Casa' },
+    { value: 'industriarios', label: 'Industriários' },
+    { value: 'funcionarios_publicos', label: 'Funcionários Públicos' },
+    { value: 'prestadores_servicos', label: 'Prestadores de Serviços' },
+    { value: 'professores', label: 'Professores' },
+    { value: 'profissional_liberal', label: 'Profissional Liberal' },
+    { value: 'segmento_especifico', label: 'Segmento Específico' },
+    { value: 'sindicalistas', label: 'Sindicalistas' },
+];
+
+const AUDIENCE_BY_SURVEY_TYPE: Partial<Record<string, PopulationType[]>> = {
+    eleitoral: ['eleitores'],
+    opiniao_publica: ['habitantes', 'publico_geral', 'eleitores'],
+    satisfacao: ['habitantes', 'publico_geral', 'consumidores'],
+    avaliacao_servicos: ['habitantes', 'publico_geral', 'consumidores'],
+    avaliacao_administrativa: ['habitantes', 'publico_geral', 'funcionarios_publicos'],
+    avaliacao_empresarial: ['consumidores', 'comerciantes', 'comerciarios', 'prestadores_servicos', 'profissional_liberal'],
+    consumo_produtos: ['consumidores', 'publico_geral', 'segmento_especifico'],
+    otimizacao_produto: ['consumidores', 'publico_geral', 'segmento_especifico'],
+    recall: ['consumidores', 'publico_geral'],
+    marca: ['consumidores', 'publico_geral'],
+    criacao_posicionamento_marca: ['consumidores', 'publico_geral', 'segmento_especifico'],
+    mercado_quantitativa: ['consumidores', 'comerciantes', 'prestadores_servicos', 'segmento_especifico'],
+    segmentacao_mercado: ['consumidores', 'publico_geral', 'segmento_especifico'],
+    publico_alvo: ['segmento_especifico', 'consumidores', 'publico_geral'],
+    ponto_investimento: ['consumidores', 'comerciantes', 'publico_geral'],
+    censo: ['habitantes', 'publico_geral'],
+    qualitativa_motivacional: ['segmento_especifico', 'publico_geral', 'consumidores', 'eleitores', 'habitantes'],
+    qualitativa_grupo_focal: ['segmento_especifico', 'publico_geral', 'consumidores', 'eleitores', 'habitantes'],
+    qualitativa_profundidade: ['segmento_especifico', 'publico_geral', 'consumidores', 'eleitores', 'habitantes'],
+};
+
+function getAudienceOptionsForSurveyType(surveyType: string) {
+    const allowed = AUDIENCE_BY_SURVEY_TYPE[surveyType];
+    if (!allowed || allowed.length === 0) return POPULATION_TYPE_OPTIONS;
+    return POPULATION_TYPE_OPTIONS.filter(option => allowed.includes(option.value));
+}
+
 // Lista plana usada em outras partes do código
 const SURVEY_TYPE_OPTIONS = [...QUANTITATIVE_TYPES, ...QUALITATIVE_TYPES];
 
@@ -239,6 +284,12 @@ export function Step1TechnicalData({ data, onChange }: Props) {
         : data.research_category === 'qualitative'
             ? QUALITATIVE_TYPES
             : [];
+
+    const audienceOptions = getAudienceOptionsForSurveyType(data.survey_type);
+
+    const selectedAudienceBase = audienceOptions.some(option => option.value === data.population_type)
+        ? data.population_type
+        : (audienceOptions[0]?.value ?? 'publico_geral');
 
     const handleCategoryChange = (cat: ResearchCategory) => {
         onChange({ ...data, research_category: cat, survey_type: '' });
@@ -324,7 +375,19 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                             <select
                                 id="survey_type"
                                 value={data.survey_type}
-                                onChange={e => set('survey_type', e.target.value)}
+                                onChange={e => {
+                                    const nextSurveyType = e.target.value;
+                                    const nextAudienceOptions = getAudienceOptionsForSurveyType(nextSurveyType);
+                                    const nextPopulationType = nextAudienceOptions.some(option => option.value === data.population_type)
+                                        ? data.population_type
+                                        : (nextAudienceOptions[0]?.value ?? 'publico_geral');
+
+                                    onChange({
+                                        ...data,
+                                        survey_type: nextSurveyType,
+                                        population_type: nextPopulationType,
+                                    });
+                                }}
                                 aria-label="Foco específico da pesquisa"
                                 className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                             >
@@ -337,30 +400,44 @@ export function Step1TechnicalData({ data, onChange }: Props) {
                     </Field>
 
                     <Field>
-                        <Label htmlFor="population_type" tooltip="Define o público-alvo principal da pesquisa. Em 'Eleitores', o sistema usa a base eleitoral do TSE; em 'Habitantes', usa a base populacional do IBGE. O tratamento estatístico da base populacional será feito na Etapa 3.">
-                            Público-alvo
+                        <Label htmlFor="target_audience" tooltip="Descreva o público-alvo de forma livre. A lista apresenta sugestões alinhadas ao foco específico escolhido.">
+                            Público-alvo (descrição)
+                        </Label>
+                        <input
+                            id="target_audience"
+                            type="text"
+                            list="target-audience-suggestions"
+                            value={data.target_audience}
+                            onChange={e => set('target_audience', e.target.value)}
+                            className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
+                            placeholder={data.survey_type ? 'Digite o público-alvo (as sugestões são apenas orientativas)' : 'Selecione um foco específico para receber sugestões'}
+                        />
+                        <datalist id="target-audience-suggestions">
+                            {audienceOptions.map(option => (
+                                <option key={option.value} value={option.label} />
+                            ))}
+                        </datalist>
+                        <p className="text-xs text-slate-500 mt-1.5">
+                            {data.survey_type
+                                ? `Sugestões disponíveis para o foco selecionado: ${audienceOptions.map(option => option.label).join(', ')}.`
+                                : 'As sugestões de público-alvo aparecem após selecionar o foco específico da pesquisa.'}
+                        </p>
+                    </Field>
+
+                    <Field>
+                        <Label htmlFor="population_type" tooltip="Base padrão usada para dimensionamento e distribuição da amostra por localidade na etapa seguinte.">
+                            Base estatística padrão
                         </Label>
                         <select
                             id="population_type"
-                            aria-label="Público-alvo da pesquisa"
-                            value={data.population_type ?? 'eleitores'}
+                            aria-label="Base estatística padrão da pesquisa"
+                            value={selectedAudienceBase}
                             onChange={e => set('population_type', e.target.value)}
                             className="border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="eleitores">Eleitores (TSE)</option>
-                            <option value="habitantes">Habitantes (IBGE)</option>
-                            <option value="consumidores">Consumidores</option>
-                            <option value="publico_geral">Público em Geral</option>
-                            <option value="comerciantes">Comerciantes</option>
-                            <option value="comerciarios">Comerciários</option>
-                            <option value="dona_de_casa">Dona de Casa</option>
-                            <option value="industriarios">Industriários</option>
-                            <option value="funcionarios_publicos">Funcionários Públicos</option>
-                            <option value="prestadores_servicos">Prestadores de Serviços</option>
-                            <option value="professores">Professores</option>
-                            <option value="profissional_liberal">Profissional Liberal</option>
-                            <option value="segmento_especifico">Segmento Específico</option>
-                            <option value="sindicalistas">Sindicalistas</option>
+                            {audienceOptions.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                         </select>
                     </Field>
                 </div>
