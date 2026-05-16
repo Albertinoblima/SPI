@@ -20,8 +20,6 @@ import {
     RefreshCw,
 } from 'lucide-react';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
 type SurveyStatus = 'draft' | 'active' | 'paused' | 'closed';
 
 interface Survey {
@@ -61,8 +59,6 @@ interface DashboardData {
     surveys: Survey[];
     onboarding_complete: boolean;
 }
-
-// ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<SurveyStatus, {
     label: string;
@@ -112,7 +108,11 @@ function formatDate(dateStr: string | null): string {
     return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(dateStr));
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function getSurveyHref(survey: Survey) {
+    return survey.status === 'draft'
+        ? `/surveys/new?draft=${survey.id}`
+        : `/surveys/${survey.id}/monitor`;
+}
 
 function StatCard({ icon: Icon, label, value, sub, color }: {
     icon: React.FC<{ className?: string }>;
@@ -138,10 +138,11 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
 function SurveyRow({ survey }: { survey: Survey }) {
     const cfg = STATUS_CONFIG[survey.status];
     const StatusIcon = cfg.icon;
+    const href = getSurveyHref(survey);
 
     return (
         <Link
-            href={`/surveys/${survey.id}/monitor`}
+            href={href}
             className="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
         >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}>
@@ -185,8 +186,6 @@ function SurveyRow({ survey }: { survey: Survey }) {
         </Link>
     );
 }
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
     return (
@@ -261,8 +260,6 @@ function DashboardContent() {
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
-
-            {/* ── Banner de boas-vindas pós-onboarding ── */}
             {showWelcome && (
                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-5 text-white flex items-center gap-4 shadow-lg">
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
@@ -283,7 +280,6 @@ function DashboardContent() {
                 </div>
             )}
 
-            {/* ── Cabeçalho com saudação ── */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -307,7 +303,6 @@ function DashboardContent() {
                 </Link>
             </div>
 
-            {/* ── Cards de métricas ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     icon={ClipboardList}
@@ -339,7 +334,6 @@ function DashboardContent() {
                 />
             </div>
 
-            {/* ── Pesquisas ativas em destaque ── */}
             {activeSurveys.length > 0 && (
                 <div>
                     <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
@@ -349,7 +343,7 @@ function DashboardContent() {
                         {activeSurveys.slice(0, 4).map(survey => (
                             <Link
                                 key={survey.id}
-                                href={`/surveys/${survey.id}/monitor`}
+                                href={getSurveyHref(survey)}
                                 className="bg-white dark:bg-slate-800 rounded-xl border border-emerald-200 dark:border-emerald-900 p-5 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-start justify-between mb-3">
@@ -387,7 +381,6 @@ function DashboardContent() {
                 </div>
             )}
 
-            {/* ── Tabela de todas as pesquisas ── */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-2">
@@ -445,7 +438,6 @@ function DashboardContent() {
                 )}
             </div>
 
-            {/* ── Atalhos rápidos ── */}
             <div>
                 <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
                     Acesso rápido
