@@ -18,6 +18,7 @@ import {
     Sparkles,
     FileSearch,
     RefreshCw,
+    Trash2,
 } from 'lucide-react';
 
 type SurveyStatus = 'draft' | 'active' | 'paused' | 'closed';
@@ -135,55 +136,76 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
     );
 }
 
-function SurveyRow({ survey }: { survey: Survey }) {
+function SurveyRow({
+    survey,
+    onDelete,
+    isDeleting,
+}: {
+    survey: Survey;
+    onDelete: (survey: Survey) => void;
+    isDeleting: boolean;
+}) {
     const cfg = STATUS_CONFIG[survey.status];
     const StatusIcon = cfg.icon;
     const href = getSurveyHref(survey);
 
     return (
-        <Link
-            href={href}
-            className="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
-        >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}>
-                <StatusIcon className={`w-3.5 h-3.5 ${cfg.color}`} />
-            </div>
-
-            <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 transition-colors">
-                    {survey.title}
-                </p>
-                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                    {survey.survey_type && (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">
-                            {SURVEY_TYPE_LABELS[survey.survey_type] ?? survey.survey_type}
-                        </span>
-                    )}
-                    <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">Criada em {formatDate(survey.created_at)}</span>
-                    {survey.ended_at && (
-                        <>
-                            <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
-                            <span className="text-xs text-slate-400 dark:text-slate-500">Encerra {formatDate(survey.ended_at)}</span>
-                        </>
-                    )}
+        <div className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0">
+            <Link href={href} className="group flex items-center gap-4 flex-1 min-w-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}>
+                    <StatusIcon className={`w-3.5 h-3.5 ${cfg.color}`} />
                 </div>
-            </div>
 
-            <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.color} shrink-0`}>
-                {survey.status === 'active' && <StatusIcon className="w-1.5 h-1.5" />}
-                {cfg.label}
-            </span>
-
-            {survey.total_interviews !== null && (
-                <div className="hidden md:flex flex-col items-end shrink-0">
-                    <span className="text-sm font-bold text-slate-700">{survey.total_interviews.toLocaleString('pt-BR')}</span>
-                    <span className="text-xs text-slate-400">entrevistas</span>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 transition-colors">
+                        {survey.title}
+                    </p>
+                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        {survey.survey_type && (
+                            <span className="text-xs text-slate-400 dark:text-slate-500">
+                                {SURVEY_TYPE_LABELS[survey.survey_type] ?? survey.survey_type}
+                            </span>
+                        )}
+                        <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">Criada em {formatDate(survey.created_at)}</span>
+                        {survey.ended_at && (
+                            <>
+                                <span className="text-xs text-slate-300 dark:text-slate-600">•</span>
+                                <span className="text-xs text-slate-400 dark:text-slate-500">Encerra {formatDate(survey.ended_at)}</span>
+                            </>
+                        )}
+                    </div>
                 </div>
+
+                <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.color} shrink-0`}>
+                    {survey.status === 'active' && <StatusIcon className="w-1.5 h-1.5" />}
+                    {cfg.label}
+                </span>
+
+                {survey.total_interviews !== null && (
+                    <div className="hidden md:flex flex-col items-end shrink-0">
+                        <span className="text-sm font-bold text-slate-700">{survey.total_interviews.toLocaleString('pt-BR')}</span>
+                        <span className="text-xs text-slate-400">entrevistas</span>
+                    </div>
+                )}
+
+                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
+            </Link>
+
+            {survey.status === 'draft' && (
+                <button
+                    type="button"
+                    onClick={() => onDelete(survey)}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                >
+                    {isDeleting
+                        ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />}
+                    {isDeleting ? 'Excluindo...' : 'Excluir'}
+                </button>
             )}
-
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
-        </Link>
+        </div>
     );
 }
 
@@ -202,6 +224,8 @@ function DashboardContent() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [deletingSurveyId, setDeletingSurveyId] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<SurveyStatus | 'all'>('all');
 
     useEffect(() => {
@@ -223,6 +247,42 @@ function DashboardContent() {
             setError('Erro de conexão com o servidor.');
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleDeleteSurvey(survey: Survey) {
+        if (survey.status !== 'draft') {
+            setActionFeedback({
+                type: 'error',
+                message: 'Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.',
+            });
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Excluir a pesquisa "${survey.title}"?\n\nEsta ação remove o rascunho da listagem e não pode ser desfeita pela interface.`
+        );
+        if (!confirmed) return;
+
+        setDeletingSurveyId(survey.id);
+        setActionFeedback(null);
+        try {
+            const res = await fetch(`/api/surveys/${survey.id}`, { method: 'DELETE' });
+            const json = await res.json().catch(() => null);
+
+            if (res.ok) {
+                setActionFeedback({ type: 'success', message: 'Pesquisa em rascunho excluída com sucesso.' });
+                await loadDashboard();
+            } else {
+                setActionFeedback({
+                    type: 'error',
+                    message: json?.error || 'Não foi possível excluir a pesquisa.',
+                });
+            }
+        } catch {
+            setActionFeedback({ type: 'error', message: 'Erro de conexão ao excluir pesquisa.' });
+        } finally {
+            setDeletingSurveyId(null);
         }
     }
 
@@ -302,6 +362,16 @@ function DashboardContent() {
                     Nova Pesquisa
                 </Link>
             </div>
+
+            {actionFeedback && (
+                <div
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium ${actionFeedback.type === 'success'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : 'bg-red-50 border-red-200 text-red-800'}`}
+                >
+                    {actionFeedback.message}
+                </div>
+            )}
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
@@ -410,7 +480,12 @@ function DashboardContent() {
                 {filteredSurveys.length > 0 ? (
                     <div>
                         {filteredSurveys.map(survey => (
-                            <SurveyRow key={survey.id} survey={survey} />
+                            <SurveyRow
+                                key={survey.id}
+                                survey={survey}
+                                onDelete={handleDeleteSurvey}
+                                isDeleting={deletingSurveyId === survey.id}
+                            />
                         ))}
                     </div>
                 ) : (

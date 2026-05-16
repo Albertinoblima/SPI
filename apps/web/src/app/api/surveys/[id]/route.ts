@@ -327,14 +327,38 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
         if (ctx.userData.role !== 'admin') return apiError('Sem permissão', 403);
 
         const adminSupabase = createAdminClient();
-        const { error } = await adminSupabase
+        const { data: existingSurvey, error: surveyError } = await adminSupabase
             .from('surveys')
-            .update({ deleted_at: new Date().toISOString() })
+            .select('id, status')
             .eq('id', params.id)
-            .eq('tenant_id', ctx.userData.tenant_id);
+            .eq('tenant_id', ctx.userData.tenant_id)
+            .is('deleted_at', null)
+            .single();
+
+        if (surveyError || !existingSurvey) {
+            return apiError('Pesquisa não encontrada', 404);
+        }
+
+        if (existingSurvey.status !== 'draft') {
+            return apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400);
+        }
+
+        const nowIso = new Date().toISOString();
+        const { data: deletedRows, error } = await adminSupabase
+            .from('surveys')
+            .update({ deleted_at: nowIso, updated_at: nowIso })
+            .eq('id', params.id)
+            .eq('tenant_id', ctx.userData.tenant_id)
+            .eq('status', 'draft')
+            .is('deleted_at', null)
+            .select('id');
 
         if (error) return apiError('Erro ao remover pesquisa', 500);
-        return apiSuccess({ message: 'Pesquisa removida com sucesso' });
+        if (!deletedRows || deletedRows.length === 0) {
+            return apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400);
+        }
+
+        return apiSuccess({ message: 'Pesquisa em rascunho removida com sucesso' });
     } catch (error) {
         console.error('DELETE /api/surveys/[id] error:', error);
         return apiError('Erro interno do servidor', 500);
