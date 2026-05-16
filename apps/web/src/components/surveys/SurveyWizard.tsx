@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
+import { getEffectiveLocalities, checkLocalitiesCompatibility } from '@/lib/survey-decisions';
 import { Step2Localities, type Locality } from './Step2Localities';
 import { Step3SampleSize } from './Step3SampleSize';
 import { Step3Premises, type Premise } from './Step3Premises';
@@ -73,18 +74,6 @@ const initialWizardData: WizardData = {
     questions: [],
 };
 
-function getEffectiveLocalities(localities: Locality[]): Locality[] {
-    return localities.filter((loc) => {
-        if (loc.geo_level === 'state') {
-            return !localities.some((child) => child.geo_level !== 'state' && child.parent_state_name === loc.name);
-        }
-        if (loc.geo_level === 'city') {
-            return !localities.some((child) => child.geo_level === 'locality' && child.parent_city_name === loc.name && child.parent_state_name === loc.parent_state_name);
-        }
-        return true;
-    });
-}
-
 function shouldForceInfinitePopulation(scope: SurveyTechData['geographic_scope']): boolean {
     return scope === 'national';
 }
@@ -147,6 +136,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [loadingDraft, setLoadingDraft] = useState(!!draftId);
     const [surveyId, setSurveyId] = useState<string | undefined>(draftId);
+    const [localitiesConflict, setLocalitiesConflict] = useState<string | null>(null);
 
     // Carrega rascunho existente
     useEffect(() => {
@@ -221,6 +211,10 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     }, [draftId]);
     const updateTech = useCallback((tech: SurveyTechData) => {
         setData(prev => {
+            // Detectar conflito de localidades ao mudar survey_type ou geographic_scope
+            const conflict = checkLocalitiesCompatibility(prev.localities, tech.geographic_scope, tech.survey_type);
+            setLocalitiesConflict(conflict);
+
             const effectiveLocalities = getEffectiveLocalities(prev.localities);
             const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
             const isNational = tech.geographic_scope === 'national';
@@ -249,6 +243,10 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     // e atualiza total_interviews no modo auto (mantendo deff e p do usuário).
     const updateLocalities = useCallback((localities: Locality[]) => {
         setData(prev => {
+            // Limpa conflito se localidades foram corrigidas
+            const conflict = checkLocalitiesCompatibility(localities, prev.tech.geographic_scope, prev.tech.survey_type);
+            setLocalitiesConflict(conflict);
+
             const effectiveLocalities = getEffectiveLocalities(localities);
             const totalPop = effectiveLocalities.reduce((s, l) => s + (l.population ?? 0), 0);
             const tech = prev.tech;
@@ -533,6 +531,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                 }}
                                 onScopeChange={updateScopeData}
                                 defaultPopulationType={data.tech.population_type}
+                                externalConflict={localitiesConflict}
                             />
                         )}
                         {currentStep === 3 && (

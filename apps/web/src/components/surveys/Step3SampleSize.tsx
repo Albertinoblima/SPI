@@ -5,6 +5,7 @@ import { Calculator, Users, HelpCircle, BarChart2, Infinity, TrendingDown } from
 import Link from 'next/link';
 import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
 import type { Locality } from './Step2Localities';
+import { getEffectiveLocalities } from '@/lib/survey-decisions';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
 
 interface Props {
@@ -58,25 +59,6 @@ function calcInterviews(population: number, marginError: number, confidenceInter
     if (population <= 0) return 0;
     const n = n0 / (1 + (n0 - 1) / population);
     return Math.ceil(n);
-}
-
-function getEffectiveLocalities(localities: Locality[]): Locality[] {
-    return localities.filter((loc) => {
-        if (loc.geo_level === 'state') {
-            return !localities.some(
-                (child) => child.geo_level !== 'state' && child.parent_state_name === loc.name,
-            );
-        }
-        if (loc.geo_level === 'city') {
-            return !localities.some(
-                (child) =>
-                    child.geo_level === 'locality' &&
-                    child.parent_city_name === loc.name &&
-                    child.parent_state_name === loc.parent_state_name,
-            );
-        }
-        return true;
-    });
 }
 
 function localityIsInfinite(
