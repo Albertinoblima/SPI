@@ -180,14 +180,18 @@ export async function POST(request: NextRequest) {
         });
         if (legalValidationError) return apiError(legalValidationError, 400);
 
-        const geographyValidationError = validateGeographyFields({
-            geographic_scope,
-            scope_country_name,
-            scope_state_name,
-            scope_city_name,
-            specific_public_description,
-        });
-        if (geographyValidationError) return apiError(geographyValidationError, 400);
+        // Validação geográfica só é exigida quando o escopo já foi informado
+        // (em rascunhos criados na Fase 1, o escopo ainda não foi preenchido)
+        if (geographic_scope) {
+            const geographyValidationError = validateGeographyFields({
+                geographic_scope,
+                scope_country_name,
+                scope_state_name,
+                scope_city_name,
+                specific_public_description,
+            });
+            if (geographyValidationError) return apiError(geographyValidationError, 400);
+        }
 
         const adminSupabase = createAdminClient();
 

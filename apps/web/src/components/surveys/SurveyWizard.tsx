@@ -133,6 +133,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const [currentStep, setCurrentStep] = useState(1);
     const [data, setData] = useState<WizardData>(initialWizardData);
     const [saving, setSaving] = useState(false);
+    const [autoSaving, setAutoSaving] = useState(false);
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [loadingDraft, setLoadingDraft] = useState(!!draftId);
     const [surveyId, setSurveyId] = useState<string | undefined>(draftId);
@@ -323,7 +324,6 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         });
     }, []);
 
-    const goNext = () => setCurrentStep(s => Math.min(s + 1, 5));
     const goPrev = () => setCurrentStep(s => Math.max(s - 1, 1));
 
     const validateRegisteredResearchRequirements = () => {
@@ -350,6 +350,69 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         return null;
     };
 
+    /**
+     * Persiste o rascunho atual sem redirecionar.
+     * Retorna o surveyId (novo ou existente) em caso de sucesso, ou null em caso de erro.
+     */
+    const persistDraft = useCallback(async (
+        wizardData: WizardData,
+        currentId: string | undefined,
+    ): Promise<{ id: string | null; error: string | null }> => {
+        try {
+            if (currentId) {
+                const res = await fetch(`/api/surveys/${currentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...wizardData.tech,
+                        localities: wizardData.localities,
+                        premises: wizardData.premises,
+                        questions: wizardData.questions,
+                    }),
+                });
+                const json = await res.json();
+                if (!res.ok) return { id: null, error: json.error || 'Erro ao atualizar rascunho' };
+                return { id: currentId, error: null };
+            }
+
+            // Primeira vez: cria via POST
+            const res = await fetch('/api/surveys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...wizardData.tech,
+                    localities: wizardData.localities,
+                    premises: wizardData.premises,
+                }),
+            });
+            const json = await res.json();
+            if (!res.ok) return { id: null, error: json.error || 'Erro ao criar rascunho' };
+
+            const newId: string | undefined = json.data?.survey?.id;
+            if (!newId) return { id: null, error: 'Resposta inválida do servidor' };
+
+            // Salva localidades, premissas e questões no registro recém-criado
+            const putRes = await fetch(`/api/surveys/${newId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    localities: wizardData.localities,
+                    premises: wizardData.premises,
+                    questions: wizardData.questions,
+                }),
+            });
+            if (!putRes.ok) {
+                const putJson = await putRes.json();
+                // Rascunho criado mas detalhes falharam — retorna id mesmo assim
+                return { id: newId, error: putJson.error || 'Erro ao salvar detalhes da pesquisa' };
+            }
+
+            return { id: newId, error: null };
+        } catch {
+            return { id: null, error: 'Erro de conexão com o servidor' };
+        }
+    }, []);
+
     const handleSaveDraft = async () => {
         if (!data.tech.title.trim()) {
             setAlert({ type: 'error', message: 'Preencha ao menos o título da pesquisa antes de salvar.' });
@@ -365,61 +428,14 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         setSaving(true);
         setAlert(null);
         try {
-            let currentSurveyId = surveyId;
-
-            if (currentSurveyId) {
-                // Rascunho existente: atualiza via PUT
-                const res = await fetch(`/api/surveys/${currentSurveyId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...data.tech,
-                        localities: data.localities,
-                        premises: data.premises,
-                        questions: data.questions,
-                    }),
-                });
-                const json = await res.json();
-                if (!res.ok) throw new Error(json.error || 'Erro ao salvar');
-            } else {
-                // Nova pesquisa: cria via POST
-                const res = await fetch('/api/surveys', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...data.tech,
-                        localities: data.localities,
-                        premises: data.premises,
-                    }),
-                });
-                const json = await res.json();
-                if (!res.ok) throw new Error(json.error || 'Erro ao salvar');
-
-                currentSurveyId = json.data?.survey?.id;
-                if (currentSurveyId) setSurveyId(currentSurveyId);
-
-                // Salvar localidades, premissas e questões
-                if (currentSurveyId) {
-                    const putRes = await fetch(`/api/surveys/${currentSurveyId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            localities: data.localities,
-                            premises: data.premises,
-                            questions: data.questions,
-                        }),
-                    });
-                    if (!putRes.ok) {
-                        const putJson = await putRes.json();
-                        throw new Error(putJson.error || 'Erro ao salvar dados da pesquisa');
-                    }
-                }
+            const result = await persistDraft(data, surveyId);
+            if (result.id && !surveyId) setSurveyId(result.id);
+            if (result.error) {
+                setAlert({ type: 'error', message: result.error });
+                return;
             }
-
             setAlert({ type: 'success', message: 'Pesquisa salva como rascunho!' });
-            setTimeout(() => router.push('/surveys'), 1500);
-        } catch (err) {
-            setAlert({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao salvar pesquisa' });
+            setTimeout(() => router.push('/dashboard'), 1500);
         } finally {
             setSaving(false);
         }
@@ -448,6 +464,27 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             return;
         }
         await handleSaveDraft();
+    };
+
+    /** Salva silenciosamente e avança para o próximo passo. */
+    const goNext = async () => {
+        if (!data.tech.title.trim()) {
+            setAlert({ type: 'error', message: 'Preencha o título da pesquisa antes de avançar.' });
+            return;
+        }
+        setAutoSaving(true);
+        setAlert(null);
+        try {
+            const result = await persistDraft(data, surveyId);
+            if (result.id && !surveyId) setSurveyId(result.id);
+            if (result.error) {
+                // Avisa mas não bloqueia — dados estão na memória
+                setAlert({ type: 'error', message: `Rascunho não salvo: ${result.error}` });
+            }
+        } finally {
+            setAutoSaving(false);
+        }
+        setCurrentStep(s => Math.min(s + 1, 5));
     };
 
     return (
@@ -591,10 +628,20 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                 <button
                                     type="button"
                                     onClick={goNext}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+                                    disabled={autoSaving}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition disabled:opacity-70"
                                 >
-                                    Próximo
-                                    <ChevronRight size={18} />
+                                    {autoSaving ? (
+                                        <>
+                                            <RefreshCw size={16} className="animate-spin" />
+                                            Salvando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Próximo
+                                            <ChevronRight size={18} />
+                                        </>
+                                    )}
                                 </button>
                             ) : (
                                 <button
