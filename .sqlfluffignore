@@ -1,0 +1,28 @@
+# SQLFluff Ignore Patterns
+# Arquivos e diretórios que o sqlfluff deve ignorar
+
+# Dependências
+node_modules/
+.venv/
+.turbo/
+dist/
+build/
+
+# Controle de versão
+.git/
+.github/
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.log
+
+# Diretórios específicos
+.vercel/
+.vscode/
+
+# Exemplo: Ignorar um arquivo específico
+# supabase/migrations/20240101_old_schema.sql
+
+# Nota: Padrões globais também podem ser definidos em .sqlfluff.yaml
+# na seção core.ignore_paths

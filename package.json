@@ -11,7 +11,12 @@
         "build": "turbo run build",
         "lint": "turbo run lint",
         "typecheck": "turbo run typecheck",
-        "clean": "turbo run clean"
+        "clean": "turbo run clean",
+        "sql:lint": "sqlfluff lint supabase/",
+        "sql:fix": "sqlfluff fix supabase/",
+        "sql:check": "sqlfluff fix supabase/ --check",
+        "sql:lint:migrations": "sqlfluff lint supabase/migrations/",
+        "sql:fix:migrations": "sqlfluff fix supabase/migrations/"
     },
     "devDependencies": {
         "turbo": "^2.0.0",

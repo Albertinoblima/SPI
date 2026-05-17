@@ -1,0 +1,139 @@
+# SQLFluff Configuration for PostgreSQL
+# Versionado em: 17 de maio de 2026
+# Dialeto: PostgreSQL
+
+# Configuração geral
+core:
+  # Dialeto SQL (postgres para PostgreSQL)
+  dialect: postgres
+  
+  # Codificação dos arquivos
+  encoding: utf-8
+  
+  # Número máximo de linhas para processar
+  # (vazio = sem limite)
+  max_line_length: 88
+  
+  # Erros críticos que devem falhar o linting
+  ignore_errors: false
+  
+  # Diretórios a ignorar
+  exclude_rules: []
+  
+  # Padrões de ignorar (glob patterns)
+  ignore_paths:
+    - node_modules/
+    - .turbo/
+    - .venv/
+    - dist/
+    - build/
+    - .git/
+
+# Regras de Linting
+rules:
+  # L001: Espaçamento excessivo
+  capitalisation.keywords:
+    capitalisation_policy: consistent
+  
+  # L003: Espaçamento conflitante antes de vírgulas
+  spacing:
+    allow_trailing_comma: false
+  
+  # Indentação
+  indentation:
+    indent_unit: space
+    indent_size: 2
+    tab_space_size: 2
+  
+  # Separação de linhas
+  line_length:
+    max_line_length: 88
+    ignore_comments: false
+  
+  # Nomes de tabelas/colunas
+  naming_convention:
+    match_parentheses: true
+    select_clause_trailing_comma: forbid
+  
+  # Espaçamento em operadores
+  operator_spacing:
+    operator_new_lines: before
+  
+  # Alinhamento
+  alignment:
+    type: start_only
+    spacing_before: align
+    align_keywords: true
+    align_where_clauses: true
+  
+  # Trailing whitespace
+  trailing_whitespace: {}
+  
+  # Comma spacing
+  comma_spacing:
+    spacing_before: forbid
+    spacing_after: require
+  
+  # Statement endings
+  statement_endings:
+    statement_terminator: semicolon
+    multiline_newline: true
+  
+  # No tabs
+  tab_space_size:
+    skip_errors: []
+  
+  # Não permitir espaços após parênteses de abertura
+  bracket_spacing:
+    type: start_of_line
+  
+  # Função capitalização
+  capitalisation.functions:
+    capitalisation_policy: consistent
+  
+  # Tipos de dados capitalização
+  capitalisation.types:
+    capitalisation_policy: consistent
+  
+  # Reserved keyword capitalização
+  capitalisation.identifiers:
+    capitalisation_policy: consistent
+  
+  # Unused aliases
+  references.qualification:
+    capitalisation_policy: consistent
+  
+  # CTE alias
+  aliasing.table:
+    aliasing: explicit
+    allow_scalar: true
+  
+  # Column aliases
+  aliasing.column:
+    aliasing: explicit
+
+# Configuração de Formatação
+sqlfluff:
+  templater: raw
+  formatter: default
+
+# Regras de Segurança para PostgreSQL
+PostgreSQL-specific:
+  # Validar RLS policies
+  check_rls_enabled: false
+  
+  # Avisar sobre funções não imutáveis
+  warn_non_immutable_functions: true
+
+# Configuração de Saída
+core:
+  color: true
+  verbose: 0
+
+# Regras específicas desabilitadas (se necessário)
+# Deixe comentado e descomente conforme necessário
+
+# Exemplo: Desabilitar regra específica
+# rules:
+#   L001:
+#     disabled: true
