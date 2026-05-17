@@ -2,8 +2,6 @@ import { NextRequest } from 'next/server';
 import {
     apiError,
     apiSuccess,
-    trackedApiError,
-    handleApiUnhandledError,
 } from '@/lib/api-middleware';
 import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
@@ -44,14 +42,6 @@ export async function POST(request: NextRequest) {
 
         return apiSuccess({ accepted: true, correlationId: result.correlationId }, 202);
     } catch (error) {
-        await trackedApiError(request, 'Falha ao receber evento de erro', 500, {
-            errorCode: 'VALIDATION_FAILED',
-            metadata: { route: '/api/system/errors/ingest' },
-        });
-
-        return handleApiUnhandledError(request, error, {
-            errorCode: 'API_UNHANDLED_EXCEPTION',
-            metadata: { route: '/api/system/errors/ingest' },
-        });
+        return apiError('Payload de monitoramento inválido', 400);
     }
 }

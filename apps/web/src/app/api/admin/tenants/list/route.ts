@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
 
         const { data: tenants, error } = await adminClient
             .from('tenants')
-            .select('id, name, slug, is_active')
+            .select('id, name, slug, status')
+            .is('deleted_at', null)
             .order('name', { ascending: true })
             .limit(200);
 

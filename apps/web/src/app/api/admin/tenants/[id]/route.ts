@@ -2,6 +2,7 @@
 // PUT /api/admin/tenants/[id] - Atualizar tenant (status, limites, etc)
 // DELETE /api/admin/tenants/[id] - Exclusao logica (soft delete) de tenant
 import { NextRequest } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
     requireSystemAdmin,
     apiError,
@@ -95,6 +96,7 @@ export async function PUT(
         const tenantId = params.id;
         const body = await request.json();
         const { status, max_users, max_surveys, storage_limit_mb, name } = body;
+        const adminSupabase = createAdminClient();
 
         // Validar status
         if (status && !['active', 'suspended', 'trial'].includes(status)) {
@@ -102,7 +104,7 @@ export async function PUT(
         }
 
         // Buscar tenant atual
-        const { data: currentTenant } = await auth.supabase
+        const { data: currentTenant } = await adminSupabase
             .from('tenants')
             .select('*')
             .eq('id', tenantId)
@@ -122,7 +124,7 @@ export async function PUT(
         if (name !== undefined) updatePayload.name = name;
 
         // Atualizar tenant
-        const { data: updated, error: updateError } = await auth.supabase
+        const { data: updated, error: updateError } = await adminSupabase
             .from('tenants')
             .update(updatePayload)
             .eq('id', tenantId)
@@ -184,8 +186,9 @@ export async function DELETE(
 
     try {
         const tenantId = params.id;
+        const adminSupabase = createAdminClient();
 
-        const { data: currentTenant, error: tenantError } = await auth.supabase
+        const { data: currentTenant, error: tenantError } = await adminSupabase
             .from('tenants')
             .select('*')
             .eq('id', tenantId)
@@ -197,7 +200,7 @@ export async function DELETE(
         }
 
         // Evita lockout acidental: system_admin nao pode excluir o proprio tenant.
-        const { data: currentUserProfile } = await auth.supabase
+        const { data: currentUserProfile } = await adminSupabase
             .from('users')
             .select('tenant_id')
             .eq('id', auth.user.id)
@@ -208,7 +211,7 @@ export async function DELETE(
         }
 
         const nowIso = new Date().toISOString();
-        const { data: deletedTenant, error: deleteError } = await auth.supabase
+        const { data: deletedTenant, error: deleteError } = await adminSupabase
             .from('tenants')
             .update({
                 deleted_at: nowIso,
