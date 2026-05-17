@@ -47,22 +47,5 @@ LEFT JOIN public.surveys s ON s.tenant_id = t.id
 LEFT JOIN public.responses r ON r.tenant_id = t.id
 LEFT JOIN public.error_logs e ON e.resolved = true;
 
--- 2) Habilitar RLS na tabela PostGIS spatial_ref_sys e criar política permissiva de leitura
---    (somente leitura pública é o comportamento padrão desta tabela de referência)
-ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies
-        WHERE schemaname = 'public'
-          AND tablename  = 'spatial_ref_sys'
-          AND policyname = 'spatial_ref_sys_read_all'
-    ) THEN
-        CREATE POLICY spatial_ref_sys_read_all
-            ON public.spatial_ref_sys
-            FOR SELECT
-            USING (true);
-    END IF;
-END
-$$;
+-- 2) spatial_ref_sys é tabela do PostGIS e não pode ter RLS habilitado pelo role da aplicação.
+--    Ignorado intencionalmente: tabela de sistema, somente leitura por padrão.
