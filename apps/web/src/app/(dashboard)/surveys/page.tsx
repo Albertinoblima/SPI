@@ -86,10 +86,10 @@ export default function SurveysPage() {
     };
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
+        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+            <div className="flex flex-wrap justify-between items-start gap-3 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Pesquisas</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Pesquisas</h1>
                     <p className="text-sm text-slate-500 mt-0.5">Gerencie todas as pesquisas do seu tenant.</p>
                 </div>
                 <Link
@@ -114,8 +114,8 @@ export default function SurveysPage() {
                         key={key}
                         onClick={() => setFilter(key)}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${filter === key
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-700'
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-700'
                             }`}
                     >
                         {label}
@@ -145,7 +145,7 @@ export default function SurveysPage() {
             )}
 
             {!loading && !error && (
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
                     {filtered.length === 0 ? (
                         <div className="px-6 py-16 text-center text-slate-400">
                             <p className="text-base font-medium mb-1">

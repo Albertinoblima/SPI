@@ -113,7 +113,7 @@ function HelpPageContent() {
     }, [filteredTopics]);
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-6xl mx-auto">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-slate-900">Central de Ajuda</h1>
                 <p className="text-slate-600 mt-2">

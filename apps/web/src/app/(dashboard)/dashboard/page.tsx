@@ -319,7 +319,7 @@ function DashboardContent() {
     })();
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
             {showWelcome && (
                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-5 text-white flex items-center gap-4 shadow-lg">
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
@@ -340,9 +340,9 @@ function DashboardContent() {
                 </div>
             )}
 
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                         {greeting}{tenant?.name ? `, ${tenant.name}` : ''}
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">

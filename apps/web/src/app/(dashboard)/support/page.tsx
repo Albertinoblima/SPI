@@ -208,7 +208,7 @@ export default function SupportPage() {
     const isClosed = activeTicket?.status === 'closed' || activeTicket?.status === 'resolved';
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-6xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>

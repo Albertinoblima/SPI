@@ -305,7 +305,7 @@ export default function ChatWidget() {
             {/* Botão flutuante */}
             <button
                 onClick={() => setOpen((o) => !o)}
-                className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center text-xl sm:text-2xl transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
                 aria-label="Abrir suporte"
             >
                 {open ? (
@@ -322,7 +322,7 @@ export default function ChatWidget() {
 
             {/* Painel do chat */}
             {open && (
-                <div className="fixed bottom-24 right-6 z-50 w-96 max-h-[600px] flex flex-col rounded-2xl shadow-2xl border border-slate-200 bg-white overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+                <div className="fixed bottom-20 right-2 left-2 sm:left-auto sm:bottom-24 sm:right-6 z-50 sm:w-96 max-h-[80dvh] sm:max-h-[600px] flex flex-col rounded-2xl shadow-2xl border border-slate-200 bg-white overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
                     {/* Header */}
                     <div className="bg-blue-600 text-white px-5 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">

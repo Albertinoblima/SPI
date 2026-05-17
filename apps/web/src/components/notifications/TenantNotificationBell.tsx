@@ -122,7 +122,7 @@ export default function TenantNotificationBell() {
                 </button>
 
                 {open && (
-                    <div className="absolute right-0 top-10 w-96 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="absolute right-0 top-10 w-[calc(100vw-2rem)] sm:w-96 max-w-sm sm:max-w-none bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
                             <div className="flex items-center gap-2">
                                 <Bell className="w-4 h-4 text-blue-500" />

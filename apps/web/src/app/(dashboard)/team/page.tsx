@@ -194,15 +194,15 @@ export default function TeamPage() {
     const interviewerCount = members.filter(m => m.role === 'interviewer').length;
 
     return (
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
             {/* Cabeçalho */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                         <Users className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Equipe</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Equipe</h1>
                         <p className="text-sm text-slate-500">Gerencie os profissionais da sua empresa</p>
                     </div>
                 </div>
@@ -269,7 +269,7 @@ export default function TeamPage() {
             </div>
 
             {/* Tabela */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>

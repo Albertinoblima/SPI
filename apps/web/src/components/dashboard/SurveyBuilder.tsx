@@ -144,10 +144,10 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-[100dvh] bg-gray-50 p-4 sm:p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
                     <input
                         type="text"
                         value={survey.title}
@@ -183,9 +183,9 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
                 </div>
 
                 {/* Question Palette */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
                     <h3 className="font-semibold mb-3 text-gray-700">Adicionar Pergunta</h3>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {(Object.keys(QUESTION_TEMPLATES) as QuestionType[]).map(type => (
                             <button
                                 key={type}
@@ -209,7 +209,7 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
-                                                className={`bg-white rounded-lg shadow-sm p-6 ${snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}`}
+                                                className={`bg-white rounded-lg shadow-sm p-4 sm:p-6 ${snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}`}
                                             >
                                                 {/* Question Header */}
                                                 <div className="flex items-start gap-3 mb-4">
@@ -322,16 +322,16 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
 
 function SurveyPreview({ survey, onClose }: { survey: SurveyState; onClose: () => void }) {
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-[100dvh] bg-gray-50 p-4 sm:p-6">
             <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
                     <button onClick={onClose} className="text-blue-600 mb-4">← Voltar para edição</button>
-                    <h1 className="text-3xl font-bold mb-2">{survey.title}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{survey.title}</h1>
                     <p className="text-gray-600">{survey.description}</p>
                 </div>
 
                 {survey.questions.map((question, index) => (
-                    <div key={question.id} className="bg-white rounded-lg shadow-sm p-6 mb-4">
+                    <div key={question.id} className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
                         <div className="flex items-start gap-2 mb-3">
                             <span className="font-bold text-gray-700">{index + 1}.</span>
                             <div className="flex-1">

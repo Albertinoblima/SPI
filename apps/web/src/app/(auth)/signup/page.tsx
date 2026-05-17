@@ -56,8 +56,8 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-slate-50 px-4 py-8">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 sm:p-8">
                 <div className="flex justify-center mb-4">
                     <Image
                         src="/branding/idialog-logo.png"

@@ -488,7 +488,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     };
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
             {/* Carregando rascunho */}
             {loadingDraft && (
                 <div className="flex items-center justify-center h-64 gap-3 text-slate-400">
@@ -500,7 +500,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 <>
                     {/* Cabeçalho */}
                     <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-slate-900">
+                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                             {surveyId ? 'Editar Rascunho' : 'Nova Pesquisa'}
                         </h1>
                         <p className="text-slate-500 mt-1">Preencha as informações nas 5 etapas abaixo</p>
@@ -519,7 +519,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                         className={`flex flex-col items-center group ${done ? 'cursor-pointer' : 'cursor-default'}`}
                                         aria-current={active ? 'step' : undefined}
                                     >
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all
                                     ${active ? 'bg-blue-600 text-white ring-4 ring-blue-100' : ''}
                                     ${done ? 'bg-green-500 text-white' : ''}
                                     ${!active && !done ? 'bg-slate-200 text-slate-500' : ''}`}>
@@ -550,7 +550,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                     )}
 
                     {/* Conteúdo da etapa atual */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-8">
                         {currentStep === 1 && (
                             <Step1TechnicalData data={data.tech} onChange={updateTech} />
                         )}

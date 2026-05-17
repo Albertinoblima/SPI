@@ -116,7 +116,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#f8fafc_45%,_#e2e8f0)] px-4 py-10">
+        <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_#dbeafe,_#f8fafc_45%,_#e2e8f0)] px-4 py-10">
             <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
                 <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl shadow-slate-300/40 backdrop-blur md:grid-cols-[1.1fr_0.9fr]">
                     <div className="hidden bg-slate-950 px-10 py-12 text-slate-100 md:flex md:flex-col md:justify-between">
@@ -229,7 +229,7 @@ export default function LoginPage() {
                                 )}
                             </div>
 
-                            <div className="flex items-center justify-between text-sm">
+                            <div className="flex flex-wrap items-center justify-between gap-y-2 text-sm">
                                 <span className="text-slate-500">Login protegido com auditoria e limite de tentativas.</span>
                                 <Link href="/forgot-password" className="font-medium text-sky-700 hover:text-sky-800 hover:underline">
                                     Esqueci minha senha

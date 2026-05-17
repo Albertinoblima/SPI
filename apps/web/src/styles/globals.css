@@ -10,4 +10,16 @@
 body {
     color: rgb(var(--foreground-rgb));
     background: rgb(var(--background-rgb));
+    /* Evita overflow horizontal global */
+    overflow-x: hidden;
+}
+
+/* Suaviza o scroll em iOS */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Garante que tabelas em cards não quebrem o layout mobile */
+.table-responsive {
+    overflow-x: auto;
 }

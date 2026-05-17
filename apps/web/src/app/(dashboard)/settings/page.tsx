@@ -170,7 +170,7 @@ function SettingsContent() {
     }
 
     return (
-        <div className="p-6 max-w-4xl">
+        <div className="p-4 sm:p-6 max-w-4xl">
             {/* Banner de boas-vindas no onboarding */}
             {isOnboarding && (
                 <div className="mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
@@ -198,12 +198,12 @@ function SettingsContent() {
             )}
 
             {/* Cabeçalho */}
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-6 sm:mb-8">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                         {isOnboarding ? 'Configure sua Empresa' : 'Configurações da Empresa'}
                     </h1>
                     <p className="text-sm text-slate-500">Dados utilizados nos relatórios de pesquisa</p>
