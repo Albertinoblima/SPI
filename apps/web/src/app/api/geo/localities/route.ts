@@ -21,6 +21,7 @@ import {
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
 import { normalizeGeoText, resolveStateCode } from '@/lib/geo/br-reference';
+import { getOrRefreshGeoCache } from '@/lib/geo/ibge-cache';
 
 type IbgeMunicipio = { id: number; nome: string };
 type IbgeDistrito = { id: number; nome: string; municipio?: { id: number; nome: string } };
@@ -32,6 +33,14 @@ export interface LocalityOption {
     zone: 'urban' | 'rural';
     ibge_id?: number;
 }
+
+type LocalitiesPayload = {
+    city: string | null;
+    city_ibge_id: number | null;
+    localities: LocalityOption[];
+    city_found: boolean;
+    city_warning: string | null;
+};
 
 const CACHE = 60 * 60 * 24 * 30; // 30 dias
 
@@ -78,55 +87,93 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // 1 — Localiza código do município
-        const municipalities = await fetchJson<IbgeMunicipio[]>(cityUrl(stateCode));
         const normalizedCity = normalizeGeoText(cityParam);
-        const city = municipalities.find((m) => normalizeGeoText(m.nome) === normalizedCity)
-            ?? municipalities.find((m) => normalizeGeoText(m.nome).includes(normalizedCity))
-            ?? municipalities.find((m) => normalizedCity.includes(normalizeGeoText(m.nome)));
+        const cacheKey = `ibge:localities:state:${stateCode}:city:${normalizedCity}`;
 
-        if (!city) {
-            return apiSuccess({ source: 'fallback', localities: [], warning: 'Municipio nao encontrado no IBGE.' });
-        }
+        const cached = await getOrRefreshGeoCache<LocalitiesPayload>({
+            cacheKey,
+            resourceType: 'localities_city',
+            scope: String(stateCode),
+            ttlSeconds: CACHE,
+            fetchFresh: async () => {
+                // 1 — Localiza código do município
+                const municipalities = await fetchJson<IbgeMunicipio[]>(cityUrl(stateCode));
+                const city = municipalities.find((m) => normalizeGeoText(m.nome) === normalizedCity)
+                    ?? municipalities.find((m) => normalizeGeoText(m.nome).includes(normalizedCity))
+                    ?? municipalities.find((m) => normalizedCity.includes(normalizeGeoText(m.nome)));
 
-        // 2 — Carrega distritos do município
-        const distritos = await fetchJson<IbgeDistrito[]>(distritosUrl(city.id));
-
-        const localities: LocalityOption[] = [];
-
-        for (const d of distritos) {
-            const zone = inferZone(d.nome, city.nome);
-            localities.push({ name: d.nome, zone, ibge_id: d.id });
-
-            // 3 — Carrega subdistritos (bairros oficiais) — apenas para sede urbana para evitar excesso de chamadas
-            if (zone === 'urban') {
-                try {
-                    const subs = await fetchJson<IbgeSubdistrito[]>(subdistritosUrl(d.id));
-                    for (const s of subs) {
-                        localities.push({ name: s.nome, zone: 'urban', ibge_id: s.id });
-                    }
-                } catch {
-                    // subdistritos não disponíveis para este distrito; ignora silenciosamente
+                if (!city) {
+                    return {
+                        payload: {
+                            city: null,
+                            city_ibge_id: null,
+                            localities: [],
+                            city_found: false,
+                            city_warning: 'Municipio nao encontrado no IBGE.',
+                        },
+                        source: 'fallback',
+                    };
                 }
-            }
-        }
 
-        // Ordena e remove duplicatas pelo nome
-        const seen = new Set<string>();
-        const result = localities
-            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
-            .filter((l) => {
-                const key = normalizeGeoText(l.name);
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
+                // 2 — Carrega distritos do município
+                const distritos = await fetchJson<IbgeDistrito[]>(distritosUrl(city.id));
+
+                const localities: LocalityOption[] = [];
+
+                for (const d of distritos) {
+                    const zone = inferZone(d.nome, city.nome);
+                    localities.push({ name: d.nome, zone, ibge_id: d.id });
+
+                    // 3 — Carrega subdistritos (bairros oficiais) — apenas para sede urbana para evitar excesso de chamadas
+                    if (zone === 'urban') {
+                        try {
+                            const subs = await fetchJson<IbgeSubdistrito[]>(subdistritosUrl(d.id));
+                            for (const s of subs) {
+                                localities.push({ name: s.nome, zone: 'urban', ibge_id: s.id });
+                            }
+                        } catch {
+                            // subdistritos não disponíveis para este distrito; ignora silenciosamente
+                        }
+                    }
+                }
+
+                // Ordena e remove duplicatas pelo nome
+                const seen = new Set<string>();
+                const result = localities
+                    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                    .filter((l) => {
+                        const key = normalizeGeoText(l.name);
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+
+                return {
+                    payload: {
+                        city: city.nome,
+                        city_ibge_id: city.id,
+                        localities: result,
+                        city_found: true,
+                        city_warning: null,
+                    },
+                };
+            },
+        });
+
+        const warnings = [cached.payload.city_warning, cached.warning].filter(Boolean).join(' | ');
+        const source = !cached.payload.city_found
+            ? 'fallback'
+            : cached.source === 'cache'
+                ? 'cache'
+                : 'ibge';
 
         return apiSuccess({
-            source: 'ibge',
-            city: city.nome,
-            city_ibge_id: city.id,
-            localities: result,
+            source,
+            city: cached.payload.city,
+            city_ibge_id: cached.payload.city_ibge_id,
+            localities: cached.payload.localities,
+            cache_status: cached.cacheStatus,
+            warning: warnings || null,
         });
     } catch (err) {
         try {
@@ -139,6 +186,7 @@ export async function GET(request: NextRequest) {
             return apiSuccess({
                 source: 'fallback',
                 localities: [],
+                cache_status: 'miss',
                 warning: `Erro ao consultar IBGE: ${message}`,
             });
         } catch (instrumentationError) {

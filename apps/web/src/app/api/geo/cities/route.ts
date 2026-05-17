@@ -6,11 +6,18 @@ import {
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
 import { getFallbackCitiesByState, resolveStateCode } from '@/lib/geo/br-reference';
+import { getOrRefreshGeoCache } from '@/lib/geo/ibge-cache';
 
 type IbgeCityResponse = {
     id: number;
     nome: string;
 };
+
+type CitiesPayload = {
+    cities: string[];
+};
+
+const CITIES_CACHE_SECONDS = 60 * 60 * 24 * 30;
 
 function toIbgeCitiesUrl(stateCode: number): string {
     return `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateCode}/municipios?orderBy=nome`;
@@ -34,24 +41,36 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(toIbgeCitiesUrl(stateCode), {
-            next: { revalidate: 60 * 60 * 24 * 30 },
+        const cached = await getOrRefreshGeoCache<CitiesPayload>({
+            cacheKey: `ibge:cities:state:${stateCode}`,
+            resourceType: 'cities_state',
+            scope: String(stateCode),
+            ttlSeconds: CITIES_CACHE_SECONDS,
+            fetchFresh: async () => {
+                const response = await fetch(toIbgeCitiesUrl(stateCode), {
+                    next: { revalidate: CITIES_CACHE_SECONDS },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`IBGE cities request failed with status ${response.status}`);
+                }
+
+                const payload = (await response.json()) as IbgeCityResponse[];
+
+                const cities = payload
+                    .map((city) => city.nome)
+                    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+                return { payload: { cities } };
+            },
         });
 
-        if (!response.ok) {
-            throw new Error(`IBGE cities request failed with status ${response.status}`);
-        }
-
-        const payload = (await response.json()) as IbgeCityResponse[];
-
-        const cities = payload
-            .map((city) => city.nome)
-            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
-
         return apiSuccess({
-            source: 'ibge',
-            cities,
+            source: cached.source === 'cache' ? 'cache' : 'ibge',
+            cities: cached.payload.cities,
             stateCode,
+            cache_status: cached.cacheStatus,
+            warning: cached.warning ?? null,
         });
     } catch (error) {
         try {
@@ -64,6 +83,7 @@ export async function GET(request: NextRequest) {
                 source: 'fallback',
                 cities: getFallbackCitiesByState(stateParam),
                 stateCode,
+                cache_status: 'miss',
             });
         } catch (instrumentationError) {
             return handleApiUnhandledError(request, instrumentationError, {
