@@ -266,7 +266,7 @@ export function Step2Localities({
     // --- Handler de adicao ---
     const handleAdd = () => {
         if (!scopeIsValid) {
-            setScopeError('Preencha todos os campos de abrangencia antes de adicionar localidades.');
+            setScopeError('Preencha todos os campos de abrangência antes de adicionar localidades.');
             setFormError('');
             return;
         }
@@ -296,17 +296,17 @@ export function Step2Localities({
             setFormError(
                 level === 'state' ? 'Selecione ou informe o estado.' :
                     level === 'city' ? 'Selecione ou informe a cidade.' :
-                        'Selecione ou informe a localidade especifica.'
+                        'Selecione ou informe a localidade específica.'
             );
             return;
         }
 
         if ((level === 'city' || level === 'locality') && !resolvedState) {
-            setFormError('Informe o estado de referencia.');
+            setFormError('Informe o estado de referência.');
             return;
         }
         if (level === 'locality' && !resolvedCity) {
-            setFormError('Informe a cidade de referencia.');
+            setFormError('Informe a cidade de referência.');
             return;
         }
 
@@ -321,7 +321,7 @@ export function Step2Localities({
                 (loc.parent_city_name ?? '') === (parentCity ?? ''),
         );
         if (duplicate) {
-            setFormError('Esta localidade ja esta cadastrada na mesma hierarquia.');
+            setFormError('Esta localidade já está cadastrada na mesma hierarquia.');
             return;
         }
 
@@ -356,11 +356,11 @@ export function Step2Localities({
 
     // --- Resumo abrangencia ---
     const scopeSummary = (() => {
-        if (scopeData.geographic_scope === 'national') return `Pais: ${scopeData.scope_country_name || '---'}`;
+        if (scopeData.geographic_scope === 'national') return `País: ${scopeData.scope_country_name || '---'}`;
         if (scopeData.geographic_scope === 'state') return `Estado: ${scopeData.scope_state_name || '---'}`;
         if (scopeData.geographic_scope === 'city') return `${scopeData.scope_state_name || '---'} > ${scopeData.scope_city_name || '---'}`;
-        if (scopeData.geographic_scope === 'specific_public') return `Publico: ${scopeData.specific_public_description || '---'}`;
-        return 'Nao definida';
+        if (scopeData.geographic_scope === 'specific_public') return `Público: ${scopeData.specific_public_description || '---'}`;
+        return 'Não definida';
     })();
 
     const scopesForDecision = decision.allowedScopes as string[];
@@ -393,7 +393,7 @@ export function Step2Localities({
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 &mdash; Abrangencia e Localidades</h2>
+                <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 &mdash; Abrangência e Localidades</h2>
                 <p className="text-sm text-slate-500">
                     Defina o territorio da pesquisa e cadastre as localidades de coleta. Dados populacionais e amostragem sao configurados na <strong>Etapa 3</strong>.
                 </p>
@@ -417,9 +417,9 @@ export function Step2Localities({
                 <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
                     <div className="flex gap-2 mb-3">
                         <AlertTriangle size={18} className="shrink-0 mt-0.5 text-red-500" />
-                        <p className="font-semibold">Mudar a abrangencia ira remover as localidades cadastradas.</p>
+                        <p className="font-semibold">Alterar a abrangência irá remover as localidades cadastradas.</p>
                     </div>
-                    <p className="mb-4 text-xs">As {localities.length} localidade(s) cadastradas nao sao compativeis com a nova abrangencia e serao removidas.</p>
+                    <p className="mb-4 text-xs">As {localities.length} localidade(s) cadastradas não são compatíveis com a nova abrangência e serão removidas.</p>
                     <div className="flex gap-2">
                         <button type="button" onClick={confirmResetLocalities} className="px-4 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition">
                             Confirmar e redefinir localidades
@@ -433,14 +433,14 @@ export function Step2Localities({
 
             {/* BLOCO A -- Abrangencia */}
             <div className="rounded-xl border border-slate-200 bg-white p-5">
-                <BlockHeader step={1} title="Abrangencia territorial" done={scopeIsValid} tooltip="Define o alcance geografico da pesquisa e determina quais niveis de localidades podem ser cadastrados." />
+                <BlockHeader step={1} title="Abrangência territorial" done={scopeIsValid} tooltip="Define o alcance geográfico da pesquisa e determina quais níveis de localidades podem ser cadastrados." />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label className="text-sm font-medium text-slate-700 block mb-1">Nivel de abrangencia <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-medium text-slate-700 block mb-1">Nível de abrangência <span className="text-red-500">*</span></label>
                         <select
                             value={scopeData.geographic_scope}
-                            aria-label="Nivel de abrangencia territorial"
+                            aria-label="Nível de abrangência territorial"
                             onChange={(e) => {
                                 const nextScope = e.target.value as ScopeData['geographic_scope'];
                                 handleScopeChange({
@@ -454,7 +454,7 @@ export function Step2Localities({
                             <option value="">Selecione...</option>
                             {(['national', 'state', 'city', 'specific_public'] as GeoScope[]).map((s) => (
                                 <option key={s} value={s} disabled={surveyType ? !scopesForDecision.includes(s) : false}>
-                                    {GEO_SCOPE_LABELS[s]}{surveyType && !scopesForDecision.includes(s) ? ' (nao disponivel)' : ''}
+                                    {GEO_SCOPE_LABELS[s]}{surveyType && !scopesForDecision.includes(s) ? ' (não disponível)' : ''}
                                 </option>
                             ))}
                         </select>
@@ -525,7 +525,7 @@ export function Step2Localities({
                 {scopeData.geographic_scope && (
                     <p className="mt-3 text-xs text-slate-500">
                         Resumo: <span className="font-medium">{scopeSummary}</span>
-                        {' - '}Ref. geografica: {geoSource === 'ibge' ? 'IBGE (sincronizado)' : 'fallback local'}.
+                        {' - '}Ref. geográfica: {geoSource === 'ibge' ? 'IBGE (sincronizado)' : 'fallback local'}.
                     </p>
                 )}
                 {scopeError && <p className="mt-2 text-sm text-red-600">{scopeError}</p>}
@@ -533,10 +533,10 @@ export function Step2Localities({
 
             {/* BLOCO B -- Cadastro em cascata */}
             <div className={`rounded-xl border p-5 transition ${!scopeIsValid ? 'border-slate-200 bg-slate-50 opacity-70' : 'border-slate-200 bg-slate-50'}`}>
-                <BlockHeader step={2} title="Adicionar localidade de coleta" tooltip="Fluxo em cascata: escolha o nivel e percorra Estado > Cidade > Localidade conforme a abrangencia." />
+                <BlockHeader step={2} title="Adicionar localidade de coleta" tooltip="Fluxo em cascata: escolha o nível e percorra Estado › Cidade › Localidade conforme a abrangência definida." />
 
                 {!scopeIsValid ? (
-                    <p className="text-xs text-slate-500 mb-4">Conclua o Bloco 1 (Abrangencia) para habilitar o cadastro.</p>
+                    <p className="text-xs text-slate-500 mb-4">Conclua o Bloco 1 (Abrangência) para habilitar o cadastro.</p>
                 ) : (
                     <>
                         {/* Seletor de nivel */}
@@ -630,13 +630,13 @@ export function Step2Localities({
                                 <div>
                                     {scopeData.geographic_scope === 'city' && (
                                         <div className="mb-3 border border-slate-200 rounded-lg px-3 py-2.5 bg-white text-sm text-slate-600">
-                                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Cidade (fixo pela abrangencia)</span>
+                                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-0.5">Cidade (fixo pela abrangência)</span>
                                             <span className="font-medium">{scopeData.scope_state_name} &rsaquo; {scopeData.scope_city_name}</span>
                                         </div>
                                     )}
                                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">
-                                        {scopeData.geographic_scope === 'city' ? '1.' : showStatePicker ? '3.' : '2.'} Localidade especifica <span className="text-red-500">*</span>
-                                        <Tooltip text="Bairro, distrito, vila, sitio ou outra localidade especifica. Lista carregada do IBGE com base na cidade selecionada." helpId="localities-specific" />
+                                        {scopeData.geographic_scope === 'city' ? '1.' : showStatePicker ? '3.' : '2.'} Localidade específica <span className="text-red-500">*</span>
+                                        <Tooltip text="Bairro, distrito, vila, sítio ou outra localidade específica. Lista carregada do IBGE com base na cidade selecionada." helpId="localities-specific" />
                                     </label>
                                     <div className="relative">
                                         <input
@@ -645,7 +645,7 @@ export function Step2Localities({
                                             onChange={(e) => handleLocalitySelect(e.target.value)}
                                             disabled={!localityPickerEnabled && scopeData.geographic_scope !== 'city'}
                                             className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            placeholder={loadingLocalities ? 'Carregando sugestoes do IBGE...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
+                                            placeholder={loadingLocalities ? 'Carregando sugestões do IBGE...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
                                             autoComplete="off"
                                         />
                                         <datalist id="ibge-localities-datalist">
@@ -658,7 +658,7 @@ export function Step2Localities({
                                     <div className="mt-3">
                                         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">
                                             Zona
-                                            <Tooltip text="Classificacao de zona sugerida pelo IBGE. Pode ser ajustada manualmente." helpId="localities-zone" />
+                                            <Tooltip text="Classificação de zona sugerida pelo IBGE. Pode ser ajustada manualmente." helpId="localities-zone" />
                                         </label>
                                         <div className="flex gap-2">
                                             {(Object.entries(ZONE_LABELS) as ['urban' | 'rural' | 'mixed', string][]).map(([v, label]) => (
@@ -678,7 +678,7 @@ export function Step2Localities({
                             {cascade.geo_level !== 'locality' && (
                                 <div className="mt-1">
                                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">
-                                        Zona <Tooltip text="Classificacao de zona para organizacao operacional de campo." helpId="localities-zone" />
+                                        Zona <Tooltip text="Classificação de zona para organização operacional de campo." helpId="localities-zone" />
                                     </label>
                                     <div className="flex gap-2">
                                         {(Object.entries(ZONE_LABELS) as ['urban' | 'rural' | 'mixed', string][]).map(([v, label]) => (
@@ -704,7 +704,7 @@ export function Step2Localities({
                         </button>
 
                         <p className="mt-2 text-xs text-slate-400">
-                            Dados de populacao e dimensionamento amostral sao configurados na <strong>Etapa 3</strong>.
+                            Dados de população e dimensionamento amostral são configurados na <strong>Etapa 3</strong>.
                         </p>
                     </>
                 )}
@@ -718,7 +718,7 @@ export function Step2Localities({
                     <div className="text-center text-slate-400 py-10 border-2 border-dashed border-slate-200 rounded-xl">
                         <MapPin size={32} className="mx-auto mb-2 opacity-40" />
                         <p className="text-sm">Nenhuma localidade cadastrada</p>
-                        <p className="text-xs mt-1">Adicione pelo menos uma localidade no Bloco 2 acima</p>
+                        <p className="text-xs mt-1">Adicione pelo menos uma localidade no bloco acima</p>
                     </div>
                 ) : (
                     <>
@@ -726,7 +726,7 @@ export function Step2Localities({
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-50 text-slate-600">
                                     <tr>
-                                        <th className="text-left px-4 py-3 font-semibold">Nivel</th>
+                                        <th className="text-left px-4 py-3 font-semibold">Nível</th>
                                         <th className="text-left px-4 py-3 font-semibold">Nome</th>
                                         <th className="text-left px-4 py-3 font-semibold">Hierarquia</th>
                                         <th className="text-left px-4 py-3 font-semibold">Zona</th>
@@ -762,14 +762,14 @@ export function Step2Localities({
                                             {localities.length} localidade{localities.length !== 1 ? 's' : ''} cadastrada{localities.length !== 1 ? 's' : ''}
                                             {' - '}
                                             {getEffectiveLocalities(localities).length} efetiva{getEffectiveLocalities(localities).length !== 1 ? 's' : ''}
-                                            <Tooltip text="Localidades efetivas excluem registros cobertos por localidades-filho (evita dupla contagem na amostra)." />
+                                            <Tooltip text="Localidades efetivas excluem registros cobertos por localidades-filho, evitando dupla contagem na amostra." />
                                         </td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
                         <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-                            Dados de populacao e dimensionamento amostral sao configurados na <strong>Etapa 3 &mdash; Dimensionamento Amostral</strong>.
+                            Dados de população e dimensionamento amostral são configurados na <strong>Etapa 3 &mdash; Dimensionamento Amostral</strong>.
                         </div>
                     </>
                 )}

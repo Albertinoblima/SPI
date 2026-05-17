@@ -137,7 +137,11 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         const ctx = await getAuthContext();
         if (!ctx) return apiError('Não autenticado', 401);
 
-        const { data: survey, error } = await ctx.supabase
+        // Usa o cliente de serviço para garantir que as tabelas filhas (survey_localities,
+        // survey_premises, questions) sejam retornadas mesmo sem policies RLS explícitas.
+        // A restrição de tenant é feita via .eq('tenant_id', ...) como controle de acesso.
+        const adminSupabase = createAdminClient();
+        const { data: survey, error } = await adminSupabase
             .from('surveys')
             .select(`
                 *,
