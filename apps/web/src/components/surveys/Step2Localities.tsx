@@ -149,7 +149,7 @@ export function Step2Localities({
         if (allowedLevels.length > 0 && !allowedLevels.includes(cascade.geo_level)) {
             setCascade((prev) => ({ ...prev, geo_level: allowedLevels[0], state: '', city: '', localityName: '' }));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scopeData.geographic_scope]);
 
     // --- Estado/cidade efetivos para a cascata ---
@@ -295,8 +295,8 @@ export function Step2Localities({
         if (!itemName) {
             setFormError(
                 level === 'state' ? 'Selecione ou informe o estado.' :
-                level === 'city' ? 'Selecione ou informe a cidade.' :
-                'Selecione ou informe a localidade especifica.'
+                    level === 'city' ? 'Selecione ou informe a cidade.' :
+                        'Selecione ou informe a localidade especifica.'
             );
             return;
         }
@@ -311,7 +311,7 @@ export function Step2Localities({
         }
 
         const parentState = level === 'state' ? null : resolvedState || null;
-        const parentCity  = level === 'locality' ? (resolvedCity || null) : null;
+        const parentCity = level === 'locality' ? (resolvedCity || null) : null;
 
         const duplicate = localities.some(
             (loc) =>
@@ -476,14 +476,17 @@ export function Step2Localities({
                     {(scopeData.geographic_scope === 'state' || scopeData.geographic_scope === 'city') && (
                         <div>
                             <label className="text-sm font-medium text-slate-700 block mb-1">Estado <span className="text-red-500">*</span></label>
-                            <select
+                            <input
+                                list="scope-states-datalist"
                                 value={scopeData.scope_state_name}
                                 onChange={(e) => handleScopeChange({ ...scopeData, scope_state_name: e.target.value, scope_city_name: '' })}
                                 className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Selecione o estado...</option>
-                                {stateNames.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
+                                placeholder="Digite ou selecione o estado..."
+                                autoComplete="off"
+                            />
+                            <datalist id="scope-states-datalist">
+                                {stateNames.map((s) => <option key={s} value={s} />)}
+                            </datalist>
                         </div>
                     )}
 
@@ -491,15 +494,18 @@ export function Step2Localities({
                         <div>
                             <label className="text-sm font-medium text-slate-700 block mb-1">Cidade <span className="text-red-500">*</span></label>
                             <div className="relative">
-                                <select
+                                <input
+                                    list="scope-cities-datalist"
                                     value={scopeData.scope_city_name}
                                     onChange={(e) => handleScopeChange({ ...scopeData, scope_city_name: e.target.value })}
                                     className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                                     disabled={!scopeData.scope_state_name || loadingCities}
-                                >
-                                    <option value="">{loadingCities ? 'Carregando...' : 'Selecione a cidade...'}</option>
-                                    {ibgeCities.map((c) => <option key={c} value={c}>{c}</option>)}
-                                </select>
+                                    placeholder={loadingCities ? 'Carregando...' : !scopeData.scope_state_name ? 'Selecione o estado primeiro' : 'Digite ou selecione a cidade...'}
+                                    autoComplete="off"
+                                />
+                                <datalist id="scope-cities-datalist">
+                                    {ibgeCities.map((c) => <option key={c} value={c} />)}
+                                </datalist>
                                 {loadingCities && <Loader2 size={14} className="absolute right-3 top-3 animate-spin text-blue-500" />}
                             </div>
                         </div>
@@ -561,14 +567,17 @@ export function Step2Localities({
                                         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">
                                             1. Estado {cascade.geo_level !== 'state' && <span className="text-red-500">*</span>}
                                         </label>
-                                        <select
+                                        <input
+                                            list="cascade-states-datalist"
                                             value={cascade.state}
                                             onChange={(e) => setCascade((prev) => ({ ...prev, state: e.target.value, city: '', localityName: '', zone: 'urban' }))}
                                             className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">Selecione o estado...</option>
-                                            {stateNames.map((s) => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                            placeholder="Digite ou selecione o estado..."
+                                            autoComplete="off"
+                                        />
+                                        <datalist id="cascade-states-datalist">
+                                            {stateNames.map((s) => <option key={s} value={s} />)}
+                                        </datalist>
                                     </div>
                                     {cascade.geo_level !== 'state' && cascade.state && (
                                         <ChevronRight size={16} className="mt-8 shrink-0 text-slate-400" />
@@ -595,15 +604,18 @@ export function Step2Localities({
                                             {!showStatePicker && scopeData.geographic_scope === 'state' ? '1.' : '2.'} Cidade {cascade.geo_level !== 'state' && <span className="text-red-500">*</span>}
                                         </label>
                                         <div className="relative">
-                                            <select
+                                            <input
+                                                list="cascade-cities-datalist"
                                                 value={cascade.city}
                                                 onChange={(e) => setCascade((prev) => ({ ...prev, city: e.target.value, localityName: '', zone: 'urban' }))}
                                                 disabled={!cityPickerEnabled || loadingCities}
                                                 className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <option value="">{loadingCities ? 'Carregando cidades...' : !cityPickerEnabled ? 'Selecione o estado primeiro' : 'Selecione a cidade...'}</option>
-                                                {ibgeCities.map((c) => <option key={c} value={c}>{c}</option>)}
-                                            </select>
+                                                placeholder={loadingCities ? 'Carregando cidades...' : !cityPickerEnabled ? 'Selecione o estado primeiro' : 'Digite ou selecione a cidade...'}
+                                                autoComplete="off"
+                                            />
+                                            <datalist id="cascade-cities-datalist">
+                                                {ibgeCities.map((c) => <option key={c} value={c} />)}
+                                            </datalist>
                                             {loadingCities && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
                                         </div>
                                     </div>
@@ -627,28 +639,18 @@ export function Step2Localities({
                                         <Tooltip text="Bairro, distrito, vila, sitio ou outra localidade especifica. Lista carregada do IBGE com base na cidade selecionada." helpId="localities-specific" />
                                     </label>
                                     <div className="relative">
-                                        {ibgeLocalities.length > 0 ? (
-                                            <select
-                                                value={cascade.localityName}
-                                                onChange={(e) => handleLocalitySelect(e.target.value)}
-                                                disabled={!localityPickerEnabled || loadingLocalities}
-                                                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <option value="">{loadingLocalities ? 'Carregando localidades...' : 'Selecione a localidade...'}</option>
-                                                {ibgeLocalities.map((l) => (
-                                                    <option key={l.name} value={l.name}>{l.name} ({l.zone === 'urban' ? 'Urbana' : 'Rural'})</option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                value={cascade.localityName}
-                                                onChange={(e) => setCascade((prev) => ({ ...prev, localityName: e.target.value }))}
-                                                disabled={!localityPickerEnabled && scopeData.geographic_scope !== 'city'}
-                                                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                                                placeholder={loadingLocalities ? 'Carregando...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Ex: Bairro Aldeota, Sitio Sao Jose...'}
-                                            />
-                                        )}
+                                        <input
+                                            list="ibge-localities-datalist"
+                                            value={cascade.localityName}
+                                            onChange={(e) => handleLocalitySelect(e.target.value)}
+                                            disabled={!localityPickerEnabled && scopeData.geographic_scope !== 'city'}
+                                            className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            placeholder={loadingLocalities ? 'Carregando sugestoes do IBGE...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
+                                            autoComplete="off"
+                                        />
+                                        <datalist id="ibge-localities-datalist">
+                                            {ibgeLocalities.map((l) => <option key={l.name} value={l.name} />)}
+                                        </datalist>
                                         {loadingLocalities && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
                                     </div>
 
