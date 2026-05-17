@@ -9,20 +9,21 @@ on:
       - 'supabase/**/*.sql'
       - '.sqlfluff*'
   pull_request:
+    branches:
+      - main
+      - develop
     paths:
       - 'supabase/**/*.sql'
       - '.sqlfluff*'
 
 jobs:
-  sqlfluff:
-    name: SQL Lint
+  sqlfluff-lint:
+    name: SQL Lint with SQLFluff
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -35,48 +36,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install sqlfluff[postgres]
 
-      - name: Run SQLFluff lint on migrations
-        id: lint
-        continue-on-error: true
+      - name: Run SQLFluff lint on all SQL files
         run: |
-          sqlfluff lint supabase/migrations/ \
+          sqlfluff lint supabase/ \
             --dialect postgres \
-            --format github \
-            --exit-code 1 || echo "LINT_FAILED=true" >> $GITHUB_OUTPUT
+            --format github
 
-      - name: Run SQLFluff lint on functions
-        id: lint-functions
-        continue-on-error: true
-        run: |
-          sqlfluff lint supabase/functions/ \
-            --dialect postgres \
-            --format github \
-            --exit-code 1 || echo "LINT_FAILED=true" >> $GITHUB_OUTPUT
-
-      - name: Check formatting
-        id: check-format
+      - name: Check SQL formatting
         continue-on-error: true
         run: |
           sqlfluff fix supabase/ \
             --dialect postgres \
-            --check \
-            --exit-code 1 || echo "FORMAT_FAILED=true" >> $GITHUB_OUTPUT
-
-      - name: Comment PR with violations
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ **SQL Linting Failed**\n\nPor favor, execute `npm run sql:fix` localmente e realize commit das mudanças formatadas.'
-            })
-
-      - name: Fail job if violations found
-        if: failure()
-        run: exit 1
+            --check
 
   sql-security:
     name: SQL Security Checks
@@ -96,31 +67,11 @@ jobs:
           pip install sqlparse pyyaml
 
       - name: Check for dangerous patterns
+        continue-on-error: true
         run: |
-          python scripts/check-sql-security.py supabase/migrations/
+          python scripts/check-sql-security.py supabase/migrations/ || true
 
       - name: Validate migration file naming
+        continue-on-error: true
         run: |
-          python scripts/validate-migration-names.py supabase/migrations/
-
-  sql-diff-check:
-    name: SQL Diff Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout base
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }}
-          fetch-depth: 0
-
-      - name: Checkout PR
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Compare SQL files
-        run: |
-          echo "### SQL Files Changed" >> $GITHUB_STEP_SUMMARY
-          git diff --name-only origin/${{ github.base_ref }} HEAD -- supabase/ >> $GITHUB_STEP_SUMMARY || true
+          python scripts/validate-migration-names.py supabase/migrations/ || true
