@@ -1,22 +1,69 @@
 // GET /api/admin/notifications - contar tickets abertos sem resposta (badge no header)
 // POST /api/admin/notifications/broadcast - enviar notificação para empresas
-import { NextRequest, NextResponse } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import { NextRequest } from 'next/server';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
     if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
 
     try {
-        // Contar tickets abertos (não atribuídos ou aguardando admin)
-        const { count: openCount } = await auth.supabase
-            .from('support_tickets')
-            .select('*', { count: 'exact', head: true })
-            .in('status', ['open', 'in_progress']);
+        const incidentThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-        return apiSuccess({ unread: openCount ?? 0 });
-    } catch {
-        return apiError('Erro ao buscar notificações', 500);
+        const [
+            { count: openTicketsCount },
+            { data: openTickets },
+            { count: criticalIncidentsCount },
+            { data: criticalIncidents },
+        ] = await Promise.all([
+            auth.supabase
+                .from('support_tickets')
+                .select('*', { count: 'exact', head: true })
+                .in('status', ['open', 'in_progress']),
+            auth.supabase
+                .from('support_tickets')
+                .select('id, title, status, priority, updated_at, tenants(name), user:users(full_name, email)')
+                .in('status', ['open', 'in_progress'])
+                .order('updated_at', { ascending: false })
+                .limit(6),
+            auth.supabase
+                .from('error_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('resolved', false)
+                .in('severity', ['critical', 'high'])
+                .gte('created_at', incidentThreshold),
+            auth.supabase
+                .from('error_logs')
+                .select('id, error_code, error_message, severity, http_path, created_at, correlation_id')
+                .eq('resolved', false)
+                .in('severity', ['critical', 'high'])
+                .order('created_at', { ascending: false })
+                .limit(6),
+        ]);
+
+        return apiSuccess({
+            unread: (openTicketsCount ?? 0) + (criticalIncidentsCount ?? 0),
+            support: {
+                openCount: openTicketsCount ?? 0,
+                tickets: openTickets ?? [],
+            },
+            incidents: {
+                criticalWindowMinutes: 5,
+                openCount: criticalIncidentsCount ?? 0,
+                items: criticalIncidents ?? [],
+            },
+        });
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/notifications' },
+        });
     }
 }
 

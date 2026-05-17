@@ -1,6 +1,11 @@
 // GET /api/admin/system/health - Saúde do sistema: Vercel + Supabase + GitHub
 import { NextRequest } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 interface GitHubCommit {
     sha: string;
@@ -143,68 +148,76 @@ export async function GET(request: NextRequest) {
         return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
     }
 
-    // Buscar dados em paralelo
-    const [
-        vercelResult,
-        githubResult,
-        { data: recentErrors },
-        { data: analytics },
-        { data: systemStats },
-    ] = await Promise.all([
-        fetchVercelDeployments(),
-        fetchGitHubData(),
-        auth.supabase
+    try {
+        // Buscar dados em paralelo
+        const [
+            vercelResult,
+            githubResult,
+            { data: recentErrors },
+            { data: analytics },
+            { data: systemStats },
+        ] = await Promise.all([
+            fetchVercelDeployments(),
+            fetchGitHubData(),
+            auth.supabase
+                .from('error_logs')
+                .select('id, error_code, error_message, severity, http_path, created_at, resolved, tenant_id')
+                .order('created_at', { ascending: false })
+                .limit(10),
+            auth.supabase
+                .from('system_analytics')
+                .select('*')
+                .order('date_recorded', { ascending: false })
+                .limit(7),
+            auth.supabase.from('vw_system_stats').select('*').single(),
+        ]);
+
+        // Contagem de erros por severidade (últimas 24h)
+        const { data: errorCounts } = await auth.supabase
             .from('error_logs')
-            .select('id, error_code, error_message, severity, http_path, created_at, resolved, tenant_id')
-            .order('created_at', { ascending: false })
-            .limit(10),
-        auth.supabase
-            .from('system_analytics')
-            .select('*')
-            .order('date_recorded', { ascending: false })
-            .limit(7),
-        auth.supabase.from('vw_system_stats').select('*').single(),
-    ]);
+            .select('severity')
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .eq('resolved', false);
 
-    // Contagem de erros por severidade (últimas 24h)
-    const { data: errorCounts } = await auth.supabase
-        .from('error_logs')
-        .select('severity')
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .eq('resolved', false);
+        const severityCount = (errorCounts ?? []).reduce<Record<string, number>>((acc, row) => {
+            acc[row.severity] = (acc[row.severity] ?? 0) + 1;
+            return acc;
+        }, {});
 
-    const severityCount = (errorCounts ?? []).reduce<Record<string, number>>((acc, row) => {
-        acc[row.severity] = (acc[row.severity] ?? 0) + 1;
-        return acc;
-    }, {});
-
-    return apiSuccess({
-        vercel: {
-            deployments: vercelResult.deployments.map((d) => ({
-                id: d.uid,
-                state: d.state,
-                createdAt: d.createdAt,
-                buildingAt: d.buildingAt,
-                readyAt: d.ready,
-                commitMessage: d.meta?.githubCommitMessage ?? null,
-                commitSha: d.meta?.githubCommitSha?.slice(0, 7) ?? null,
-                errorMessage: d.errorMessage ?? null,
-                durationMs:
-                    d.ready && d.buildingAt ? d.ready - d.buildingAt : null,
-            })),
-            apiError: vercelResult.error ?? null,
-        },
-        github: {
-            commits: githubResult.commits,
-            workflowRuns: githubResult.workflowRuns,
-            apiError: githubResult.error ?? null,
-            repo: process.env.GITHUB_REPO ?? null,
-        },
-        supabase: {
-            systemStats,
-            errorCounts24h: severityCount,
-            recentErrors: recentErrors ?? [],
-            analytics: analytics ?? [],
-        },
-    });
+        return apiSuccess({
+            vercel: {
+                deployments: vercelResult.deployments.map((d) => ({
+                    id: d.uid,
+                    state: d.state,
+                    createdAt: d.createdAt,
+                    buildingAt: d.buildingAt,
+                    readyAt: d.ready,
+                    commitMessage: d.meta?.githubCommitMessage ?? null,
+                    commitSha: d.meta?.githubCommitSha?.slice(0, 7) ?? null,
+                    errorMessage: d.errorMessage ?? null,
+                    durationMs:
+                        d.ready && d.buildingAt ? d.ready - d.buildingAt : null,
+                })),
+                apiError: vercelResult.error ?? null,
+            },
+            github: {
+                commits: githubResult.commits,
+                workflowRuns: githubResult.workflowRuns,
+                apiError: githubResult.error ?? null,
+                repo: process.env.GITHUB_REPO ?? null,
+            },
+            supabase: {
+                systemStats,
+                errorCounts24h: severityCount,
+                recentErrors: recentErrors ?? [],
+                analytics: analytics ?? [],
+            },
+        });
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/system/health' },
+        });
+    }
 }

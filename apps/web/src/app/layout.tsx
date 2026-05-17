@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import '@/styles/globals.css';
+import GlobalErrorMonitor from '@/components/monitoring/GlobalErrorMonitor';
 
 export const metadata: Metadata = {
     title: 'iDialog SPI - Sistema de Pesquisa Inteligente',
@@ -31,6 +32,7 @@ export default function RootLayout({
     return (
         <html lang="pt-BR">
             <body>
+                <GlobalErrorMonitor />
                 {children}
                 <Analytics />
             </body>

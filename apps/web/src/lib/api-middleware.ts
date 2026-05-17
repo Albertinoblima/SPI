@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
 export async function requireSystemAdmin(request: NextRequest) {
     const cookieStore = cookies();
@@ -130,6 +131,61 @@ export async function requireTenantAdmin(request: NextRequest) {
  */
 export function apiError(message: string, status: number = 400) {
     return NextResponse.json({ error: message }, { status });
+}
+
+export async function trackedApiError(
+    request: NextRequest,
+    message: string,
+    status: number,
+    options?: {
+        errorCode?: string;
+        tenantId?: string | null;
+        userId?: string | null;
+        metadata?: Record<string, unknown>;
+    }
+) {
+    if (status >= 500 || options?.errorCode) {
+        await captureSystemError({
+            request,
+            errorCode: options?.errorCode ?? 'API_HTTP_5XX',
+            errorMessage: message,
+            tenantId: options?.tenantId,
+            userId: options?.userId,
+            httpStatusCode: status,
+            metadata: options?.metadata,
+        });
+    }
+
+    return apiError(message, status);
+}
+
+export async function handleApiUnhandledError(
+    request: NextRequest,
+    error: unknown,
+    options?: {
+        errorCode?: string;
+        tenantId?: string | null;
+        userId?: string | null;
+        metadata?: Record<string, unknown>;
+    }
+) {
+    const result = await captureSystemError({
+        request,
+        errorCode: options?.errorCode ?? 'API_UNHANDLED_EXCEPTION',
+        error,
+        tenantId: options?.tenantId,
+        userId: options?.userId,
+        httpStatusCode: 500,
+        metadata: options?.metadata,
+    });
+
+    return NextResponse.json(
+        {
+            error: 'Erro interno do servidor',
+            correlationId: result.correlationId,
+        },
+        { status: 500 }
+    );
 }
 
 /**

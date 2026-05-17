@@ -1,6 +1,12 @@
 // GET /api/admin/system/errors - Listar erros do sistema
-import { NextRequest, NextResponse } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import { NextRequest } from 'next/server';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    handleApiUnhandledError,
+    trackedApiError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
@@ -12,7 +18,8 @@ export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams;
         const severity = searchParams.get('severity');
-        const resolved = searchParams.get('resolved') === 'true' ? true : false;
+        const resolvedQuery = searchParams.get('resolved');
+        const search = searchParams.get('search')?.trim();
         const page = parseInt(searchParams.get('page') || '1');
         const pageSize = 50;
         const offset = (page - 1) * pageSize;
@@ -27,19 +34,43 @@ export async function GET(request: NextRequest) {
             query = query.eq('severity', severity);
         }
 
-        if (resolved !== undefined) {
-            query = query.eq('resolved', resolved);
+        if (resolvedQuery === 'true' || resolvedQuery === 'false') {
+            query = query.eq('resolved', resolvedQuery === 'true');
+        }
+
+        if (search) {
+            query = query.or(`error_code.ilike.%${search}%,error_message.ilike.%${search}%`);
         }
 
         const { data: errors, count, error: fetchError } = await query
             .range(offset, offset + pageSize - 1);
 
         if (fetchError) {
-            return apiError('Erro ao buscar logs de erro', 500);
+            return trackedApiError(request, 'Erro ao buscar logs de erro', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/system/errors', severity, resolvedQuery },
+            });
         }
+
+        const [{ count: openCount }, { count: criticalCount }] = await Promise.all([
+            auth.supabase
+                .from('error_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('resolved', false),
+            auth.supabase
+                .from('error_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('resolved', false)
+                .eq('severity', 'critical'),
+        ]);
 
         return apiSuccess({
             errors,
+            summary: {
+                openCount: openCount ?? 0,
+                criticalOpenCount: criticalCount ?? 0,
+            },
             pagination: {
                 page,
                 pageSize,
@@ -48,8 +79,11 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error('Erro ao buscar logs de erro:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/system/errors' },
+        });
     }
 }
 
@@ -79,7 +113,11 @@ export async function PUT(request: NextRequest) {
             .select();
 
         if (updateError) {
-            return apiError('Erro ao atualizar log de erro', 500);
+            return trackedApiError(request, 'Erro ao atualizar log de erro', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/system/errors', id, resolved },
+            });
         }
 
         // Log da ação na auditoria
@@ -89,13 +127,16 @@ export async function PUT(request: NextRequest) {
             p_action: 'error_resolved',
             p_entity_type: 'error_log',
             p_entity_id: id,
-            p_changes_description: `Erro ${resolved ? 'marcado como resolvido' : 'reabertu'}`,
+            p_changes_description: `Erro ${resolved ? 'marcado como resolvido' : 'reaberto'}`,
             p_is_critical: false,
         });
 
         return apiSuccess({ error: updated[0] });
     } catch (error) {
-        console.error('Erro ao atualizar erro:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/system/errors', operation: 'PUT' },
+        });
     }
 }

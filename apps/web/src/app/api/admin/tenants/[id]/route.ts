@@ -2,7 +2,13 @@
 // PUT /api/admin/tenants/[id] - Atualizar tenant (status, limites, etc)
 // DELETE /api/admin/tenants/[id] - Exclusao logica (soft delete) de tenant
 import { NextRequest } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(
     request: NextRequest,
@@ -67,8 +73,11 @@ export async function GET(
             recentErrors: recentErrors ?? [],
         });
     } catch (error) {
-        console.error('Erro ao buscar tenant:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/tenants/[id]', operation: 'GET', tenantId: params.id },
+        });
     }
 }
 
@@ -122,7 +131,12 @@ export async function PUT(
             .single();
 
         if (updateError) {
-            return apiError('Erro ao atualizar tenant', 500);
+            return trackedApiError(request, 'Erro ao atualizar tenant', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: auth.user.id,
+                tenantId,
+                metadata: { route: '/api/admin/tenants/[id]', operation: 'PUT' },
+            });
         }
 
         // Registrar auditoria
@@ -150,8 +164,11 @@ export async function PUT(
 
         return apiSuccess({ tenant: updated });
     } catch (error) {
-        console.error('Erro ao atualizar tenant:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/tenants/[id]', operation: 'PUT', tenantId: params.id },
+        });
     }
 }
 
@@ -204,8 +221,12 @@ export async function DELETE(
             .single();
 
         if (deleteError || !deletedTenant) {
-            console.error('Erro ao excluir tenant:', deleteError);
-            return apiError('Erro ao excluir tenant', 500);
+            return trackedApiError(request, 'Erro ao excluir tenant', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: auth.user.id,
+                tenantId,
+                metadata: { route: '/api/admin/tenants/[id]', operation: 'DELETE' },
+            });
         }
 
         // Auditoria e log de evento critico sem bloquear a operacao principal.
@@ -237,7 +258,10 @@ export async function DELETE(
             tenant: deletedTenant,
         });
     } catch (error) {
-        console.error('Erro ao excluir tenant:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/tenants/[id]', operation: 'DELETE', tenantId: params.id },
+        });
     }
 }

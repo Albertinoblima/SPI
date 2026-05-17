@@ -1,6 +1,12 @@
 // GET /api/admin/system/stats - Estatísticas gerais do sistema
-import { NextRequest, NextResponse } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import { NextRequest } from 'next/server';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
@@ -17,7 +23,11 @@ export async function GET(request: NextRequest) {
             .single();
 
         if (statsError) {
-            return apiError('Erro ao buscar estatísticas', 500);
+            return trackedApiError(request, 'Erro ao buscar estatísticas', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/system/stats' },
+            });
         }
 
         // Buscar últimos erros críticos
@@ -50,7 +60,10 @@ export async function GET(request: NextRequest) {
             analytics,
         });
     } catch (error) {
-        console.error('Erro ao buscar stats:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/system/stats' },
+        });
     }
 }
