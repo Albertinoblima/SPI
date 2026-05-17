@@ -6,6 +6,7 @@ import {
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
 import { normalizeGeoText, resolveStateCode } from '@/lib/geo/br-reference';
+import { getOrRefreshGeoCache } from '@/lib/geo/ibge-cache';
 
 type IbgeCityResponse = {
     id: number;
@@ -33,6 +34,11 @@ type ResolveCityResult = {
     cityName: string | null;
     matchType: 'exact' | 'smart' | 'none';
     confidence: number;
+};
+
+type PopulationExtraction = {
+    population: number | null;
+    referenceYear: number | null;
 };
 
 const CITY_LIST_CACHE_SECONDS = 60 * 60 * 24 * 30;
@@ -89,22 +95,31 @@ function similarityScore(input: string, candidate: string): number {
     return 1 - (distance / maxLen);
 }
 
-function extractPopulationFromAggregate(payload: IbgeAggregateResult): number | null {
+function extractPopulationFromAggregate(payload: IbgeAggregateResult): PopulationExtraction {
     const firstResult = payload?.resultados?.[0];
     const firstSeries = firstResult?.series?.[0];
     const serieMap = firstSeries?.serie;
-    if (!serieMap) return null;
+    if (!serieMap) return { population: null, referenceYear: null };
 
     const years = Object.keys(serieMap).sort((a, b) => Number(b) - Number(a));
-    if (years.length === 0) return null;
+    if (years.length === 0) return { population: null, referenceYear: null };
 
     const latestValue = serieMap[years[0]];
-    if (!latestValue) return null;
+    if (!latestValue) return { population: null, referenceYear: Number(years[0]) || null };
 
     const parsed = Number(String(latestValue).replace(/\./g, '').replace(',', '.'));
-    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    const referenceYear = Number(years[0]);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return {
+            population: null,
+            referenceYear: Number.isFinite(referenceYear) ? referenceYear : null,
+        };
+    }
 
-    return Math.round(parsed);
+    return {
+        population: Math.round(parsed),
+        referenceYear: Number.isFinite(referenceYear) ? referenceYear : null,
+    };
 }
 
 async function resolveCityCandidate(stateCode: number, cityName: string): Promise<ResolveCityResult> {
@@ -155,7 +170,7 @@ async function resolveCityCandidate(stateCode: number, cityName: string): Promis
     };
 }
 
-async function fetchPopulation(cityCode: number): Promise<number | null> {
+async function fetchPopulation(cityCode: number): Promise<PopulationExtraction> {
     const urls = toPopulationUrls(cityCode);
 
     for (const url of urls) {
@@ -169,16 +184,16 @@ async function fetchPopulation(cityCode: number): Promise<number | null> {
             }
 
             const payload = (await response.json()) as IbgeAggregateResult;
-            const population = extractPopulationFromAggregate(payload);
-            if (population) {
-                return population;
+            const extraction = extractPopulationFromAggregate(payload);
+            if (extraction.population) {
+                return extraction;
             }
         } catch {
             continue;
         }
     }
 
-    return null;
+    return { population: null, referenceYear: null };
 }
 
 export async function GET(request: NextRequest) {
@@ -206,21 +221,41 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        const population = await fetchPopulation(cityResolution.cityCode);
+        const cacheKey = `ibge:population:city:${cityResolution.cityCode}`;
+
+        const cached = await getOrRefreshGeoCache<PopulationExtraction>({
+            cacheKey,
+            resourceType: 'population_city',
+            scope: String(stateCode),
+            ttlSeconds: 60 * 60 * 24,
+            fetchFresh: async () => {
+                const extraction = await fetchPopulation(cityResolution.cityCode as number);
+                return {
+                    payload: extraction,
+                    source: extraction.population ? 'ibge' : 'fallback',
+                    sourceUpdatedAt: extraction.referenceYear ? `${extraction.referenceYear}-01-01T00:00:00.000Z` : null,
+                };
+            },
+        });
+
+        const population = cached.payload.population;
+        const referenceYear = cached.payload.referenceYear;
 
         const warning = cityResolution.matchType === 'smart'
             ? `Nao houve correspondencia exata para "${cityParam}". Sugestao inteligente: ${cityResolution.cityName}.`
             : null;
 
         return apiSuccess({
-            source: population ? 'ibge' : 'fallback',
+            source: population ? (cached.source === 'cache' ? 'cache' : 'ibge') : 'fallback',
             population,
             cityCode: cityResolution.cityCode,
             cityName: cityResolution.cityName,
             stateCode,
+            reference_year: referenceYear,
+            cache_status: cached.cacheStatus,
             match_type: cityResolution.matchType,
             confidence: cityResolution.confidence,
-            warning,
+            warning: [warning, cached.warning].filter(Boolean).join(' | ') || null,
         });
     } catch {
         try {
