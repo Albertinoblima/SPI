@@ -82,3 +82,20 @@ npm run sql:check
 - [Documentação Completa](./docs/sqlfluff-setup.md)
 - [Exemplos SQL](./supabase/sqlfluff-examples.sql)
 - [Configuração](../.sqlfluff.yaml)
+- [VSCode Config](../.vscode/README.md)
+
+## ⚙️ Configuração Automática do VSCode
+
+O projeto já inclui:
+1. **settings.json** - Habilita SQLFluff com auto-format
+2. **extensions.json** - Recomenda extensões (SQLFluff, Python, etc)
+3. **Dialeto PostgreSQL** - Configurado para evitar falsos positivos do MSSQL
+
+O linter MSSQL foi desabilitado para evitar conflitos.
+
+## ✅ Status
+
+✓ Configuração SQLFluff corrigida
+✓ VSCode settings.json atualizado  
+✓ Extensions recomendadas adicionadas
+✓ Documentação completa

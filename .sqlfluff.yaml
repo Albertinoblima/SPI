@@ -1,24 +1,16 @@
 # SQLFluff Configuration for PostgreSQL
 # Versionado em: 17 de maio de 2026
 # Dialeto: PostgreSQL
+# Compatibilidade: SQLFluff >= 2.0.0
 
-# Configuração geral
+# ============================================================================
+# CORE CONFIGURATION
+# ============================================================================
 core:
-  # Dialeto SQL (postgres para PostgreSQL)
   dialect: postgres
-  
-  # Codificação dos arquivos
   encoding: utf-8
-  
-  # Número máximo de linhas para processar
-  # (vazio = sem limite)
   max_line_length: 88
-  
-  # Erros críticos que devem falhar o linting
   ignore_errors: false
-  
-  # Diretórios a ignorar
-  exclude_rules: []
   
   # Padrões de ignorar (glob patterns)
   ignore_paths:
@@ -29,111 +21,126 @@ core:
     - build/
     - .git/
 
-# Regras de Linting
+# ============================================================================
+# FORMATTER CONFIGURATION
+# ============================================================================
+sqlfluff:
+  templater: raw
+  formatter: default
+  color: true
+
+# ============================================================================
+# LINTING RULES
+# ============================================================================
 rules:
   # L001: Espaçamento excessivo
-  capitalisation.keywords:
-    capitalisation_policy: consistent
+  capitalisation:
+    keywords: consistent
+    functions: consistent
+    types: consistent
+    identifiers: consistent
   
-  # L003: Espaçamento conflitante antes de vírgulas
+  # L002: Espaçamento esperado
   spacing:
-    allow_trailing_comma: false
+    spacing_before: touch
+    spacing_after: touch
   
-  # Indentação
-  indentation:
-    indent_unit: space
-    indent_size: 2
-    tab_space_size: 2
-  
-  # Separação de linhas
-  line_length:
-    max_line_length: 88
-    ignore_comments: false
-  
-  # Nomes de tabelas/colunas
-  naming_convention:
-    match_parentheses: true
-    select_clause_trailing_comma: forbid
-  
-  # Espaçamento em operadores
-  operator_spacing:
-    operator_new_lines: before
-  
-  # Alinhamento
-  alignment:
-    type: start_only
-    spacing_before: align
-    align_keywords: true
-    align_where_clauses: true
-  
-  # Trailing whitespace
-  trailing_whitespace: {}
-  
-  # Comma spacing
+  # L003: Espaçamento conflitante
   comma_spacing:
     spacing_before: forbid
     spacing_after: require
   
-  # Statement endings
-  statement_endings:
-    statement_terminator: semicolon
-    multiline_newline: true
+  # L004: Espaçamento desnecessário
+  indentation:
+    indent_unit: space
+    indent_size: 2
+    tab_space_size: 2
+    indent_before: switch
   
-  # No tabs
-  tab_space_size:
-    skip_errors: []
-  
-  # Não permitir espaços após parênteses de abertura
-  bracket_spacing:
-    type: start_of_line
-  
-  # Função capitalização
-  capitalisation.functions:
+  # L005: Capitalização
+  capitalisation_keywords:
     capitalisation_policy: consistent
   
-  # Tipos de dados capitalização
-  capitalisation.types:
-    capitalisation_policy: consistent
+  # L006: Operadores
+  operator_spacing:
+    and_or_newlines: align
   
-  # Reserved keyword capitalização
-  capitalisation.identifiers:
-    capitalisation_policy: consistent
+  # L009: Espaços depois de SELECT
+  select_trailing_comma:
+    select_clause_trailing_comma: forbid
   
-  # Unused aliases
-  references.qualification:
-    capitalisation_policy: consistent
-  
-  # CTE alias
-  aliasing.table:
+  # L010: Aliases
+  aliasing:
     aliasing: explicit
     allow_scalar: true
   
-  # Column aliases
-  aliasing.column:
+  # L011: Alias em SELECT
+  aliasing_tables:
     aliasing: explicit
-
-# Configuração de Formatação
-sqlfluff:
-  templater: raw
-  formatter: default
-
-# Regras de Segurança para PostgreSQL
-PostgreSQL-specific:
-  # Validar RLS policies
-  check_rls_enabled: false
   
-  # Avisar sobre funções não imutáveis
-  warn_non_immutable_functions: true
+  # L012: Alias em colunas
+  aliasing_columns:
+    aliasing: explicit
+  
+  # L030: Espaçamento de operadores
+  operator_new_lines:
+    operator_new_lines: before
+  
+  # L031: Não usar espaços de mais
+  layout:
+    type: start_only
+  
+  # L035: Semicolon terminator
+  statement_ends:
+    statement_terminator: semicolon
+  
+  # L039: Espaços desnecessários antes de parênteses
+  bracket_spacing:
+    # Mantém espaçamento consistente
+    spacing_before: forbid
+    spacing_after: forbid
+  
+  # L040: Esvaziar linhas
+  empty_lines:
+    blanks: 1
+    newline_count: 1
+  
+  # L042: Usar underscore em nomes
+  naming_convention:
+    match_parentheses: true
+  
+  # L043: Keywords em uppercase
+  keywords:
+    capitalisation_policy: consistent
+  
+  # L044: Type casting
+  types:
+    capitalisation_policy: consistent
+  
+  # L045: Wildcards em JOINs
+  select_clause_comma_newline: false
+  
+  # L047: Comparisons
+  comparison:
+    nulls_first: false
+  
+  # L048: Qualified column references
+  references:
+    qualification: unqualified
+  
+  # L050: Table aliases
+  table_alias:
+    aliasing: explicit
+  
+  # Trailing whitespace
+  trailing_whitespace: enable
 
-# Configuração de Saída
-core:
-  color: true
-  verbose: 0
-
-# Regras específicas desabilitadas (se necessário)
-# Deixe comentado e descomente conforme necessário
-
-# Exemplo: Desabilitar regra específica
+# ============================================================================
+# DISABLE/EXCLUDE SPECIFIC RULES (if needed)
+# ============================================================================
+# Exemplos (descomente conforme necessário):
 # rules:
 #   L001:
+#     disabled: true
+#   L009:
 #     disabled: true
