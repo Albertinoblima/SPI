@@ -8,7 +8,7 @@ SELECT
   name,
   email
 FROM users
-WHERE created_at > NOW() - INTERVAL '30 days'
+WHERE created_at > (NOW() - INTERVAL '30 days')
 ORDER BY created_at DESC;
 
 -- Exemplo 2: JOIN com múltiplas tabelas
@@ -124,4 +124,4 @@ FROM surveys;
 
 -- Exemplo 10: Comments para desabilitar regras
 -- sqlfluff:noqa:LT01
-SELECT  col1  FROM  table_name;  -- Desabilita regra L001 (espaçamento)
+SELECT  col1  FROM  users;  -- Desabilita regra L001 (espaçamento)
