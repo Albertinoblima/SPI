@@ -209,12 +209,12 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
 
                 // Retoma o wizard no último passo com dados preenchidos
                 const loadedLocalities = s.survey_localities ?? [];
-                const loadedPremises   = s.survey_premises ?? [];
-                const loadedQuestions  = s.questions ?? [];
-                if (loadedQuestions.length > 0)        setCurrentStep(5);
-                else if (loadedPremises.length > 0)    setCurrentStep(4);
-                else if (loadedLocalities.length > 0)  setCurrentStep(3);
-                else if (s.geographic_scope)           setCurrentStep(2);
+                const loadedPremises = s.survey_premises ?? [];
+                const loadedQuestions = s.questions ?? [];
+                if (loadedQuestions.length > 0) setCurrentStep(5);
+                else if (loadedPremises.length > 0) setCurrentStep(4);
+                else if (loadedLocalities.length > 0) setCurrentStep(3);
+                else if (s.geographic_scope) setCurrentStep(2);
                 // else: mantém step 1
             })
             .catch(() => setAlert({ type: 'error', message: 'Não foi possível carregar o rascunho.' }))
