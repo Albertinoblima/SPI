@@ -1,5 +1,10 @@
 import { NextRequest } from 'next/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { normalizeGeoText, resolveStateCode } from '@/lib/geo/br-reference';
 
 type IbgeCityResponse = {
@@ -218,11 +223,23 @@ export async function GET(request: NextRequest) {
             warning,
         });
     } catch {
-        return apiSuccess({
-            source: 'fallback',
-            population: null,
-            stateCode,
-            warning: 'Nao foi possivel consultar a populacao no IBGE no momento.',
-        });
+        try {
+            await trackedApiError(request, 'Falha ao consultar população no IBGE', 500, {
+                errorCode: 'EXTERNAL_API_FAILED',
+                metadata: { route: '/api/geo/population', stateParam, cityParam },
+            });
+
+            return apiSuccess({
+                source: 'fallback',
+                population: null,
+                stateCode,
+                warning: 'Nao foi possivel consultar a populacao no IBGE no momento.',
+            });
+        } catch (instrumentationError) {
+            return handleApiUnhandledError(request, instrumentationError, {
+                errorCode: 'API_UNHANDLED_EXCEPTION',
+                metadata: { route: '/api/geo/population' },
+            });
+        }
     }
 }

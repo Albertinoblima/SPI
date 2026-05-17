@@ -1,5 +1,10 @@
 import { NextRequest } from 'next/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { normalizeGeoText, resolveStateCode, BR_STATES } from '@/lib/geo/br-reference';
 import {
     getTseVoterList,
@@ -88,51 +93,63 @@ function resolveCity(uf: string, cityName: string): ResolveResult {
 // --------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const stateParam = searchParams.get('state')?.trim() ?? '';
-    const cityParam = searchParams.get('city')?.trim() ?? '';
+    try {
+        const { searchParams } = new URL(request.url);
+        const stateParam = searchParams.get('state')?.trim() ?? '';
+        const cityParam = searchParams.get('city')?.trim() ?? '';
 
-    if (!stateParam || !cityParam) {
-        return apiError('Parâmetros obrigatórios: state e city', 400);
-    }
+        if (!stateParam || !cityParam) {
+            return apiError('Parâmetros obrigatórios: state e city', 400);
+        }
 
-    if (!hasTseData()) {
-        return apiError(
-            'Dados do TSE ainda não foram gerados. Execute: powershell -ExecutionPolicy Bypass -File .\\scripts\\generate-tse-voters.ps1',
-            503
-        );
-    }
+        if (!hasTseData()) {
+            return apiError(
+                'Dados do TSE ainda não foram gerados. Execute: powershell -ExecutionPolicy Bypass -File .\\scripts\\generate-tse-voters.ps1',
+                503
+            );
+        }
 
-    // Resolve UF
-    const stateCode = resolveStateCode(stateParam);
-    if (!stateCode) {
-        return apiError(`Estado não reconhecido: "${stateParam}"`, 400);
-    }
-    const brState = BR_STATES.find((s) => s.code === stateCode);
-    const uf = brState?.uf ?? stateParam.toUpperCase().slice(0, 2);
+        // Resolve UF
+        const stateCode = resolveStateCode(stateParam);
+        if (!stateCode) {
+            return apiError(`Estado não reconhecido: "${stateParam}"`, 400);
+        }
+        const brState = BR_STATES.find((s) => s.code === stateCode);
+        const uf = brState?.uf ?? stateParam.toUpperCase().slice(0, 2);
 
-    const { city, matchType, confidence } = resolveCity(uf, cityParam);
+        const { city, matchType, confidence } = resolveCity(uf, cityParam);
 
-    if (!city) {
+        if (!city) {
+            return apiSuccess({
+                source: 'tse',
+                match_type: 'none',
+                warning: `Município "${cityParam}" não encontrado no ${uf}. Preencha o número de eleitores manualmente.`,
+            });
+        }
+
+        const proportions = computeProportions(city);
+
         return apiSuccess({
             source: 'tse',
-            match_type: 'none',
-            warning: `Município "${cityParam}" não encontrado no ${uf}. Preencha o número de eleitores manualmente.`,
+            total: city.total,
+            cityName: city.name,
+            uf: city.uf,
+            match_type: matchType,
+            confidence: Math.round(confidence * 1000) / 1000,
+            ...(matchType === 'smart' && {
+                warning: `Sugestão inteligente: "${city.name}" corresponde a "${cityParam}" com ${(confidence * 100).toFixed(1)}% de similaridade. Confirme antes de aplicar.`,
+            }),
+            proportions,
+        });
+    } catch (error) {
+        await trackedApiError(request, 'Falha ao consultar perfil de eleitores TSE', 500, {
+            errorCode: 'EXTERNAL_API_FAILED',
+            metadata: { route: '/api/geo/voters' },
+        });
+
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/geo/voters' },
         });
     }
-
-    const proportions = computeProportions(city);
-
-    return apiSuccess({
-        source: 'tse',
-        total: city.total,
-        cityName: city.name,
-        uf: city.uf,
-        match_type: matchType,
-        confidence: Math.round(confidence * 1000) / 1000,
-        ...(matchType === 'smart' && {
-            warning: `Sugestão inteligente: "${city.name}" corresponde a "${cityParam}" com ${(confidence * 100).toFixed(1)}% de similaridade. Confirme antes de aplicar.`,
-        }),
-        proportions,
-    });
 }

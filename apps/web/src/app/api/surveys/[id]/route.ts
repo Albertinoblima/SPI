@@ -2,7 +2,12 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 interface RouteParams { params: { id: string } }
 
@@ -158,8 +163,10 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
         return apiSuccess({ survey });
     } catch (error) {
-        console.error('GET /api/surveys/[id] error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(_req, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/surveys/[id]', operation: 'GET', surveyId: params.id },
+        });
     }
 }
 
@@ -257,8 +264,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .single();
 
         if (updateError) {
-            console.error('Supabase updateError:', JSON.stringify(updateError));
-            return apiError(`Erro ao atualizar pesquisa: ${updateError.message}`, 500);
+            return trackedApiError(request, `Erro ao atualizar pesquisa: ${updateError.message}`, 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: ctx.user.id,
+                tenantId: ctx.userData.tenant_id,
+                metadata: { route: '/api/surveys/[id]', operation: 'PUT', surveyId: params.id },
+            });
         }
 
         // Substituir localidades
@@ -319,8 +330,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         return apiSuccess({ survey: updated, message: 'Pesquisa atualizada com sucesso' });
     } catch (error) {
-        console.error('PUT /api/surveys/[id] error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/surveys/[id]', operation: 'PUT', surveyId: params.id },
+        });
     }
 }
 
@@ -357,14 +370,23 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
             .is('deleted_at', null)
             .select('id');
 
-        if (error) return apiError('Erro ao remover pesquisa', 500);
+        if (error) {
+            return trackedApiError(_req, 'Erro ao remover pesquisa', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: ctx.user.id,
+                tenantId: ctx.userData.tenant_id,
+                metadata: { route: '/api/surveys/[id]', operation: 'DELETE', surveyId: params.id },
+            });
+        }
         if (!deletedRows || deletedRows.length === 0) {
             return apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400);
         }
 
         return apiSuccess({ message: 'Pesquisa em rascunho removida com sucesso' });
     } catch (error) {
-        console.error('DELETE /api/surveys/[id] error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(_req, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/surveys/[id]', operation: 'DELETE', surveyId: params.id },
+        });
     }
 }

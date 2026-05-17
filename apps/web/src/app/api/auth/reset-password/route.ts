@@ -1,5 +1,10 @@
 import { NextRequest } from 'next/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { normalizeAuthErrorMessage, resetPasswordSchema } from '@/lib/auth/login';
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
 import { logAuthAuditEvent } from '@/lib/auth/audit';
@@ -87,7 +92,14 @@ export async function POST(request: NextRequest) {
             message: 'Senha redefinida com sucesso.',
         }));
     } catch (error) {
-        console.error('Reset password error:', error);
-        return apiError('Erro interno do servidor', 500);
+        await trackedApiError(request, 'Falha inesperada ao redefinir senha', 500, {
+            errorCode: 'USER_UPDATE_FAILED',
+            metadata: { route: '/api/auth/reset-password' },
+        });
+
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/auth/reset-password' },
+        });
     }
 }

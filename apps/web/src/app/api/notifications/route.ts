@@ -3,7 +3,12 @@
 import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 function createSupabase() {
     const cookieStore = cookies();
@@ -55,8 +60,11 @@ export async function GET(_request: NextRequest) {
 
         const { data: notifications, error } = await query;
         if (error) {
-            console.error('Notifications fetch error:', error);
-            return apiError('Erro ao buscar notificações', 500);
+            return trackedApiError(_request, 'Erro ao buscar notificações', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: user.id,
+                metadata: { route: '/api/notifications' },
+            });
         }
 
         // Buscar IDs lidos separadamente para calcular não lidas
@@ -75,7 +83,11 @@ export async function GET(_request: NextRequest) {
         const unreadCount = enriched.filter((n) => !n.is_read).length;
 
         return apiSuccess({ notifications: enriched, unread: unreadCount });
-    } catch {
-        return apiError('Erro interno', 500);
+    } catch (error) {
+        return handleApiUnhandledError(_request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: user.id,
+            metadata: { route: '/api/notifications' },
+        });
     }
 }

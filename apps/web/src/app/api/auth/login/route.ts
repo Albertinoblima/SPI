@@ -1,5 +1,10 @@
 import { NextRequest } from 'next/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import {
     getSafeRedirectPath,
     loginRequestSchema,
@@ -106,7 +111,14 @@ export async function POST(request: NextRequest) {
 
         return applyCookies(apiSuccess({ redirectTo }));
     } catch (error) {
-        console.error('Login error:', error);
-        return apiError('Erro interno do servidor', 500);
+        await trackedApiError(request, 'Falha inesperada no login', 500, {
+            errorCode: 'AUTH_FORBIDDEN',
+            metadata: { route: '/api/auth/login' },
+        });
+
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/auth/login' },
+        });
     }
 }

@@ -3,7 +3,12 @@ import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // aceita até 10MB para redimensionar
@@ -80,19 +85,32 @@ export async function POST(request: NextRequest) {
                 const { error: bucketError } = await adminSupabase.storage
                     .createBucket('company-assets', { public: true });
                 if (bucketError && !bucketError.message?.includes('already exists')) {
-                    console.error('Bucket creation error:', bucketError);
-                    return apiError('Erro ao criar bucket de armazenamento', 500);
+                    return trackedApiError(request, 'Erro ao criar bucket de armazenamento', 500, {
+                        errorCode: 'STORAGE_UPLOAD_FAILED',
+                        userId: user.id,
+                        tenantId: userData.tenant_id,
+                        metadata: { route: '/api/settings/logo', stage: 'create_bucket' },
+                    });
                 }
                 // Tenta o upload novamente
                 const { error: retryError } = await adminSupabase.storage
                     .from('company-assets')
                     .upload(filePath, finalBuffer, { contentType: finalContentType, upsert: true });
                 if (retryError) {
-                    console.error('Logo upload retry error:', retryError);
-                    return apiError('Erro ao fazer upload da logomarca', 500);
+                    return trackedApiError(request, 'Erro ao fazer upload da logomarca', 500, {
+                        errorCode: 'STORAGE_UPLOAD_FAILED',
+                        userId: user.id,
+                        tenantId: userData.tenant_id,
+                        metadata: { route: '/api/settings/logo', stage: 'upload_retry' },
+                    });
                 }
             } else {
-                return apiError('Erro ao fazer upload da logomarca', 500);
+                return trackedApiError(request, 'Erro ao fazer upload da logomarca', 500, {
+                    errorCode: 'STORAGE_UPLOAD_FAILED',
+                    userId: user.id,
+                    tenantId: userData.tenant_id,
+                    metadata: { route: '/api/settings/logo', stage: 'upload' },
+                });
             }
         }
 
@@ -117,13 +135,19 @@ export async function POST(request: NextRequest) {
                     message: 'Logomarca enviada com sucesso (execute a migration para persistir a URL)',
                 });
             }
-            console.error('Tenant logo update error:', updateError);
-            return apiError('Erro ao salvar URL da logomarca', 500);
+            return trackedApiError(request, 'Erro ao salvar URL da logomarca', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/settings/logo', stage: 'update_tenant_logo' },
+            });
         }
 
         return apiSuccess({ logo_url: logoUrl, message: 'Logomarca atualizada com sucesso' });
     } catch (error) {
-        console.error('POST /api/settings/logo error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/settings/logo' },
+        });
     }
 }

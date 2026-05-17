@@ -3,7 +3,12 @@
 import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 function createSupabase() {
     const cookieStore = cookies();
@@ -25,25 +30,33 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     const supabase = createSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!user || authError) return apiError('Não autenticado', 401);
 
-    const { data: ticket, error: ticketError } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('id', params.id)
-        .eq('user_id', user.id)
-        .single();
+    try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (!user || authError) return apiError('Não autenticado', 401);
 
-    if (ticketError || !ticket) return apiError('Ticket não encontrado', 404);
+        const { data: ticket, error: ticketError } = await supabase
+            .from('support_tickets')
+            .select('*')
+            .eq('id', params.id)
+            .eq('user_id', user.id)
+            .single();
 
-    const { data: messages } = await supabase
-        .from('support_messages')
-        .select('id, message, is_from_admin, created_at, sender_id, attachments')
-        .eq('ticket_id', params.id)
-        .order('created_at', { ascending: true });
+        if (ticketError || !ticket) return apiError('Ticket não encontrado', 404);
 
-    return apiSuccess({ ticket, messages: messages ?? [] });
+        const { data: messages } = await supabase
+            .from('support_messages')
+            .select('id, message, is_from_admin, created_at, sender_id, attachments')
+            .eq('ticket_id', params.id)
+            .order('created_at', { ascending: true });
+
+        return apiSuccess({ ticket, messages: messages ?? [] });
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/support/tickets/[id]', operation: 'GET', ticketId: params.id },
+        });
+    }
 }
 
 export async function POST(
@@ -51,50 +64,64 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     const supabase = createSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (!user || authError) return apiError('Não autenticado', 401);
 
-    const body = await request.json();
-    const { message, attachments } = body;
-    if (!message?.trim() && (!attachments || attachments.length === 0)) {
-        return apiError('Mensagem ou anexo é obrigatório', 400);
-    }
+    try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (!user || authError) return apiError('Não autenticado', 401);
 
-    // Verificar posse do ticket
-    const { data: ticket } = await supabase
-        .from('support_tickets')
-        .select('id, status')
-        .eq('id', params.id)
-        .eq('user_id', user.id)
-        .single();
+        const body = await request.json();
+        const { message, attachments } = body;
+        if (!message?.trim() && (!attachments || attachments.length === 0)) {
+            return apiError('Mensagem ou anexo é obrigatório', 400);
+        }
 
-    if (!ticket) return apiError('Ticket não encontrado', 404);
-    if (ticket.status === 'closed') return apiError('Ticket está fechado', 400);
-
-    const { data: newMsg, error: insertError } = await supabase
-        .from('support_messages')
-        .insert({
-            ticket_id: params.id,
-            sender_id: user.id,
-            message: (message ?? '').trim() || '📎 Arquivo anexado',
-            is_from_admin: false,
-            attachments: attachments ?? null,
-        })
-        .select()
-        .single();
-
-    if (insertError) return apiError('Erro ao enviar mensagem', 500);
-
-    // Reabrir ticket se estava aguardando usuário
-    if (ticket.status === 'waiting_user') {
-        await supabase
+        // Verificar posse do ticket
+        const { data: ticket } = await supabase
             .from('support_tickets')
-            .update({ status: 'in_progress' })
-            .eq('id', params.id);
+            .select('id, status')
+            .eq('id', params.id)
+            .eq('user_id', user.id)
+            .single();
+
+        if (!ticket) return apiError('Ticket não encontrado', 404);
+        if (ticket.status === 'closed') return apiError('Ticket está fechado', 400);
+
+        const { data: newMsg, error: insertError } = await supabase
+            .from('support_messages')
+            .insert({
+                ticket_id: params.id,
+                sender_id: user.id,
+                message: (message ?? '').trim() || '📎 Arquivo anexado',
+                is_from_admin: false,
+                attachments: attachments ?? null,
+            })
+            .select()
+            .single();
+
+        if (insertError) {
+            return trackedApiError(request, 'Erro ao enviar mensagem', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: user.id,
+                metadata: { route: '/api/support/tickets/[id]', operation: 'POST', ticketId: params.id },
+            });
+        }
+
+        // Reabrir ticket se estava aguardando usuário
+        if (ticket.status === 'waiting_user') {
+            await supabase
+                .from('support_tickets')
+                .update({ status: 'in_progress' })
+                .eq('id', params.id);
+        }
+
+        // Incrementar response_count
+        await supabase.rpc('increment_ticket_response_count', { ticket_uuid: params.id });
+
+        return apiSuccess({ message: newMsg }, 201);
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/support/tickets/[id]', operation: 'POST', ticketId: params.id },
+        });
     }
-
-    // Incrementar response_count
-    await supabase.rpc('increment_ticket_response_count', { ticket_uuid: params.id });
-
-    return apiSuccess({ message: newMsg }, 201);
 }

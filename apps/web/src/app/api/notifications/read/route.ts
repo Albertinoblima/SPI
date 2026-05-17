@@ -2,7 +2,12 @@
 import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 function createSupabase() {
     const cookieStore = cookies();
@@ -38,14 +43,26 @@ export async function POST(request: NextRequest) {
 
         if (ids && ids.length > 0) {
             // Marcar específicos como lidos (upsert ignora duplicatas)
-            await supabase.from('notification_reads').upsert(
+            const { error: upsertError } = await supabase.from('notification_reads').upsert(
                 ids.map((id: string) => ({ notification_id: id, user_id: user.id })),
                 { onConflict: 'notification_id,user_id', ignoreDuplicates: true }
             );
+
+            if (upsertError) {
+                return trackedApiError(request, 'Erro ao atualizar notificações lidas', 500, {
+                    errorCode: 'DB_WRITE_FAILED',
+                    userId: user.id,
+                    metadata: { route: '/api/notifications/read' },
+                });
+            }
         }
 
         return apiSuccess({ ok: true });
-    } catch {
-        return apiError('Erro interno', 500);
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: user.id,
+            metadata: { route: '/api/notifications/read' },
+        });
     }
 }

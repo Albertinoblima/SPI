@@ -1,7 +1,13 @@
 // GET /api/admin/tenants/list - Lista simplificada de tenants (id + name) para selects
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
@@ -21,12 +27,19 @@ export async function GET(request: NextRequest) {
             .limit(200);
 
         if (error) {
-            console.error('Tenants list error:', error);
-            return apiError('Erro ao buscar empresas', 500);
+            return trackedApiError(request, 'Erro ao buscar empresas', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/tenants/list' },
+            });
         }
 
         return apiSuccess({ tenants: tenants ?? [] });
-    } catch {
-        return apiError('Erro interno', 500);
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/tenants/list' },
+        });
     }
 }

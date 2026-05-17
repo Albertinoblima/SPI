@@ -4,6 +4,7 @@ import {
     requireSystemAdmin,
     apiError,
     apiSuccess,
+    trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
 
@@ -214,6 +215,12 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
+        await trackedApiError(request, 'Falha ao gerar diagnóstico de saúde do sistema', 500, {
+            errorCode: 'API_HTTP_5XX',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/system/health' },
+        });
+
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
             userId: auth.user.id,

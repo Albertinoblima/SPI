@@ -2,7 +2,14 @@
 // PUT /api/admin/support/tickets/[id] - Atualizar ticket (status, atribuição)
 // POST /api/admin/support/tickets/[id]/messages - Adicionar mensagem de resposta
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSystemAdmin, requireTenantAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    requireSystemAdmin,
+    requireTenantAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { createClient } from '@supabase/supabase-js';
 
 function adminDb() {
@@ -79,8 +86,11 @@ export async function GET(
             messages,
         });
     } catch (error) {
-        console.error('Erro ao buscar ticket:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/support/tickets/[id]', operation: 'GET', ticketId: params.id },
+        });
     }
 }
 
@@ -128,13 +138,20 @@ export async function PUT(
             .select();
 
         if (updateError) {
-            return apiError('Erro ao atualizar ticket', 500);
+            return trackedApiError(request, 'Erro ao atualizar ticket', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/support/tickets/[id]', operation: 'PUT', ticketId },
+            });
         }
 
         return apiSuccess({ ticket: updated[0] });
     } catch (error) {
-        console.error('Erro ao atualizar ticket:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/support/tickets/[id]', operation: 'PUT', ticketId: params.id },
+        });
     }
 }
 
@@ -185,7 +202,11 @@ export async function POST(
             .select();
 
         if (insertError) {
-            return apiError('Erro ao adicionar mensagem', 500);
+            return trackedApiError(request, 'Erro ao adicionar mensagem', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/support/tickets/[id]', operation: 'POST', ticketId },
+            });
         }
 
         // Atualizar contador e last_response_at do ticket
@@ -200,7 +221,10 @@ export async function POST(
 
         return apiSuccess({ message: newMessage[0] }, 201);
     } catch (error) {
-        console.error('Erro ao adicionar mensagem:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/support/tickets/[id]', operation: 'POST', ticketId: params.id },
+        });
     }
 }

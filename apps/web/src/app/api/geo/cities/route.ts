@@ -1,5 +1,10 @@
 import { NextRequest } from 'next/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { getFallbackCitiesByState, resolveStateCode } from '@/lib/geo/br-reference';
 
 type IbgeCityResponse = {
@@ -48,11 +53,23 @@ export async function GET(request: NextRequest) {
             cities,
             stateCode,
         });
-    } catch {
-        return apiSuccess({
-            source: 'fallback',
-            cities: getFallbackCitiesByState(stateParam),
-            stateCode,
-        });
+    } catch (error) {
+        try {
+            await trackedApiError(request, 'Falha ao consultar cidades no IBGE', 500, {
+                errorCode: 'EXTERNAL_API_FAILED',
+                metadata: { route: '/api/geo/cities', stateParam },
+            });
+
+            return apiSuccess({
+                source: 'fallback',
+                cities: getFallbackCitiesByState(stateParam),
+                stateCode,
+            });
+        } catch (instrumentationError) {
+            return handleApiUnhandledError(request, instrumentationError, {
+                errorCode: 'API_UNHANDLED_EXCEPTION',
+                metadata: { route: '/api/geo/cities' },
+            });
+        }
     }
 }

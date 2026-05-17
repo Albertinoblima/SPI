@@ -6,6 +6,7 @@ import {
     apiError,
     apiSuccess,
     handleApiUnhandledError,
+    trackedApiError,
 } from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
@@ -101,12 +102,19 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (error) {
-            console.error('Broadcast error:', error);
-            return apiError('Erro ao enviar notificação', 500);
+            return trackedApiError(request, 'Erro ao enviar notificação', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/notifications', operation: 'POST' },
+            });
         }
 
         return apiSuccess({ notification: data }, 201);
-    } catch {
-        return apiError('Erro interno', 500);
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/notifications', operation: 'POST' },
+        });
     }
 }

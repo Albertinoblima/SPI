@@ -1,6 +1,12 @@
 // GET /api/admin/audit-log - Listar logs de auditoria do sistema
-import { NextRequest, NextResponse } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import { NextRequest } from 'next/server';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
@@ -39,7 +45,11 @@ export async function GET(request: NextRequest) {
             .range(offset, offset + pageSize - 1);
 
         if (fetchError) {
-            return apiError('Erro ao buscar logs de auditoria', 500);
+            return trackedApiError(request, 'Erro ao buscar logs de auditoria', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/audit-log' },
+            });
         }
 
         // Enriquecer com informações de usuário
@@ -71,7 +81,10 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error('Erro ao buscar logs de auditoria:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/audit-log' },
+        });
     }
 }

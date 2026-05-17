@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { forgotPasswordSchema } from '@/lib/auth/login';
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
 import { getUserAuditContextByEmail, logAuthAuditEvent } from '@/lib/auth/audit';
@@ -92,14 +97,24 @@ export async function POST(request: NextRequest) {
         });
 
         if (error) {
-            return apiError('Não foi possível iniciar a redefinição de senha agora. Tente novamente.', 500);
+            return trackedApiError(
+                request,
+                'Não foi possível iniciar a redefinição de senha agora. Tente novamente.',
+                500,
+                {
+                    errorCode: 'AUTH_FORBIDDEN',
+                    metadata: { route: '/api/auth/forgot-password' },
+                }
+            );
         }
 
         return apiSuccess({
             message: 'Se o email existir, enviamos um link seguro para redefinição de senha.',
         });
     } catch (error) {
-        console.error('Forgot password error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/auth/forgot-password' },
+        });
     }
 }

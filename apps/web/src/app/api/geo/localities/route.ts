@@ -14,7 +14,12 @@
  */
 
 import { NextRequest } from 'next/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 import { normalizeGeoText, resolveStateCode } from '@/lib/geo/br-reference';
 
 type IbgeMunicipio = { id: number; nome: string };
@@ -124,11 +129,23 @@ export async function GET(request: NextRequest) {
             localities: result,
         });
     } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return apiSuccess({
-            source: 'fallback',
-            localities: [],
-            warning: `Erro ao consultar IBGE: ${message}`,
-        });
+        try {
+            const message = err instanceof Error ? err.message : String(err);
+            await trackedApiError(request, 'Falha ao consultar localidades no IBGE', 500, {
+                errorCode: 'EXTERNAL_API_FAILED',
+                metadata: { route: '/api/geo/localities', cityParam, stateParam, reason: message },
+            });
+
+            return apiSuccess({
+                source: 'fallback',
+                localities: [],
+                warning: `Erro ao consultar IBGE: ${message}`,
+            });
+        } catch (instrumentationError) {
+            return handleApiUnhandledError(request, instrumentationError, {
+                errorCode: 'API_UNHANDLED_EXCEPTION',
+                metadata: { route: '/api/geo/localities' },
+            });
+        }
     }
 }

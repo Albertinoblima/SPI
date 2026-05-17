@@ -3,7 +3,12 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 type SurveyLegalFields = {
     is_registered_research?: boolean;
@@ -99,7 +104,7 @@ function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingF
     return fields;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const supabase = createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -123,12 +128,21 @@ export async function GET() {
             .is('deleted_at', null)
             .order('created_at', { ascending: false });
 
-        if (error) return apiError('Erro ao listar pesquisas', 500);
+        if (error) {
+            return trackedApiError(request, 'Erro ao listar pesquisas', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/surveys', operation: 'GET' },
+            });
+        }
 
         return apiSuccess({ surveys });
     } catch (error) {
-        console.error('GET /api/surveys error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/surveys', operation: 'GET' },
+        });
     }
 }
 
@@ -241,13 +255,24 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (surveyError || !survey) {
-            console.error('Survey creation error:', JSON.stringify(surveyError));
-            return apiError(`Erro ao criar pesquisa: ${surveyError?.message ?? 'desconhecido'} [${surveyError?.code ?? ''}]`, 500);
+            return trackedApiError(
+                request,
+                `Erro ao criar pesquisa: ${surveyError?.message ?? 'desconhecido'} [${surveyError?.code ?? ''}]`,
+                500,
+                {
+                    errorCode: 'DB_WRITE_FAILED',
+                    userId: user.id,
+                    tenantId: userData.tenant_id,
+                    metadata: { route: '/api/surveys', operation: 'POST' },
+                }
+            );
         }
 
         return apiSuccess({ survey }, 201);
     } catch (error) {
-        console.error('POST /api/surveys error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/surveys', operation: 'POST' },
+        });
     }
 }

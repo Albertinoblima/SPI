@@ -1,6 +1,12 @@
 // GET /api/admin/support/tickets - Listar tickets de suporte
-import { NextRequest, NextResponse } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import { NextRequest } from 'next/server';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
@@ -41,8 +47,11 @@ export async function GET(request: NextRequest) {
             .range(offset, offset + pageSize - 1);
 
         if (fetchError) {
-            console.error('Fetch error:', fetchError);
-            return apiError('Erro ao buscar tickets', 500);
+            return trackedApiError(request, 'Erro ao buscar tickets', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/support/tickets' },
+            });
         }
 
         // Enriquecer com dados de usuário da tabela public.users
@@ -80,7 +89,10 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error('Erro ao buscar tickets:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/support/tickets' },
+        });
     }
 }

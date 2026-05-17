@@ -1,10 +1,16 @@
 // GET /api/dashboard — métricas e pesquisas recentes para a tela inicial
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const supabase = createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -65,7 +71,9 @@ export async function GET() {
             onboarding_complete: onboardingComplete,
         });
     } catch (error) {
-        console.error('GET /api/dashboard error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/dashboard' },
+        });
     }
 }

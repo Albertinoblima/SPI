@@ -2,11 +2,16 @@
 // PUT /api/settings/company - Atualiza dados da empresa
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const supabase = createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -37,8 +42,10 @@ export async function GET() {
 
         return apiSuccess({ tenant });
     } catch (error) {
-        console.error('GET /api/settings/company error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/settings/company', operation: 'GET' },
+        });
     }
 }
 
@@ -92,13 +99,19 @@ export async function PUT(request: NextRequest) {
             .single();
 
         if (updateError) {
-            console.error('Tenant update error:', updateError);
-            return apiError('Erro ao atualizar dados da empresa', 500);
+            return trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/settings/company', operation: 'PUT' },
+            });
         }
 
         return apiSuccess({ tenant: updated, message: 'Dados atualizados com sucesso' });
     } catch (error) {
-        console.error('PUT /api/settings/company error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/settings/company', operation: 'PUT' },
+        });
     }
 }

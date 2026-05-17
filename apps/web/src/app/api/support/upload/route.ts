@@ -3,7 +3,12 @@ import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -69,8 +74,11 @@ export async function POST(request: NextRequest) {
             });
 
         if (uploadError) {
-            console.error('Upload error:', uploadError);
-            return apiError('Erro ao fazer upload', 500);
+            return trackedApiError(request, 'Erro ao fazer upload', 500, {
+                errorCode: 'STORAGE_UPLOAD_FAILED',
+                userId: user.id,
+                metadata: { route: '/api/support/upload', ticketId },
+            });
         }
 
         // Gerar URL pública (bucket público) ou signed URL (bucket privado)
@@ -84,8 +92,10 @@ export async function POST(request: NextRequest) {
             type: file.type,
             size: file.size,
         }, 201);
-    } catch (err) {
-        console.error('Upload exception:', err);
-        return apiError('Erro interno', 500);
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/support/upload' },
+        });
     }
 }

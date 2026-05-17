@@ -4,7 +4,12 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 interface RouteParams {
     params: { id: string };
@@ -35,8 +40,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
         return apiSuccess({ member });
     } catch (error) {
-        console.error('GET /api/team/[id] error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(_request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/team/[id]', operation: 'GET', memberId: params.id },
+        });
     }
 }
 
@@ -107,8 +114,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .single();
 
         if (updateError) {
-            console.error('Member update error:', updateError);
-            return apiError('Erro ao atualizar membro', 500);
+            return trackedApiError(request, 'Erro ao atualizar membro', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/team/[id]', operation: 'PUT', memberId: params.id },
+            });
         }
 
         // Se nova senha for fornecida, atualizar no auth
@@ -116,15 +127,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             if (password.length < 8) return apiError('A senha deve ter no mínimo 8 caracteres', 400);
             const { error: pwError } = await adminSupabase.auth.admin.updateUserById(params.id, { password });
             if (pwError) {
-                console.error('Password update error:', pwError);
+                await trackedApiError(request, 'Falha ao atualizar senha de membro', 500, {
+                    errorCode: 'USER_UPDATE_FAILED',
+                    userId: user.id,
+                    tenantId: userData.tenant_id,
+                    metadata: { route: '/api/team/[id]', operation: 'PUT', memberId: params.id, stage: 'update_password' },
+                });
+
                 return apiError('Dados atualizados, mas houve erro ao atualizar senha', 207);
             }
         }
 
         return apiSuccess({ member: updated, message: 'Membro atualizado com sucesso' });
     } catch (error) {
-        console.error('PUT /api/team/[id] error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/team/[id]', operation: 'PUT', memberId: params.id },
+        });
     }
 }
 
@@ -164,13 +183,19 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             .eq('id', params.id);
 
         if (deactivateError) {
-            console.error('Member deactivate error:', deactivateError);
-            return apiError('Erro ao desativar membro', 500);
+            return trackedApiError(_request, 'Erro ao desativar membro', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/team/[id]', operation: 'DELETE', memberId: params.id },
+            });
         }
 
         return apiSuccess({ message: 'Membro desativado com sucesso' });
     } catch (error) {
-        console.error('DELETE /api/team/[id] error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(_request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/team/[id]', operation: 'DELETE', memberId: params.id },
+        });
     }
 }

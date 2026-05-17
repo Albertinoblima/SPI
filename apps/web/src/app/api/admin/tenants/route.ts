@@ -1,6 +1,12 @@
 // GET /api/admin/tenants - Listar todos os tenants com estatísticas
 import { NextRequest } from 'next/server';
-import { requireSystemAdmin, apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    requireSystemAdmin,
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
@@ -69,7 +75,11 @@ export async function GET(request: NextRequest) {
         const { data: tenants, count, error: fetchError } = await query;
 
         if (fetchError) {
-            return apiError('Erro ao buscar tenants', 500);
+            return trackedApiError(request, 'Erro ao buscar tenants', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: auth.user.id,
+                metadata: { route: '/api/admin/tenants' },
+            });
         }
 
         // Enriquecer com estatísticas
@@ -98,7 +108,10 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error('Erro ao buscar tenants:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/tenants' },
+        });
     }
 }

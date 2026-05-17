@@ -3,9 +3,14 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const supabase = createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -26,14 +31,20 @@ export async function GET() {
             .order('full_name');
 
         if (membersError) {
-            console.error('Team list error:', membersError);
-            return apiError('Erro ao buscar equipe', 500);
+            return trackedApiError(request, 'Erro ao buscar equipe', 500, {
+                errorCode: 'DB_QUERY_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/team', operation: 'GET' },
+            });
         }
 
         return apiSuccess({ members });
     } catch (error) {
-        console.error('GET /api/team error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/team', operation: 'GET' },
+        });
     }
 }
 
@@ -110,8 +121,12 @@ export async function POST(request: NextRequest) {
             if (createAuthError?.message?.includes('already registered')) {
                 return apiError('Este e-mail já está cadastrado no sistema', 409);
             }
-            console.error('Create auth user error:', createAuthError);
-            return apiError('Erro ao criar usuário', 500);
+            return trackedApiError(request, 'Erro ao criar usuário', 500, {
+                errorCode: 'USER_SAVE_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/team', operation: 'POST', stage: 'create_auth_user' },
+            });
         }
 
         // Criar perfil
@@ -132,13 +147,19 @@ export async function POST(request: NextRequest) {
 
         if (profileError) {
             await adminSupabase.auth.admin.deleteUser(authData.user.id);
-            console.error('Profile creation error:', profileError);
-            return apiError('Erro ao criar perfil do membro', 500);
+            return trackedApiError(request, 'Erro ao criar perfil do membro', 500, {
+                errorCode: 'USER_SAVE_FAILED',
+                userId: user.id,
+                tenantId: userData.tenant_id,
+                metadata: { route: '/api/team', operation: 'POST', stage: 'create_profile' },
+            });
         }
 
         return apiSuccess({ member: newMember, message: 'Membro criado com sucesso' }, 201);
     } catch (error) {
-        console.error('POST /api/team error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/team', operation: 'POST' },
+        });
     }
 }

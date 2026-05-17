@@ -1,7 +1,12 @@
 // POST /api/auth/register - Registro completo de empresa + admin
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { apiError, apiSuccess } from '@/lib/api-middleware';
+import {
+    apiError,
+    apiSuccess,
+    trackedApiError,
+    handleApiUnhandledError,
+} from '@/lib/api-middleware';
 
 function slugify(text: string): string {
     return text
@@ -61,8 +66,10 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (tenantError || !tenant) {
-            console.error('Tenant creation error:', tenantError);
-            return apiError('Erro ao criar empresa', 500);
+            return trackedApiError(request, 'Erro ao criar empresa', 500, {
+                errorCode: 'DB_WRITE_FAILED',
+                metadata: { route: '/api/auth/register', stage: 'create_tenant' },
+            });
         }
 
         // 4. Criar usuário auth (confirmado, sem email de verificação)
@@ -76,8 +83,10 @@ export async function POST(request: NextRequest) {
         if (authError || !authData?.user) {
             // Rollback: remover tenant criado
             await adminSupabase.from('tenants').delete().eq('id', tenant.id);
-            console.error('Auth user creation error:', authError);
-            return apiError('Erro ao criar usuário', 500);
+            return trackedApiError(request, 'Erro ao criar usuário', 500, {
+                errorCode: 'USER_SAVE_FAILED',
+                metadata: { route: '/api/auth/register', stage: 'create_auth_user' },
+            });
         }
 
         // 5. Criar perfil em public.users
@@ -97,8 +106,10 @@ export async function POST(request: NextRequest) {
             // Rollback: remover usuário auth e tenant
             await adminSupabase.auth.admin.deleteUser(authData.user.id);
             await adminSupabase.from('tenants').delete().eq('id', tenant.id);
-            console.error('Profile creation error:', profileError);
-            return apiError('Erro ao criar perfil de usuário', 500);
+            return trackedApiError(request, 'Erro ao criar perfil de usuário', 500, {
+                errorCode: 'USER_SAVE_FAILED',
+                metadata: { route: '/api/auth/register', stage: 'create_profile' },
+            });
         }
 
         return apiSuccess({
@@ -107,7 +118,9 @@ export async function POST(request: NextRequest) {
         }, 201);
 
     } catch (error) {
-        console.error('Register error:', error);
-        return apiError('Erro interno do servidor', 500);
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            metadata: { route: '/api/auth/register' },
+        });
     }
 }
