@@ -71,6 +71,7 @@ export default function TeamPage() {
     const [deactivateTarget, setDeactivateTarget] = useState<Member | null>(null);
     const [deactivating, setDeactivating] = useState(false);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchMembers(); }, []);
 
     async function fetchMembers() {

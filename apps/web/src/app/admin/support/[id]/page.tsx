@@ -229,6 +229,7 @@ export default function AdminTicketDetailPage() {
                                             {msg.attachments.map((att, i) => (
                                                 att.type.startsWith('image/') ? (
                                                     <a key={i} href={att.url} target="_blank" rel="noopener noreferrer">
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                         <img src={att.url} alt={att.name} className="max-w-full rounded-lg max-h-48 object-cover border border-white/20" />
                                                     </a>
                                                 ) : (

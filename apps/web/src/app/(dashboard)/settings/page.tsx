@@ -77,6 +77,7 @@ function SettingsContent() {
 
     useEffect(() => {
         fetchTenant();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function fetchTenant() {
@@ -235,6 +236,7 @@ function SettingsContent() {
                             {uploadingLogo ? (
                                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                             ) : logoPreview ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                     src={logoPreview}
                                     alt="Logomarca"

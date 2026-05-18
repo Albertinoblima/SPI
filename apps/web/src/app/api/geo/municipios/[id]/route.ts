@@ -3,6 +3,19 @@ import { apiError, apiSuccess, handleApiUnhandledError, requireTenantAdmin } fro
 
 type Params = { params: { id: string } };
 
+type LocalidadeConsulta = {
+    localidade_id: number;
+    localidade: string;
+    tipo_localidade: string;
+    zona: 'URBANA' | 'RURAL' | string | null;
+    total_habitantes: number;
+    total_eleitores: number;
+    percentual_eleitores_populacao: number | null;
+    metodo_vinculo_eleitoral: string | null;
+    fonte: string | null;
+    ibge_id: number | null;
+};
+
 export async function GET(request: NextRequest, { params }: Params) {
     const auth = await requireTenantAdmin(request);
     if (!auth.isAuthorized) {
@@ -49,7 +62,7 @@ export async function GET(request: NextRequest, { params }: Params) {
         }
 
         // Estatisticas calculadas pelo backend
-        const localidades = localidadesRes.data ?? [];
+        const localidades = (localidadesRes.data ?? []) as unknown as LocalidadeConsulta[];
 
         const stats = {
             total_localidades: localidades.length,

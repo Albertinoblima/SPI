@@ -139,6 +139,7 @@ export default function SupportPage() {
             }, 8000);
             return () => { if (pollRef.current) clearInterval(pollRef.current); };
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTicket?.id]);
 
     useEffect(() => {

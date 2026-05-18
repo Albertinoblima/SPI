@@ -75,6 +75,7 @@ function AttachmentPreview({ att, onRemove }: { att: Attachment & { preview?: st
     return (
         <div className="relative inline-flex items-center gap-2 bg-slate-100 rounded-lg px-2 py-1.5 text-xs text-slate-700 max-w-[180px]">
             {isImage && att.preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={att.preview} alt={att.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
             ) : isImage ? (
                 <ImageIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
@@ -99,6 +100,7 @@ function MessageAttachments({ attachments }: { attachments: Attachment[] }) {
                 if (isImage) {
                     return (
                         <a key={i} href={att.url} target="_blank" rel="noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={att.url} alt={att.name} className="max-w-[180px] max-h-[160px] rounded-lg object-cover border border-slate-200 hover:opacity-90 transition" />
                         </a>
                     );
