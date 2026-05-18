@@ -16,6 +16,7 @@ import {
     type GeoScope,
 } from '@/lib/survey-decisions';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
+import { normalizeGeoText } from '@/lib/geo/br-reference';
 import type { SurveyTechData, PopulationType } from './Step1TechnicalData';
 
 // --- Tipos ---
@@ -653,6 +654,11 @@ export function Step2Localities({
                                         </datalist>
                                         {loadingLocalities && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
                                     </div>
+                                    {!loadingLocalities && ibgeLocalities.length === 1 && normalizeGeoText(ibgeLocalities[0].name) === normalizeGeoText(cascadeCityForLocalities) && (
+                                        <p className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                                            Este município não possui subdivisões cadastradas no IBGE. Você pode digitar o nome da localidade manualmente (ex: bairro, vila, distrito).
+                                        </p>
+                                    )}
 
                                     {/* Zona: auto-preenchida, mas editavel */}
                                     <div className="mt-3">

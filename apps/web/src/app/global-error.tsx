@@ -10,22 +10,44 @@ export default function GlobalError({
     reset: () => void;
 }) {
     useEffect(() => {
-        void fetch('/api/system/errors/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                errorCode: 'CLIENT_RUNTIME_ERROR',
-                errorMessage: error.message,
-                severity: 'critical',
-                metadata: {
-                    digest: error.digest,
-                    stack: error.stack,
-                },
-            }),
-            keepalive: true,
-        }).catch(() => {
-            // Evita loop de erro no fallback.
-        });
+        const reportErrorWithRetry = async () => {
+            const maxAttempts = 3;
+            const baseDelay = 200;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+                    await fetch('/api/system/errors/ingest', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            errorCode: 'CLIENT_RUNTIME_ERROR',
+                            errorMessage: error.message,
+                            severity: 'critical',
+                            metadata: {
+                                digest: error.digest,
+                                stack: error.stack,
+                            },
+                        }),
+                        keepalive: true,
+                        signal: controller.signal,
+                    });
+
+                    clearTimeout(timeoutId);
+                    return; // Success
+                } catch {
+                    // Retry com backoff
+                    if (attempt < maxAttempts - 1) {
+                        const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            }
+        };
+
+        void reportErrorWithRetry();
     }, [error]);
 
     return (

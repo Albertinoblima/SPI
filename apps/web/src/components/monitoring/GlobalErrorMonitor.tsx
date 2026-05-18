@@ -26,6 +26,63 @@ export default function GlobalErrorMonitor() {
             return true;
         };
 
+        const reportWithRetry = async (
+            payload: ReportPayload,
+            maxAttempts: number = 3,
+            baseDelay: number = 200
+        ): Promise<void> => {
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+                    const response = await originalFetch('/api/system/errors/ingest', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...payload,
+                            metadata: {
+                                ...(payload.metadata ?? {}),
+                                href: window.location.href,
+                                pathname: window.location.pathname,
+                            },
+                        }),
+                        keepalive: true,
+                        signal: controller.signal,
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        return; // Success
+                    }
+
+                    // Se receber erro 4xx (exceto 429), não fazer retry
+                    if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+                        return;
+                    }
+
+                    // Se for última tentativa, desistir
+                    if (attempt === maxAttempts - 1) {
+                        return;
+                    }
+
+                    // Exponential backoff com jitter
+                    const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } catch (error) {
+                    // Se for última tentativa ou erro não é de rede, parar
+                    if (attempt === maxAttempts - 1) {
+                        return;
+                    }
+
+                    // Exponential backoff com jitter
+                    const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        };
+
         const report = async (payload: ReportPayload) => {
             const fingerprint = `${payload.errorCode}:${payload.errorMessage}`;
             if (!shouldSend(fingerprint)) {
@@ -33,19 +90,7 @@ export default function GlobalErrorMonitor() {
             }
 
             try {
-                await originalFetch('/api/system/errors/ingest', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...payload,
-                        metadata: {
-                            ...(payload.metadata ?? {}),
-                            href: window.location.href,
-                            pathname: window.location.pathname,
-                        },
-                    }),
-                    keepalive: true,
-                });
+                await reportWithRetry(payload);
             } catch {
                 // Silencioso para nao interferir na UX.
             }

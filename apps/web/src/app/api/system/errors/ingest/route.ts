@@ -6,6 +6,8 @@ import {
 import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
 export async function POST(request: NextRequest) {
+    const correlationId = request.headers.get('x-correlation-id') || crypto.randomUUID();
+
     try {
         const body = await request.json();
 
@@ -32,6 +34,7 @@ export async function POST(request: NextRequest) {
             errorCode,
             errorMessage,
             severity,
+            correlationId,
             httpStatusCode:
                 typeof body.httpStatusCode === 'number' ? body.httpStatusCode : undefined,
             metadata:
@@ -42,6 +45,7 @@ export async function POST(request: NextRequest) {
 
         return apiSuccess({ accepted: true, correlationId: result.correlationId }, 202);
     } catch (error) {
+        console.error(`[errors/ingest] Erro ao processar payload [${correlationId}]:`, error);
         return apiError('Payload de monitoramento inválido', 400);
     }
 }
