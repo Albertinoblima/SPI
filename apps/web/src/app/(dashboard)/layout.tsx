@@ -16,6 +16,7 @@ import {
     Moon,
     Menu,
     X,
+    Globe2,
 } from 'lucide-react';
 import ChatWidget from '@/components/support/ChatWidget';
 import TenantNotificationBell from '@/components/notifications/TenantNotificationBell';
@@ -29,6 +30,7 @@ interface DashboardLayoutProps {
 const navItems = [
     { label: 'Início', href: '/dashboard', icon: BarChart3 },
     { label: 'Pesquisas', href: '/surveys', icon: FileText },
+    { label: 'Municípios', href: '/municipios', icon: Globe2 },
     { label: 'Equipe', href: '/team', icon: Users },
     { label: 'Suporte', href: '/support', icon: LifeBuoy },
     { label: 'Ajuda', href: '/help', icon: CircleHelp },

@@ -19,6 +19,11 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+/* Barras de progresso dinâmicas - usa CSS custom property para evitar inline style */
+[data-progress-bar] {
+    width: var(--progress-width, 0%);
+}
+
 /* Garante que tabelas em cards não quebrem o layout mobile */
 .table-responsive {
     overflow-x: auto;
