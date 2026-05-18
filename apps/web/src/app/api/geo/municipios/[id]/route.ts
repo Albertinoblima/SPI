@@ -4,7 +4,7 @@ import { apiError, apiSuccess, handleApiUnhandledError, requireTenantAdmin } fro
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
-    const auth = await requireAuth(request);
+    const auth = await requireTenantAdmin(request);
     if (!auth.isAuthorized) {
         return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
     }
