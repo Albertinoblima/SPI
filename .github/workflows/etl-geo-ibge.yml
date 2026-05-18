@@ -1,0 +1,70 @@
+name: ETL Geográfico IBGE
+
+on:
+  schedule:
+    # Todo dia 1 de janeiro às 03:00 UTC (00:00 Brasília) — dados IBGE mudam raramente
+    - cron: '0 3 1 1 *'
+  workflow_dispatch:
+    # Permite disparo manual via GitHub UI com parâmetros
+    inputs:
+      ufs:
+        description: 'UFs a processar (ex: PE SP RJ) — deixe vazio para todas'
+        required: false
+        default: ''
+      skip_tse:
+        description: 'Pular dados eleitorais TSE?'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  etl-geo:
+    name: Carregar municípios e localidades IBGE
+    runs-on: ubuntu-latest
+    timeout-minutes: 240  # 4 horas — todas as UFs levam ~3h
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements-etl.txt
+
+      - name: Instalar dependências
+        run: pip install -r scripts/requirements-etl.txt
+
+      - name: Criar .env.local com credenciais
+        run: |
+          mkdir -p apps/web
+          cat > apps/web/.env.local <<EOF
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EOF
+
+      - name: Executar ETL (todas as UFs)
+        if: ${{ github.event.inputs.ufs == '' || github.event_name == 'schedule' }}
+        run: |
+          SKIP_TSE=""
+          if [ "${{ github.event.inputs.skip_tse }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then
+            SKIP_TSE="--skip-tse"
+          fi
+          python scripts/etl_geo_ibge_tse_v2.py --all-ufs $SKIP_TSE
+
+      - name: Executar ETL (UFs específicas)
+        if: ${{ github.event.inputs.ufs != '' && github.event_name != 'schedule' }}
+        run: |
+          SKIP_TSE=""
+          if [ "${{ github.event.inputs.skip_tse }}" = "true" ]; then
+            SKIP_TSE="--skip-tse"
+          fi
+          python scripts/etl_geo_ibge_tse_v2.py --ufs ${{ github.event.inputs.ufs }} $SKIP_TSE
