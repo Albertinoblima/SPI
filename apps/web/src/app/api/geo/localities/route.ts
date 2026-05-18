@@ -63,6 +63,15 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 /**
+ * Expande abreviaturas oficiais do IBGE para nomes legíveis pelo usuário.
+ * Ex: "RPA 01" → "Região Político-Administrativa 01"
+ */
+function expandAbbreviation(nome: string): string {
+    return nome
+        .replace(/^RPA\s*(\d+)$/i, 'Região Político-Administrativa $1');
+}
+
+/**
  * Heurística simples de zona:
  * - Distritos cujo nome é igual ao município = sede urbana
  * - Demais distritos = considerar como rural (sem dados mais finos disponíveis via IBGE v1)
@@ -88,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const normalizedCity = normalizeGeoText(cityParam);
-        const cacheKey = `ibge:localities:state:${stateCode}:city:${normalizedCity}`;
+        const cacheKey = `ibge:localities:v2:state:${stateCode}:city:${normalizedCity}`;
 
         const cached = await getOrRefreshGeoCache<LocalitiesPayload>({
             cacheKey,
@@ -122,14 +131,14 @@ export async function GET(request: NextRequest) {
 
                 for (const d of distritos) {
                     const zone = inferZone(d.nome, city.nome);
-                    localities.push({ name: d.nome, zone, ibge_id: d.id });
+                    localities.push({ name: expandAbbreviation(d.nome), zone, ibge_id: d.id });
 
                     // 3 — Carrega subdistritos (bairros oficiais) — apenas para sede urbana para evitar excesso de chamadas
                     if (zone === 'urban') {
                         try {
                             const subs = await fetchJson<IbgeSubdistrito[]>(subdistritosUrl(d.id));
                             for (const s of subs) {
-                                localities.push({ name: s.nome, zone: 'urban', ibge_id: s.id });
+                                localities.push({ name: expandAbbreviation(s.nome), zone: 'urban', ibge_id: s.id });
                             }
                         } catch {
                             // subdistritos não disponíveis para este distrito; ignora silenciosamente
