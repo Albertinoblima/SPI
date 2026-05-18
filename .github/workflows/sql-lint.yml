@@ -39,7 +39,7 @@ jobs:
         run: |
           sqlfluff lint supabase/ \
             --dialect postgres \
-            --format github
+            --format github-annotation
 
       - name: Check SQL formatting
         continue-on-error: true
