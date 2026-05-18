@@ -275,6 +275,7 @@ export default function AdminTicketDetailPage() {
                                 value={replyStatus}
                                 onChange={(e) => setReplyStatus(e.target.value)}
                                 disabled={isClosed}
+                                aria-label="Status da resposta"
                                 className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-blue-500 disabled:opacity-50"
                             >
                                 {STATUS_OPTIONS.map((s) => (
@@ -350,6 +351,7 @@ export default function AdminTicketDetailPage() {
                             <select
                                 value={editStatus}
                                 onChange={(e) => setEditStatus(e.target.value)}
+                                aria-label="Atualizar status do ticket"
                                 className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-blue-500"
                             >
                                 {STATUS_OPTIONS.map((s) => (
@@ -359,6 +361,7 @@ export default function AdminTicketDetailPage() {
                             <select
                                 value={editPriority}
                                 onChange={(e) => setEditPriority(e.target.value)}
+                                aria-label="Atualizar prioridade do ticket"
                                 className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-blue-500"
                             >
                                 {PRIORITY_OPTIONS.map((p) => (

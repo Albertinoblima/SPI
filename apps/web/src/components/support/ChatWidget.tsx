@@ -353,7 +353,7 @@ export default function ChatWidget() {
                                 )}
                             </div>
                         </div>
-                        <button onClick={() => setOpen(false)} className="hover:bg-blue-500 rounded p-1 transition">
+                        <button onClick={() => setOpen(false)} aria-label="Fechar chat" title="Fechar chat" className="hover:bg-blue-500 rounded p-1 transition">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
@@ -447,6 +447,7 @@ export default function ChatWidget() {
                                         <select
                                             value={newCategory}
                                             onChange={(e) => setNewCategory(e.target.value)}
+                                            aria-label="Categoria do chamado"
                                             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
                                         >
                                             <option value="general">Geral</option>
@@ -461,6 +462,7 @@ export default function ChatWidget() {
                                         <select
                                             value={newPriority}
                                             onChange={(e) => setNewPriority(e.target.value)}
+                                            aria-label="Prioridade do chamado"
                                             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
                                         >
                                             <option value="low">Baixa</option>
@@ -560,6 +562,8 @@ export default function ChatWidget() {
                                                 type="file"
                                                 multiple
                                                 accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx,.zip"
+                                                aria-label="Selecionar arquivos para anexo"
+                                                title="Selecionar arquivos para anexo"
                                                 className="hidden"
                                                 onChange={(e) => e.target.files && addFiles(e.target.files)}
                                             />
@@ -577,6 +581,8 @@ export default function ChatWidget() {
                                                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                                                 onPaste={handlePaste}
                                                 placeholder={pendingFiles.length > 0 ? 'Legenda (opcional)…' : 'Digite ou cole uma imagem…'}
+                                                aria-label="Mensagem do chat"
+                                                title="Mensagem do chat"
                                                 className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
                                             />
                                             <button

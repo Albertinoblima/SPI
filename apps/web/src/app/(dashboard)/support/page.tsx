@@ -233,6 +233,7 @@ export default function SupportPage() {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
+                            aria-label="Filtrar tickets por status"
                             className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-blue-500 bg-slate-50"
                         >
                             <option value="all">Todos os tickets</option>
@@ -307,6 +308,7 @@ export default function SupportPage() {
                                             <select
                                                 value={newCategory}
                                                 onChange={(e) => setNewCategory(e.target.value)}
+                                                aria-label="Categoria do chamado"
                                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
                                             >
                                                 <option value="general">Geral</option>
@@ -321,6 +323,7 @@ export default function SupportPage() {
                                             <select
                                                 value={newPriority}
                                                 onChange={(e) => setNewPriority(e.target.value)}
+                                                aria-label="Prioridade do chamado"
                                                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
                                             >
                                                 <option value="low">Baixa</option>
