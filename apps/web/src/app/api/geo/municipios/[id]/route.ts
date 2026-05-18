@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError, requireTenantAdmin } from '@/lib/api-middleware';
 
-type Params = { params: Promise<{ id: string }> };
+type Params = { params: { id: string } };
 
 export async function GET(request: NextRequest, { params }: Params) {
     const auth = await requireTenantAdmin(request);
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: Params) {
         return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
     }
     try {
-        const { id } = await params;
+        const { id } = params;
         const ibgeId = parseInt(id, 10);
 
         if (isNaN(ibgeId)) {
