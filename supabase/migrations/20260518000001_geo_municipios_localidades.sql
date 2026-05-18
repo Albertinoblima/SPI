@@ -12,6 +12,16 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
+-- Wrapper IMMUTABLE necessario para uso em colunas GENERATED ALWAYS AS.
+-- O unaccent nativo e STABLE; esta funcao permite uso em expressoes geradas.
+CREATE OR REPLACE FUNCTION public.f_unaccent(text)
+RETURNS text AS $$
+    SELECT unaccent('unaccent', $1)
+$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT;
+
+COMMENT ON FUNCTION public.f_unaccent IS
+    'Wrapper IMMUTABLE de unaccent – necessario para colunas GENERATED ALWAYS';
+
 -- ----------------------------------------------------------------------------
 -- 1. TABELA: geo_municipios
 --    Dados oficiais dos municipios brasileiros (fonte IBGE).
@@ -21,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.geo_municipios (
     id_ibge          INTEGER PRIMARY KEY,          -- Codigo IBGE 7 digitos
     nome             VARCHAR(120) NOT NULL,
     nome_normalizado VARCHAR(120) GENERATED ALWAYS AS (
-        lower(unaccent(nome))
+        lower(public.f_unaccent(nome))
     ) STORED,
     uf               CHAR(2)      NOT NULL,
     regiao           VARCHAR(20),                  -- Norte, Nordeste, etc.
@@ -54,7 +64,7 @@ CREATE TABLE IF NOT EXISTS public.geo_localidades (
                                            ON DELETE CASCADE,
     nome             VARCHAR(180) NOT NULL,
     nome_normalizado VARCHAR(180) GENERATED ALWAYS AS (
-        lower(unaccent(nome))
+        lower(public.f_unaccent(nome))
     ) STORED,
     tipo             VARCHAR(30)  NOT NULL
                                   CHECK (tipo IN (
@@ -329,10 +339,10 @@ AS $$
         m.nome,
         m.uf,
         ROUND(
-            ST_Distance(
+            (ST_Distance(
                 m.geom::geography,
                 ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography
-            ) / 1000.0, 2
+            ) / 1000.0)::NUMERIC, 2
         ) AS distancia_km
     FROM public.geo_municipios m
     WHERE m.geom IS NOT NULL
@@ -378,10 +388,10 @@ AS $$
         l.tipo,
         l.zona,
         ROUND(
-            ST_Distance(
+            (ST_Distance(
                 l.geom::geography,
                 ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography
-            ) / 1000.0, 2
+            ) / 1000.0)::NUMERIC, 2
         ) AS distancia_km
     FROM public.geo_localidades l
     JOIN public.geo_municipios m ON l.municipio_id = m.id_ibge

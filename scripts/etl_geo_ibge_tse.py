@@ -5,26 +5,23 @@ ETL Geográfico – IBGE + TSE → geo_municipios / geo_localidades / geo_dados_
 
 Popula as tabelas geográficas do banco a partir de:
   1. API IBGE Localidades  – municípios, distritos, subdistritos (sem download de shapefile)
-  2. Shapefile IBGE Malha Municipal 2022 – geometrias dos municípios (opcional, ~50 MB por UF)
+  2. Shapefile IBGE Malha Municipal 2022 – geometrias dos municípios (opcional, ~15 MB/UF)
   3. CSV TSE Perfil do Eleitorado por Seção – quantidade de eleitores por local de votação
+  4. Censo IBGE 2022 – agregados por setor censitário (opcional, ~300 MB/UF)
 
-Estratégia de aquisição:
-  - Municípios e localidades básicas: API REST IBGE (não requer download de arquivo)
-  - Geometrias municipais: shapefile IBGE malha municipal UF-a-UF (~15 MB/UF comprimido)
-  - Dados eleitorais: CSV TSE CDN (já existe script generate-tse-voters.mjs; este script
-    popula o banco a partir do JSON gerado ou baixa diretamente)
-  - Dados demográficos do Censo 2022: CSV IBGE Agregados por Setor Censitário (~2 GB total
-    apenas se --full-census for passado; por padrão usa estimativas populacionais da API)
+Autenticação: usa SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY do .env.local
+              NÃO precisa de senha do banco PostgreSQL.
 
 Uso:
-    python scripts/etl_geo_ibge_tse.py --help
-    python scripts/etl_geo_ibge_tse.py --ufs SP RJ MG          # apenas estas UFs
-    python scripts/etl_geo_ibge_tse.py --all-ufs               # todos os 27 estados
-    python scripts/etl_geo_ibge_tse.py --ufs PE --full-census  # com dados de setores censitários
-    python scripts/etl_geo_ibge_tse.py --ufs PE --skip-tse     # sem dados eleitorais
+    python scripts/etl_geo_ibge_tse.py --ufs PE           # Pernambuco
+    python scripts/etl_geo_ibge_tse.py --ufs SP RJ MG     # múltiplas UFs
+    python scripts/etl_geo_ibge_tse.py --all-ufs          # todos os 27 estados
+    python scripts/etl_geo_ibge_tse.py --ufs PE --with-shapes   # + geometrias shapefile
+    python scripts/etl_geo_ibge_tse.py --ufs PE --skip-tse      # sem dados eleitorais
 
-Variáveis de ambiente necessárias (ou via .env na raiz do monorepo):
-    SUPABASE_DB_URL=postgresql://postgres:<senha>@db.<projeto>.supabase.co:5432/postgres
+Variáveis de ambiente (lidas do apps/web/.env.local automaticamente):
+    NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+    SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
 
 Pré-requisitos:
     pip install -r scripts/requirements-etl.txt
@@ -34,7 +31,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import io
 import json
 import logging
 import os
@@ -47,13 +43,68 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Generator
 
-import geopandas as gpd
-import psycopg2
-import psycopg2.extras
 import requests
 from dotenv import load_dotenv
-from shapely.geometry import Point
+from supabase import create_client, Client
 from tqdm import tqdm
+
+# GeoPandas e Shapely são opcionais (usados apenas com --with-shapes)
+try:
+    import geopandas as gpd
+    HAS_GEO = True
+except ImportError:
+    HAS_GEO = False
+
+# ---------------------------------------------------------------------------
+# Configuração
+# ---------------------------------------------------------------------------
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+TEMP_DIR = ROOT_DIR / ".etl_cache"
+TEMP_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+log = logging.getLogger("etl_geo")
+
+IBGE_API = "https://servicodados.ibge.gov.br/api/v1/localidades"
+IBGE_MALHA_BASE = "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2022/UFs"
+TSE_CDN_BASE = "https://cdn.tse.jus.br/estatistica/sead/odsele/perfil_eleitor_secao"
+
+# Mapeamento UF → código IBGE do estado
+UF_CODES: dict[str, int] = {
+    "AC": 12, "AL": 27, "AM": 13, "AP": 16, "BA": 29, "CE": 23,
+    "DF": 53, "ES": 32, "GO": 52, "MA": 21, "MG": 31, "MS": 50,
+    "MT": 51, "PA": 15, "PB": 25, "PE": 26, "PI": 22, "PR": 41,
+    "RJ": 33, "RN": 24, "RO": 11, "RR": 14, "RS": 43, "SC": 42,
+    "SE": 28, "SP": 35, "TO": 17,
+}
+
+UF_REGIOES: dict[str, str] = {
+    "AC": "Norte",   "AM": "Norte",   "AP": "Norte",  "PA": "Norte",
+    "RO": "Norte",   "RR": "Norte",   "TO": "Norte",
+    "AL": "Nordeste","BA": "Nordeste","CE": "Nordeste","MA": "Nordeste",
+    "PB": "Nordeste","PE": "Nordeste","PI": "Nordeste","RN": "Nordeste",
+    "SE": "Nordeste",
+    "DF": "Centro-Oeste","GO": "Centro-Oeste","MS": "Centro-Oeste","MT": "Centro-Oeste",
+    "ES": "Sudeste", "MG": "Sudeste", "RJ": "Sudeste", "SP": "Sudeste",
+    "PR": "Sul",     "RS": "Sul",     "SC": "Sul",
+}
+
+# Palavras-chave para classificar tipo de localidade pelo nome
+TIPO_KEYWORDS: list[tuple[str, str]] = [
+    (r"\bfazenda\b",  "FAZENDA"),
+    (r"\bsitio\b|\bsítio\b", "SITIO"),
+    (r"\bpovoad[oa]\b", "POVOADO"),
+    (r"\bvila\b",     "VILA"),
+    (r"\bnúcleo\b|\bnucleo\b", "NUCLEO"),
+    (r"\bdistrito\b", "DISTRITO"),
+    (r"\bsubdistrito\b|\brpa\b", "SUBDISTRITO"),
+    (r"\bbairro\b",   "BAIRRO"),
+]
 
 # ---------------------------------------------------------------------------
 # Configuração
@@ -149,43 +200,35 @@ def chunks(lst: list, n: int) -> Generator[list, None, None]:
 
 
 # ---------------------------------------------------------------------------
-# Banco de dados
+# Supabase client
 # ---------------------------------------------------------------------------
 
-def get_conn(db_url: str) -> psycopg2.extensions.connection:
-    conn = psycopg2.connect(db_url)
-    conn.autocommit = False
-    return conn
+def get_supabase(url: str, key: str) -> Client:
+    return create_client(url, key)
 
 
 def log_ingestao(
-    conn,
+    sb: Client,
     operacao: str,
     municipio_id: int | None,
     totais: dict[str, int],
     status: str,
     detalhes: dict | None = None,
 ) -> None:
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO public.geo_ingestao_log
-                (operacao, municipio_id, registros_total, registros_novos,
-                 registros_atua, registros_erro, status, detalhes, concluido_em)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
-            """,
-            (
-                operacao,
-                municipio_id,
-                totais.get("total", 0),
-                totais.get("novos", 0),
-                totais.get("atualizados", 0),
-                totais.get("erros", 0),
-                status,
-                json.dumps(detalhes or {}, ensure_ascii=False, default=str),
-            ),
-        )
-    conn.commit()
+    try:
+        sb.table("geo_ingestao_log").insert({
+            "operacao": operacao,
+            "municipio_id": municipio_id,
+            "registros_total": totais.get("total", 0),
+            "registros_novos": totais.get("novos", 0),
+            "registros_atua": totais.get("atualizados", 0),
+            "registros_erro": totais.get("erros", 0),
+            "status": status,
+            "detalhes": detalhes or {},
+            "concluido_em": datetime.now(tz=timezone.utc).isoformat(),
+        }).execute()
+    except Exception as exc:
+        log.warning("Falha ao registrar log de ingestão: %s", exc)
 
 
 # ---------------------------------------------------------------------------
