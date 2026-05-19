@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
         if (!userData) return apiError('Usuário não encontrado', 404);
 
         const body = await request.json();
+        const skipValidation = body.skip_validation ?? false;
         const { title, description, survey_type, margin_of_error, confidence_interval,
             total_interviews, population_size, deff, p_proportion, stats_mode,
             objective, methodology, target_audience, requires_geolocation,
@@ -179,24 +180,26 @@ export async function POST(request: NextRequest) {
 
         if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400);
 
-        const legalValidationError = validateLegalFields({
-            is_registered_research,
-            registered_responsible_name,
-            registered_responsible_registry,
-            registered_responsible_body,
-            contracting_entity_name,
-            contracting_entity_document,
-            survey_total_value,
-            invoice_reference,
-            funding_source,
-            is_public_disclosure,
-            pesqele_registration_code,
-        });
-        if (legalValidationError) return apiError(legalValidationError, 400);
+        if (!skipValidation) {
+            const legalValidationError = validateLegalFields({
+                is_registered_research,
+                registered_responsible_name,
+                registered_responsible_registry,
+                registered_responsible_body,
+                contracting_entity_name,
+                contracting_entity_document,
+                survey_total_value,
+                invoice_reference,
+                funding_source,
+                is_public_disclosure,
+                pesqele_registration_code,
+            });
+            if (legalValidationError) return apiError(legalValidationError, 400);
+        }
 
         // Validação geográfica só é exigida quando o escopo já foi informado
         // (em rascunhos criados na Fase 1, o escopo ainda não foi preenchido)
-        if (geographic_scope) {
+        if (!skipValidation && geographic_scope) {
             const geographyValidationError = validateGeographyFields({
                 geographic_scope,
                 scope_country_name,

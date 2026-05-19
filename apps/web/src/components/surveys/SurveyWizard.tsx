@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
@@ -173,6 +173,9 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const [loadingDraft, setLoadingDraft] = useState(!!draftId);
     const [surveyId, setSurveyId] = useState<string | undefined>(draftId);
     const [localitiesConflict, setLocalitiesConflict] = useState<string | null>(null);
+    const autosaveTimerRef = useRef<number | null>(null);
+    const autosaveInitializedRef = useRef(false);
+    const lastAutosavedSignatureRef = useRef('');
 
     // Carrega rascunho existente
     useEffect(() => {
@@ -255,6 +258,55 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             .catch(() => setAlert({ type: 'error', message: 'Não foi possível carregar o rascunho.' }))
             .finally(() => setLoadingDraft(false));
     }, [draftId]);
+
+    useEffect(() => {
+        if (loadingDraft) return;
+
+        if (!autosaveInitializedRef.current) {
+            autosaveInitializedRef.current = true;
+            return;
+        }
+
+        if (!data.tech.title.trim()) return;
+
+        const signature = JSON.stringify({
+            tech: data.tech,
+            localities: data.localities,
+            premises: data.premises,
+            questions: data.questions,
+        });
+
+        if (signature === lastAutosavedSignatureRef.current) return;
+
+        if (autosaveTimerRef.current) {
+            window.clearTimeout(autosaveTimerRef.current);
+        }
+
+        autosaveTimerRef.current = window.setTimeout(async () => {
+            setAutoSaving(true);
+            try {
+                const result = await persistDraft(data, surveyId, { skipValidation: true });
+                if (result.id && !surveyId) {
+                    setSurveyId(result.id);
+                }
+                if (result.error) {
+                    setAlert({ type: 'error', message: `Falha ao salvar automaticamente: ${result.error}` });
+                    return;
+                }
+
+                lastAutosavedSignatureRef.current = signature;
+            } finally {
+                setAutoSaving(false);
+            }
+        }, 1200);
+
+        return () => {
+            if (autosaveTimerRef.current) {
+                window.clearTimeout(autosaveTimerRef.current);
+                autosaveTimerRef.current = null;
+            }
+        };
+    }, [data, loadingDraft, surveyId]);
     const updateTech = useCallback((tech: SurveyTechData) => {
         setData(prev => {
             // Detectar conflito de localidades ao mudar survey_type ou geographic_scope
@@ -402,18 +454,22 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const persistDraft = useCallback(async (
         wizardData: WizardData,
         currentId: string | undefined,
+        options: { skipValidation?: boolean } = {},
     ): Promise<{ id: string | null; error: string | null }> => {
         try {
+            const payload = {
+                ...wizardData.tech,
+                localities: wizardData.localities,
+                premises: wizardData.premises,
+                questions: wizardData.questions,
+                skip_validation: options.skipValidation ?? false,
+            };
+
             if (currentId) {
                 const res = await fetch(`/api/surveys/${currentId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...wizardData.tech,
-                        localities: wizardData.localities,
-                        premises: wizardData.premises,
-                        questions: wizardData.questions,
-                    }),
+                    body: JSON.stringify(payload),
                 });
                 const json = await res.json();
                 if (!res.ok) return { id: null, error: json.error || 'Erro ao atualizar rascunho' };
@@ -424,11 +480,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             const res = await fetch('/api/surveys', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...wizardData.tech,
-                    localities: wizardData.localities,
-                    premises: wizardData.premises,
-                }),
+                body: JSON.stringify(payload),
             });
             const json = await res.json();
             if (!res.ok) return { id: null, error: json.error || 'Erro ao criar rascunho' };
@@ -473,7 +525,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         setSaving(true);
         setAlert(null);
         try {
-            const result = await persistDraft(data, surveyId);
+            const result = await persistDraft(data, surveyId, { skipValidation: true });
             if (result.id && !surveyId) setSurveyId(result.id);
             if (result.error) {
                 setAlert({ type: 'error', message: result.error });
@@ -520,7 +572,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         setAutoSaving(true);
         setAlert(null);
         try {
-            const result = await persistDraft(data, surveyId);
+            const result = await persistDraft(data, surveyId, { skipValidation: true });
             if (result.id && !surveyId) setSurveyId(result.id);
             if (result.error) {
                 // Avisa mas não bloqueia — dados estão na memória

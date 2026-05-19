@@ -176,6 +176,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         if (!ctx) return apiError('Não autenticado', 401);
 
         const body = await request.json();
+        const skipValidation = body.skip_validation ?? false;
         const adminSupabase = createAdminClient();
 
         // Verificar ownership
@@ -189,7 +190,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const { localities, premises, questions, ...surveyFields } = body;
 
         const hasLegalFieldInPayload = LEGAL_FIELDS.some((key) => key in surveyFields);
-        if (hasLegalFieldInPayload) {
+        if (!skipValidation && hasLegalFieldInPayload) {
             const legalValidationError = validateLegalFields({
                 ...existing,
                 ...surveyFields,
@@ -223,7 +224,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
 
         const hasGeographyFieldInPayload = GEOGRAPHY_FIELDS.some((key) => key in surveyFields);
-        if (hasGeographyFieldInPayload) {
+        if (!skipValidation && hasGeographyFieldInPayload) {
             const geographyValidationError = validateGeographyFields({
                 ...existing,
                 ...surveyFields,
