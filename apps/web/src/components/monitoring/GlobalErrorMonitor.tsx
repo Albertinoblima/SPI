@@ -160,7 +160,14 @@ export default function GlobalErrorMonitor() {
             const target = extractTarget(args[0]);
             const method = extractMethod(args[0], args[1]);
 
-            if (target?.includes('/api/system/errors/ingest')) {
+            // Excluir endpoints de ingestão e polling de notificações do monitoramento
+            // para evitar ciclos de feedback (falha no polling → log → exibido no sino → loop)
+            const EXCLUDED_PATHS = [
+                '/api/system/errors/ingest',
+                '/api/admin/notifications',
+                '/api/notifications',
+            ];
+            if (EXCLUDED_PATHS.some((p) => target?.includes(p))) {
                 return originalFetch(...args);
             }
 
