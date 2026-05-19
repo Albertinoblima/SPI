@@ -637,69 +637,70 @@ def _fetch_ibge_age_groups() -> dict[int, dict[str, int]]:
     """
     Busca população por faixa etária quinquenal (Censo 2022, tabela 9514).
     Retorna {ibge_id: {"0_4": N, "5_9": N, ..., "90_mais": N}}.
-    Classificação 287 = Grupo de Idade quinquenal no SIDRA.
+    Faz um request por faixa (19 no total) pois buscar todas de uma vez causa 500.
+    IDs de categoria confirmados via /api/v3/agregados/9514/metadados.
     """
-    # Mapeamento nome IBGE → chave JSON normalizada
-    FAIXA_MAP = {
-        "0 a 4 anos": "0_4",
-        "5 a 9 anos": "5_9",
-        "10 a 14 anos": "10_14",
-        "15 a 19 anos": "15_19",
-        "20 a 24 anos": "20_24",
-        "25 a 29 anos": "25_29",
-        "30 a 34 anos": "30_34",
-        "35 a 39 anos": "35_39",
-        "40 a 44 anos": "40_44",
-        "45 a 49 anos": "45_49",
-        "50 a 54 anos": "50_54",
-        "55 a 59 anos": "55_59",
-        "60 a 64 anos": "60_64",
-        "65 a 69 anos": "65_69",
-        "70 a 74 anos": "70_74",
-        "75 a 79 anos": "75_79",
-        "80 a 84 anos": "80_84",
-        "85 a 89 anos": "85_89",
-        "90 anos ou mais": "90_mais",
-    }
-    url = (
+    # (cat_id SIDRA, chave JSON)
+    FAIXAS = [
+        (93070, "0_4"),
+        (93084, "5_9"),
+        (93085, "10_14"),
+        (93086, "15_19"),
+        (93087, "20_24"),
+        (93088, "25_29"),
+        (93089, "30_34"),
+        (93090, "35_39"),
+        (93091, "40_44"),
+        (93092, "45_49"),
+        (93093, "50_54"),
+        (93094, "55_59"),
+        (93095, "60_64"),
+        (93096, "65_69"),
+        (93097, "70_74"),
+        (93098, "75_79"),
+        (49108, "80_84"),
+        (49109, "85_89"),
+        (60040, "90_mais"),
+    ]
+    BASE = (
         "https://servicodados.ibge.gov.br/api/v3/agregados/9514"
-        "/periodos/2022/variaveis/93?localidades=N6[all]&classificacao=287[allxt]"
+        "/periodos/2022/variaveis/93?localidades=N6[all]"
+        "&classificacao=287["
     )
-    log.info("Baixando faixas etárias (Censo 2022)...")
+    # Fixar Sexo=Total e Forma de declaração=Total via sufixo
+    SUFFIX = "|2[6794]|286[113635]"
+    log.info("Baixando faixas etárias (Censo 2022) — %d requests...", len(FAIXAS))
     result: dict[int, dict[str, int]] = {}
     try:
-        data = http_get(url).json()
-        for item in data:
-            for resultado in item.get("resultados", []):
-                # classificacoes contém o nome da faixa
-                classifs = resultado.get("classificacoes", [])
-                faixa_nome = None
-                for c in classifs:
-                    for cat in c.get("categoria", {}).values():
-                        faixa_nome = cat
-                        break
-                    if faixa_nome:
-                        break
-                chave = FAIXA_MAP.get(faixa_nome) if faixa_nome else None
-                if not chave:
-                    continue
-                for serie_item in resultado.get("series", []):
-                    localidade = serie_item.get("localidade", {})
-                    try:
-                        ibge_id = int(localidade.get("id", 0))
-                    except (ValueError, TypeError):
+        for cat_id, chave in FAIXAS:
+            url = BASE + str(cat_id) + "]" + SUFFIX
+            data = http_get(url).json()
+            for item in data:
+                for resultado in item.get("resultados", []):
+                    # Filtrar somente o resultado da faixa correta
+                    faixa_ok = any(
+                        str(cat_id) in c.get("categoria", {})
+                        for c in resultado.get("classificacoes", [])
+                        if c.get("id") == "287"
+                    )
+                    if not faixa_ok:
                         continue
-                    serie = serie_item.get("serie", {})
-                    for _periodo, valor in serie.items():
-                        if valor and valor not in ("...", "-", ""):
-                            try:
-                                v = int(str(valor).replace(".", "").replace(",", ""))
-                            except ValueError:
-                                continue
-                            if ibge_id not in result:
-                                result[ibge_id] = {}
-                            result[ibge_id][chave] = v
-                        break
+                    for serie_item in resultado.get("series", []):
+                        try:
+                            ibge_id = int(serie_item.get("localidade", {}).get("id", 0))
+                        except (ValueError, TypeError):
+                            continue
+                        for _p, valor in serie_item.get("serie", {}).items():
+                            if valor and valor not in ("...", "-", ""):
+                                try:
+                                    v = int(str(valor).replace(".", "").replace(",", ""))
+                                    if ibge_id not in result:
+                                        result[ibge_id] = {}
+                                    result[ibge_id][chave] = v
+                                except ValueError:
+                                    pass
+                            break
+            log.debug("  faixa %s: %d municípios acumulados", chave, len(result))
         log.info("Faixas etárias: %d municípios", len(result))
     except Exception as exc:
         log.error("Erro ao buscar faixas etárias: %s", exc)
@@ -708,62 +709,12 @@ def _fetch_ibge_age_groups() -> dict[int, dict[str, int]]:
 
 def _fetch_ibge_education() -> dict[int, dict[str, int]]:
     """
-    Busca população por nível de instrução (Censo 2022, tabela 9543).
-    Retorna {ibge_id: {"sem_instrucao": N, "fundamental_incompleto": N, ...}}.
-    Tabela 9543 = Nível de instrução da população de 25+ anos.
+    Escolaridade por município.
+    O IBGE SIDRA não disponibiliza a tabela 9517 (Nível de instrução) em nível
+    de município (N6) via API pública no Censo 2022 — retorna dicionário vazio.
     """
-    EDU_MAP = {
-        "Sem instrução": "sem_instrucao",
-        "Fundamental incompleto ou equivalente": "fundamental_incompleto",
-        "Fundamental completo ou equivalente": "fundamental_completo",
-        "Médio incompleto ou equivalente": "medio_incompleto",
-        "Médio completo ou equivalente": "medio_completo",
-        "Superior incompleto ou equivalente": "superior_incompleto",
-        "Superior completo": "superior_completo",
-        "Não determinado": "nao_determinado",
-    }
-    url = (
-        "https://servicodados.ibge.gov.br/api/v3/agregados/9543"
-        "/periodos/2022/variaveis/93?localidades=N6[all]&classificacao=11416[allxt]"
-    )
-    log.info("Baixando escolaridade (Censo 2022)...")
-    result: dict[int, dict[str, int]] = {}
-    try:
-        data = http_get(url).json()
-        for item in data:
-            for resultado in item.get("resultados", []):
-                classifs = resultado.get("classificacoes", [])
-                nivel_nome = None
-                for c in classifs:
-                    for cat in c.get("categoria", {}).values():
-                        nivel_nome = cat
-                        break
-                    if nivel_nome:
-                        break
-                chave = EDU_MAP.get(nivel_nome) if nivel_nome else None
-                if not chave:
-                    continue
-                for serie_item in resultado.get("series", []):
-                    localidade = serie_item.get("localidade", {})
-                    try:
-                        ibge_id = int(localidade.get("id", 0))
-                    except (ValueError, TypeError):
-                        continue
-                    serie = serie_item.get("serie", {})
-                    for _periodo, valor in serie.items():
-                        if valor and valor not in ("...", "-", ""):
-                            try:
-                                v = int(str(valor).replace(".", "").replace(",", ""))
-                            except ValueError:
-                                continue
-                            if ibge_id not in result:
-                                result[ibge_id] = {}
-                            result[ibge_id][chave] = v
-                        break
-        log.info("Escolaridade: %d municípios", len(result))
-    except Exception as exc:
-        log.error("Erro ao buscar escolaridade: %s", exc)
-    return result
+    log.warning("Escolaridade por município indisponível via SIDRA API (tabela 9517 não responde em N6). Campo ficará null.")
+    return {}
 
 
 def etl_demograficos_municipio(sb: Client) -> None:
