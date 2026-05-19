@@ -524,6 +524,77 @@ def etl_dados_eleitorais(sb: Client, ufs: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Fase Extra – Estimativas populacionais IBGE (atualiza geo_municipios)
+# ---------------------------------------------------------------------------
+
+def etl_populacao_estimada(sb: Client, municipio_ids: list[int] | None = None) -> None:
+    """
+    Busca estimativas populacionais do IBGE (Censo 2022, tabela 9514)
+    e atualiza geo_municipios.populacao_estimada.
+    Se municipio_ids for fornecido, filtra apenas esses municípios.
+    """
+    log.info("=== Fase Extra: Estimativas Populacionais IBGE ===")
+    # Tabela 9514 – Censo 2022: total de pessoas residentes
+    url = (
+        "https://servicodados.ibge.gov.br/api/v3/agregados/9514"
+        "/periodos/2022/variaveis/93?localidades=N6[all]"
+    )
+    log.info("Baixando estimativas populacionais do IBGE (Censo 2022)…")
+    try:
+        data = http_get(url).json()
+    except Exception as exc:
+        log.error("Erro ao buscar estimativas populacionais: %s", exc)
+        return
+
+    pop_map: dict[int, int] = {}
+    for item in data:
+        for resultado in item.get("resultados", []):
+            for serie_item in resultado.get("series", []):
+                localidade = serie_item.get("localidade", {})
+                try:
+                    ibge_id = int(localidade.get("id", 0))
+                except (ValueError, TypeError):
+                    continue
+                serie = serie_item.get("serie", {})
+                for _periodo, valor in serie.items():
+                    if valor and valor not in ("...", "-"):
+                        try:
+                            pop_map[ibge_id] = int(str(valor).replace(".", "").replace(",", ""))
+                        except ValueError:
+                            pass
+                        break
+
+    log.info("Estimativas obtidas para %d municípios via API IBGE", len(pop_map))
+
+    if municipio_ids:
+        municipio_set = set(municipio_ids)
+        pop_map = {k: v for k, v in pop_map.items() if k in municipio_set}
+        log.info("Filtrando para %d municípios solicitados", len(pop_map))
+
+    rows = [{"id_ibge": ibge_id, "populacao_estimada": pop} for ibge_id, pop in pop_map.items()]
+    erros = 0
+    atualizados = 0
+    # Usa UPDATE individual por registro (upsert falha por NOT NULL constraints)
+    log.info("Atualizando %d registros em geo_municipios (UPDATE individual)…", len(rows))
+    for row in tqdm(rows, desc="populacao_estimada", unit="mun"):
+        try:
+            sb.table("geo_municipios").update(
+                {"populacao_estimada": row["populacao_estimada"]}
+            ).eq("id_ibge", row["id_ibge"]).execute()
+            atualizados += 1
+        except Exception as exc:
+            log.error("Erro ao atualizar municipio %d: %s", row["id_ibge"], exc)
+            erros += 1
+
+    log.info("Populacao estimada: %d municípios atualizados, %d erros", atualizados, erros)
+    log_ingestao(
+        sb, "ibge_populacao_estimada", None,
+        {"total": len(rows), "novos": 0, "atualizados": atualizados, "erros": erros},
+        "concluido" if erros == 0 else "erro",
+    )
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -548,6 +619,8 @@ Exemplos:
                         help="Baixa shapefiles IBGE (cache local; geometrias PostGIS não inseridas via supabase-py)")
     parser.add_argument("--skip-tse", action="store_true")
     parser.add_argument("--skip-ibge", action="store_true")
+    parser.add_argument("--pop-estimada", action="store_true",
+                        help="Busca estimativas populacionais do IBGE (Censo 2022) e atualiza geo_municipios.populacao_estimada")
     parser.add_argument("--log-level", default="INFO",
                         choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     return parser.parse_args()
@@ -588,6 +661,12 @@ def main() -> None:
 
     if not args.skip_tse:
         etl_dados_eleitorais(sb, ufs)
+
+    if args.pop_estimada:
+        # Quando --skip-ibge, municipio_ids pode estar limitado a 1000 pelo Supabase
+        # Passa None para atualizar todos os municípios da API IBGE sem filtro
+        pop_ids = None if args.skip_ibge else (municipio_ids if municipio_ids else None)
+        etl_populacao_estimada(sb, pop_ids)
 
     elapsed = (datetime.now(tz=timezone.utc) - start).total_seconds()
     log.info("ETL concluído em %.1f s (%.1f min)", elapsed, elapsed / 60)
