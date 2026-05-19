@@ -595,6 +595,238 @@ def etl_populacao_estimada(sb: Client, municipio_ids: list[int] | None = None) -
 
 
 # ---------------------------------------------------------------------------
+# Fase Demográfica: total, sexo, faixa etária, escolaridade por município
+# ---------------------------------------------------------------------------
+
+def _parse_ibge_series(data: list, /) -> dict[int, int]:
+    """Extrai {ibge_id: valor_int} de uma resposta JSON da API SIDRA."""
+    result: dict[int, int] = {}
+    for item in data:
+        for resultado in item.get("resultados", []):
+            for serie_item in resultado.get("series", []):
+                localidade = serie_item.get("localidade", {})
+                try:
+                    ibge_id = int(localidade.get("id", 0))
+                except (ValueError, TypeError):
+                    continue
+                serie = serie_item.get("serie", {})
+                for _periodo, valor in serie.items():
+                    if valor and valor not in ("...", "-", ""):
+                        try:
+                            result[ibge_id] = int(str(valor).replace(".", "").replace(",", ""))
+                        except ValueError:
+                            pass
+                        break
+    return result
+
+
+def _fetch_ibge_variable(url: str, desc: str) -> dict[int, int]:
+    """Busca uma variável da API IBGE e retorna {ibge_id: valor}."""
+    log.info("Baixando %s...", desc)
+    try:
+        data = http_get(url).json()
+        result = _parse_ibge_series(data)
+        log.info("%s: %d municípios", desc, len(result))
+        return result
+    except Exception as exc:
+        log.error("Erro ao buscar %s: %s", desc, exc)
+        return {}
+
+
+def _fetch_ibge_age_groups() -> dict[int, dict[str, int]]:
+    """
+    Busca população por faixa etária quinquenal (Censo 2022, tabela 9514).
+    Retorna {ibge_id: {"0_4": N, "5_9": N, ..., "90_mais": N}}.
+    Classificação 287 = Grupo de Idade quinquenal no SIDRA.
+    """
+    # Mapeamento nome IBGE → chave JSON normalizada
+    FAIXA_MAP = {
+        "0 a 4 anos": "0_4",
+        "5 a 9 anos": "5_9",
+        "10 a 14 anos": "10_14",
+        "15 a 19 anos": "15_19",
+        "20 a 24 anos": "20_24",
+        "25 a 29 anos": "25_29",
+        "30 a 34 anos": "30_34",
+        "35 a 39 anos": "35_39",
+        "40 a 44 anos": "40_44",
+        "45 a 49 anos": "45_49",
+        "50 a 54 anos": "50_54",
+        "55 a 59 anos": "55_59",
+        "60 a 64 anos": "60_64",
+        "65 a 69 anos": "65_69",
+        "70 a 74 anos": "70_74",
+        "75 a 79 anos": "75_79",
+        "80 a 84 anos": "80_84",
+        "85 a 89 anos": "85_89",
+        "90 anos ou mais": "90_mais",
+    }
+    url = (
+        "https://servicodados.ibge.gov.br/api/v3/agregados/9514"
+        "/periodos/2022/variaveis/93?localidades=N6[all]&classificacao=287[allxt]"
+    )
+    log.info("Baixando faixas etárias (Censo 2022)...")
+    result: dict[int, dict[str, int]] = {}
+    try:
+        data = http_get(url).json()
+        for item in data:
+            for resultado in item.get("resultados", []):
+                # classificacoes contém o nome da faixa
+                classifs = resultado.get("classificacoes", [])
+                faixa_nome = None
+                for c in classifs:
+                    for cat in c.get("categoria", {}).values():
+                        faixa_nome = cat
+                        break
+                    if faixa_nome:
+                        break
+                chave = FAIXA_MAP.get(faixa_nome) if faixa_nome else None
+                if not chave:
+                    continue
+                for serie_item in resultado.get("series", []):
+                    localidade = serie_item.get("localidade", {})
+                    try:
+                        ibge_id = int(localidade.get("id", 0))
+                    except (ValueError, TypeError):
+                        continue
+                    serie = serie_item.get("serie", {})
+                    for _periodo, valor in serie.items():
+                        if valor and valor not in ("...", "-", ""):
+                            try:
+                                v = int(str(valor).replace(".", "").replace(",", ""))
+                            except ValueError:
+                                continue
+                            if ibge_id not in result:
+                                result[ibge_id] = {}
+                            result[ibge_id][chave] = v
+                        break
+        log.info("Faixas etárias: %d municípios", len(result))
+    except Exception as exc:
+        log.error("Erro ao buscar faixas etárias: %s", exc)
+    return result
+
+
+def _fetch_ibge_education() -> dict[int, dict[str, int]]:
+    """
+    Busca população por nível de instrução (Censo 2022, tabela 9543).
+    Retorna {ibge_id: {"sem_instrucao": N, "fundamental_incompleto": N, ...}}.
+    Tabela 9543 = Nível de instrução da população de 25+ anos.
+    """
+    EDU_MAP = {
+        "Sem instrução": "sem_instrucao",
+        "Fundamental incompleto ou equivalente": "fundamental_incompleto",
+        "Fundamental completo ou equivalente": "fundamental_completo",
+        "Médio incompleto ou equivalente": "medio_incompleto",
+        "Médio completo ou equivalente": "medio_completo",
+        "Superior incompleto ou equivalente": "superior_incompleto",
+        "Superior completo": "superior_completo",
+        "Não determinado": "nao_determinado",
+    }
+    url = (
+        "https://servicodados.ibge.gov.br/api/v3/agregados/9543"
+        "/periodos/2022/variaveis/93?localidades=N6[all]&classificacao=11416[allxt]"
+    )
+    log.info("Baixando escolaridade (Censo 2022)...")
+    result: dict[int, dict[str, int]] = {}
+    try:
+        data = http_get(url).json()
+        for item in data:
+            for resultado in item.get("resultados", []):
+                classifs = resultado.get("classificacoes", [])
+                nivel_nome = None
+                for c in classifs:
+                    for cat in c.get("categoria", {}).values():
+                        nivel_nome = cat
+                        break
+                    if nivel_nome:
+                        break
+                chave = EDU_MAP.get(nivel_nome) if nivel_nome else None
+                if not chave:
+                    continue
+                for serie_item in resultado.get("series", []):
+                    localidade = serie_item.get("localidade", {})
+                    try:
+                        ibge_id = int(localidade.get("id", 0))
+                    except (ValueError, TypeError):
+                        continue
+                    serie = serie_item.get("serie", {})
+                    for _periodo, valor in serie.items():
+                        if valor and valor not in ("...", "-", ""):
+                            try:
+                                v = int(str(valor).replace(".", "").replace(",", ""))
+                            except ValueError:
+                                continue
+                            if ibge_id not in result:
+                                result[ibge_id] = {}
+                            result[ibge_id][chave] = v
+                        break
+        log.info("Escolaridade: %d municípios", len(result))
+    except Exception as exc:
+        log.error("Erro ao buscar escolaridade: %s", exc)
+    return result
+
+
+def etl_demograficos_municipio(sb: Client) -> None:
+    """
+    Busca dados demográficos do IBGE Censo 2022 por município e upserta em
+    geo_demograficos_municipio: total, masculino, feminino, faixas etárias, escolaridade.
+    """
+    log.info("=== Fase Demográfica: Dados por Município (IBGE Censo 2022) ===")
+
+    BASE = (
+        "https://servicodados.ibge.gov.br/api/v3/agregados/9514"
+        "/periodos/2022/variaveis/93?localidades=N6[all]"
+    )
+    total_map = _fetch_ibge_variable(BASE, "população total")
+    masc_map  = _fetch_ibge_variable(BASE + "&classificacao=2[4]", "população masculina")
+    fem_map   = _fetch_ibge_variable(BASE + "&classificacao=2[5]", "população feminina")
+    age_map   = _fetch_ibge_age_groups()
+    edu_map   = _fetch_ibge_education()
+
+    if not total_map:
+        log.error("Nenhum dado de população total obtido. Abortando fase demográfica.")
+        return
+
+    rows = []
+    for ibge_id, total in total_map.items():
+        rows.append({
+            "municipio_id":        ibge_id,
+            "ano_censo":           2022,
+            "populacao_total":     total,
+            "populacao_masculina": masc_map.get(ibge_id),
+            "populacao_feminina":  fem_map.get(ibge_id),
+            "faixas_etarias":      age_map.get(ibge_id) or None,
+            "escolaridade":        edu_map.get(ibge_id) or None,
+            "fonte":               "IBGE Censo 2022 (API SIDRA)",
+        })
+
+    log.info("Upserting %d registros em geo_demograficos_municipio...", len(rows))
+    BATCH = 500
+    atualizados = 0
+    erros = 0
+    for i in tqdm(range(0, len(rows), BATCH), desc="demograficos_municipio", unit="batch"):
+        batch = rows[i:i + BATCH]
+        try:
+            sb.table("geo_demograficos_municipio").upsert(
+                batch, on_conflict="municipio_id,ano_censo"
+            ).execute()
+            atualizados += len(batch)
+        except Exception as exc:
+            log.error("Erro ao upsert batch %d: %s", i // BATCH, exc)
+            erros += len(batch)
+
+    log.info(
+        "Demográficos municipais: %d registros upsertados, %d erros",
+        atualizados, erros
+    )
+    log_ingestao(
+        sb, "ibge_demograficos_municipio", None,
+        {"total": len(rows), "atualizados": atualizados, "erros": erros},
+        "concluido" if erros == 0 else "erro",
+    )
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -621,6 +853,8 @@ Exemplos:
     parser.add_argument("--skip-ibge", action="store_true")
     parser.add_argument("--pop-estimada", action="store_true",
                         help="Busca estimativas populacionais do IBGE (Censo 2022) e atualiza geo_municipios.populacao_estimada")
+    parser.add_argument("--demografico", action="store_true",
+                        help="Busca dados demográficos do IBGE (Censo 2022): total, sexo, faixa etária e escolaridade por município")
     parser.add_argument("--log-level", default="INFO",
                         choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     return parser.parse_args()
@@ -667,6 +901,9 @@ def main() -> None:
         # Passa None para atualizar todos os municípios da API IBGE sem filtro
         pop_ids = None if args.skip_ibge else (municipio_ids if municipio_ids else None)
         etl_populacao_estimada(sb, pop_ids)
+
+    if args.demografico:
+        etl_demograficos_municipio(sb)
 
     elapsed = (datetime.now(tz=timezone.utc) - start).total_seconds()
     log.info("ETL concluído em %.1f s (%.1f min)", elapsed, elapsed / 60)

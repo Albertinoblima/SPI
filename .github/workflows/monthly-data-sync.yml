@@ -98,12 +98,12 @@ jobs:
         run: |
           # Determinar flags baseado em inputs ou agendamento
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            # Em agendamento: executar ETL completo incluindo estimativas populacionais
-            FLAGS="--all-ufs --pop-estimada"
+            # Em agendamento: executar ETL completo incluindo estimativas populacionais e demográficos
+            FLAGS="--all-ufs --pop-estimada --demografico"
             echo "status=scheduled" >> $GITHUB_OUTPUT
           else
             # Em workflow_dispatch: respeitar inputs do usuário
-            FLAGS="--all-ufs --pop-estimada"
+            FLAGS="--all-ufs --pop-estimada --demografico"
             [[ "${{ github.event.inputs.skip_ibge }}" == "true" ]] && FLAGS="$FLAGS --skip-ibge"
             [[ "${{ github.event.inputs.skip_tse }}" == "true" ]] && FLAGS="$FLAGS --skip-tse"
             echo "status=manual" >> $GITHUB_OUTPUT
