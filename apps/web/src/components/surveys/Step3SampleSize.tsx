@@ -1,12 +1,13 @@
 ﻿'use client';
 
 import { useMemo, useState } from 'react';
-import { Calculator, Users, HelpCircle, BarChart2, Infinity, TrendingDown } from 'lucide-react';
+import { Calculator, Users, HelpCircle, BarChart2, Infinity, TrendingDown, RefreshCw, Database } from 'lucide-react';
 import Link from 'next/link';
 import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
 import type { Locality } from './Step2Localities';
 import { getEffectiveLocalities } from '@/lib/survey-decisions';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
+import { BR_STATES, resolveStateCode, normalizeGeoText } from '@/lib/geo/br-reference';
 
 interface Props {
     localities: Locality[];
@@ -23,6 +24,7 @@ interface Props {
         | 'geographic_scope'
         | 'infinite_population_mode'
         | 'infinite_population_threshold'
+        | 'population_type'
     >;
     onTechChange: (updates: Partial<Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold' | 'margin_of_error' | 'confidence_interval'>>) => void;
     onLocalitiesChange: (localities: Locality[]) => void;
@@ -70,6 +72,53 @@ function localityIsInfinite(
     if (mode === 'force_all') return true;
     if (mode === 'auto_threshold') return (loc.population ?? 0) >= threshold;
     return isNational; // national_only
+}
+
+type SyncOutcome = {
+    value: number | null;
+    source: 'ibge' | 'tse' | 'cache' | 'geo_db' | 'fallback' | 'manual';
+    warning?: string | null;
+    error?: string | null;
+};
+
+type SyncReport = {
+    updated: number;
+    warnings: string[];
+    errors: string[];
+    sourceCounter: Record<string, number>;
+    finishedAt: string;
+};
+
+function isApiSuccess(payload: unknown): payload is { success: true; data: Record<string, unknown> } {
+    if (!payload || typeof payload !== 'object') return false;
+    return Boolean((payload as { success?: boolean }).success);
+}
+
+function toText(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
+function resolveUf(stateName: string): string | null {
+    const stateCode = resolveStateCode(stateName);
+    if (!stateCode) return null;
+    return BR_STATES.find((s) => s.code === stateCode)?.uf ?? null;
+}
+
+function findLocalityValue(
+    localities: unknown,
+    localityName: string,
+    key: 'total_habitantes' | 'total_eleitores',
+): number | null {
+    if (!Array.isArray(localities)) return null;
+    const normalizedTarget = normalizeGeoText(localityName);
+    const match = localities.find((item) => {
+        const name = normalizeGeoText(toText((item as { localidade?: unknown }).localidade));
+        return name === normalizedTarget;
+    }) as { total_habitantes?: unknown; total_eleitores?: unknown } | undefined;
+    if (!match) return null;
+    const raw = key === 'total_habitantes' ? match.total_habitantes : match.total_eleitores;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
 }
 
 const GEO_LEVEL_LABELS: Record<Locality['geo_level'], string> = {
@@ -121,6 +170,8 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
     const isNational = tech.geographic_scope === 'national';
 
     const [thresholdInput, setThresholdInput] = useState<string>(String(threshold));
+    const [syncingPopulation, setSyncingPopulation] = useState(false);
+    const [syncReport, setSyncReport] = useState<SyncReport | null>(null);
 
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
 
@@ -162,6 +213,196 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
         onLocalitiesChange(updated);
     };
 
+    const fetchApi = async (url: string) => {
+        const response = await fetch(url);
+        const payload = await response.json();
+        if (!response.ok || !isApiSuccess(payload)) {
+            const fallbackError = toText((payload as { error?: unknown })?.error) || `Falha na consulta: ${url}`;
+            throw new Error(fallbackError);
+        }
+        return payload.data;
+    };
+
+    const fetchStateVotersFromGeoDb = async (stateName: string): Promise<SyncOutcome> => {
+        const uf = resolveUf(stateName);
+        if (!uf) {
+            return { value: null, source: 'manual', warning: `UF não reconhecida para o estado ${stateName}.` };
+        }
+
+        try {
+            let page = 1;
+            let totalPages = 1;
+            let total = 0;
+
+            while (page <= totalPages) {
+                const data = await fetchApi(`/api/geo/municipios?uf=${encodeURIComponent(uf)}&page=${page}&limit=100`);
+                const municipios = Array.isArray(data.municipios) ? data.municipios : [];
+                total += municipios.reduce((sum, m) => sum + (Number((m as { total_eleitores?: unknown }).total_eleitores) || 0), 0);
+                const pages = Number((data.pagination as { totalPages?: unknown })?.totalPages);
+                totalPages = Number.isFinite(pages) && pages > 0 ? pages : 1;
+                page += 1;
+            }
+
+            if (total > 0) {
+                return { value: total, source: 'geo_db' };
+            }
+
+            return { value: null, source: 'fallback', warning: `Sem total de eleitores consolidado para ${stateName}.` };
+        } catch (error) {
+            return { value: null, source: 'manual', warning: (error as Error).message };
+        }
+    };
+
+    const fetchByCity = async (
+        stateName: string,
+        cityName: string,
+        populationType: SurveyTechData['population_type'],
+    ): Promise<SyncOutcome> => {
+        if (populationType === 'habitantes') {
+            const data = await fetchApi(`/api/geo/population?state=${encodeURIComponent(stateName)}&city=${encodeURIComponent(cityName)}`);
+            const value = Number(data.population);
+            return {
+                value: Number.isFinite(value) && value > 0 ? Math.round(value) : null,
+                source: (toText(data.source) as SyncOutcome['source']) || 'ibge',
+                warning: toText(data.warning) || null,
+            };
+        }
+
+        if (populationType === 'eleitores') {
+            const data = await fetchApi(`/api/geo/voters?state=${encodeURIComponent(stateName)}&city=${encodeURIComponent(cityName)}`);
+            const value = Number(data.total);
+            return {
+                value: Number.isFinite(value) && value > 0 ? Math.round(value) : null,
+                source: 'tse',
+                warning: toText(data.warning) || null,
+            };
+        }
+
+        return {
+            value: null,
+            source: 'manual',
+            warning: 'População automática disponível apenas para Habitantes (IBGE) e Eleitores (TSE).',
+        };
+    };
+
+    const fetchBySpecificLocality = async (
+        stateName: string,
+        cityName: string,
+        localityName: string,
+        populationType: SurveyTechData['population_type'],
+    ): Promise<SyncOutcome> => {
+        try {
+            const populationData = await fetchApi(`/api/geo/population?state=${encodeURIComponent(stateName)}&city=${encodeURIComponent(cityName)}`);
+            const cityCode = Number(populationData.cityCode);
+            if (!Number.isFinite(cityCode) || cityCode <= 0) {
+                return {
+                    value: null,
+                    source: 'fallback',
+                    warning: `Não foi possível resolver o código IBGE do município ${cityName}.`,
+                };
+            }
+
+            const municipalData = await fetchApi(`/api/geo/municipios/${cityCode}`);
+            const key = populationType === 'habitantes' ? 'total_habitantes' : 'total_eleitores';
+            const value = findLocalityValue(municipalData.localidades, localityName, key);
+
+            if (value) {
+                return { value, source: 'geo_db' };
+            }
+
+            return {
+                value: null,
+                source: 'fallback',
+                warning: `A localidade ${localityName} não possui valor consolidado no banco geográfico para ${populationType}.`,
+            };
+        } catch (error) {
+            return {
+                value: null,
+                source: 'manual',
+                warning: (error as Error).message,
+            };
+        }
+    };
+
+    const fetchPopulationForLocality = async (loc: Locality): Promise<SyncOutcome> => {
+        if (tech.population_type !== 'habitantes' && tech.population_type !== 'eleitores') {
+            return {
+                value: null,
+                source: 'manual',
+                warning: `A base ${tech.population_type} é segmentada e exige preenchimento manual por localidade.`,
+            };
+        }
+
+        if (loc.geo_level === 'state') {
+            if (tech.population_type === 'habitantes') {
+                const data = await fetchApi(`/api/geo/population/state?state=${encodeURIComponent(loc.name)}`);
+                const value = Number(data.population);
+                return {
+                    value: Number.isFinite(value) && value > 0 ? Math.round(value) : null,
+                    source: (toText(data.source) as SyncOutcome['source']) || 'ibge',
+                    warning: toText(data.warning) || null,
+                };
+            }
+            return fetchStateVotersFromGeoDb(loc.name);
+        }
+
+        if (loc.geo_level === 'city') {
+            if (!loc.parent_state_name) {
+                return { value: null, source: 'manual', error: `Cidade ${loc.name} sem estado de referência.` };
+            }
+            return fetchByCity(loc.parent_state_name, loc.name, tech.population_type);
+        }
+
+        if (!loc.parent_state_name || !loc.parent_city_name) {
+            return { value: null, source: 'manual', error: `Localidade ${loc.name} sem estado/cidade de referência.` };
+        }
+
+        return fetchBySpecificLocality(loc.parent_state_name, loc.parent_city_name, loc.name, tech.population_type);
+    };
+
+    const handleSyncPopulation = async () => {
+        setSyncingPopulation(true);
+        setSyncReport(null);
+
+        const updatesById = new Map<string, number>();
+        const warnings: string[] = [];
+        const errors: string[] = [];
+        const sourceCounter: Record<string, number> = {};
+
+        for (const loc of effectiveLocalities) {
+            try {
+                const result = await fetchPopulationForLocality(loc);
+                sourceCounter[result.source] = (sourceCounter[result.source] ?? 0) + 1;
+
+                if (result.value && result.value > 0) {
+                    updatesById.set(loc.id, result.value);
+                }
+
+                if (result.warning) warnings.push(`${loc.name}: ${result.warning}`);
+                if (result.error) errors.push(`${loc.name}: ${result.error}`);
+            } catch (error) {
+                errors.push(`${loc.name}: ${(error as Error).message}`);
+            }
+        }
+
+        if (updatesById.size > 0) {
+            const merged = localities.map((loc) => {
+                const nextPopulation = updatesById.get(loc.id);
+                return nextPopulation ? { ...loc, population: nextPopulation } : loc;
+            });
+            onLocalitiesChange(merged);
+        }
+
+        setSyncReport({
+            updated: updatesById.size,
+            warnings,
+            errors,
+            sourceCounter,
+            finishedAt: new Date().toLocaleString('pt-BR'),
+        });
+        setSyncingPopulation(false);
+    };
+
     return (
         <div>
             <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 3 — Dimensionamento Amostral</h2>
@@ -172,6 +413,50 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">
                 {getMethodologyHint(tech.survey_type)}
+            </div>
+
+            <div className="border border-slate-200 rounded-xl p-4 mb-6 bg-white">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                            <Database size={15} className="text-slate-600" />
+                            Base populacional da amostra
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Fonte selecionada na Etapa 1: <strong>{tech.population_type}</strong>. Clique em sincronizar para buscar valores IBGE/TSE e banco geográfico.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSyncPopulation}
+                        disabled={syncingPopulation || effectiveLocalities.length === 0}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        {syncingPopulation ? <RefreshCw size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+                        {syncingPopulation ? 'Sincronizando...' : 'Sincronizar população (IBGE/TSE)'}
+                    </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-3">
+                    Você pode ajustar qualquer valor manualmente após a sincronização. O cálculo amostral usa sempre os números atuais exibidos na tabela.
+                </p>
+
+                {syncReport && (
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                        <p>
+                            Última sincronização: <strong>{syncReport.finishedAt}</strong>. Localidades atualizadas: <strong>{syncReport.updated}</strong>.
+                        </p>
+                        <p className="mt-1">
+                            Fontes consultadas:{' '}
+                            {Object.entries(syncReport.sourceCounter).map(([source, count]) => `${source}: ${count}`).join(' | ') || 'nenhuma'}
+                        </p>
+                        {syncReport.warnings.length > 0 && (
+                            <p className="mt-1 text-amber-700">Avisos: {syncReport.warnings.slice(0, 2).join(' | ')}</p>
+                        )}
+                        {syncReport.errors.length > 0 && (
+                            <p className="mt-1 text-red-700">Erros: {syncReport.errors.slice(0, 2).join(' | ')}</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {usesSampling && (
