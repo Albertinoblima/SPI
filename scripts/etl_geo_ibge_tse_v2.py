@@ -385,36 +385,41 @@ def download_tse_csv(uf: str) -> Path:
     return csv_dir
 
 
-def parse_tse_csv(csv_dir: Path) -> dict[int, dict[int, dict]]:
+def parse_tse_csv(csv_dir: Path) -> dict[str, dict[int, dict]]:
     """
-    Lê CSV TSE e agrega eleitores por (municipio_ibge → local_votacao).
+    Lê CSV TSE e agrega eleitores por (chave_mun → local_votacao).
+    Chave do município: "NM_MUNICIPIO|SG_UF" normalizado.
     """
     csv_files = list(csv_dir.rglob("*.csv"))
     if not csv_files:
         raise FileNotFoundError(f"Nenhum CSV em {csv_dir}")
 
-    resultado: dict[int, dict[int, dict]] = {}
+    resultado: dict[str, dict[int, dict]] = {}
     for csv_file in csv_files:
         log.info("Lendo %s…", csv_file.name)
         with open(csv_file, encoding="latin-1", newline="") as f:
             reader = csv.DictReader(f, delimiter=";")
             for row in reader:
                 try:
-                    ibge_id = int(row.get("CD_MUN_IBGE", "0") or "0")
+                    nm_mun = normalize(row.get("NM_MUNICIPIO", "") or "")
+                    sg_uf = (row.get("SG_UF", "") or "").strip().upper()
+                    if not nm_mun or not sg_uf:
+                        continue
+                    chave_mun = f"{nm_mun}|{sg_uf}"
                     nr_local = int(row.get("NR_LOCAL_VOTACAO", "0") or "0")
                     eleitores = int(row.get("QT_ELEITORES_PERFIL", "0") or "0")
-                    if ibge_id not in resultado:
-                        resultado[ibge_id] = {}
-                    if nr_local not in resultado[ibge_id]:
-                        resultado[ibge_id][nr_local] = {
+                    if chave_mun not in resultado:
+                        resultado[chave_mun] = {}
+                    if nr_local not in resultado[chave_mun]:
+                        resultado[chave_mun][nr_local] = {
                             "nome": row.get("NM_LOCAL_VOTACAO", ""),
-                            "endereco": row.get("DS_LOCAL_VOTACAO_ENDERECO", ""),
-                            "bairro": row.get("NM_BAIRRO", ""),
+                            "endereco": "",  # coluna não presente no CSV TSE 2024
+                            "bairro": "",    # coluna não presente no CSV TSE 2024
                             "eleitores": 0,
                             "secoes": set(),
                         }
-                    resultado[ibge_id][nr_local]["eleitores"] += eleitores
-                    resultado[ibge_id][nr_local]["secoes"].add(row.get("NR_SECAO", ""))
+                    resultado[chave_mun][nr_local]["eleitores"] += eleitores
+                    resultado[chave_mun][nr_local]["secoes"].add(row.get("NR_SECAO", ""))
                 except (ValueError, KeyError):
                     continue
     return resultado
@@ -426,6 +431,21 @@ def etl_dados_eleitorais(sb: Client, ufs: list[str]) -> None:
     e insere em geo_dados_eleitorais.
     """
     log.info("=== Fase 4: Dados Eleitorais TSE ===")
+
+    # Carrega mapa nome_normalizado|UF → id_ibge de todos os municípios
+    log.info("Carregando mapa de municípios para lookup TSE…")
+    mun_map: dict[str, int] = {}
+    page_size = 1000
+    offset = 0
+    while True:
+        r = sb.table("geo_municipios").select("id_ibge,nome,uf").range(offset, offset + page_size - 1).execute()
+        for m in r.data:
+            chave = f"{normalize(m['nome'])}|{m['uf']}"
+            mun_map[chave] = m["id_ibge"]
+        if len(r.data) < page_size:
+            break
+        offset += page_size
+    log.info("Mapa de municípios carregado: %d entradas", len(mun_map))
 
     for uf in ufs:
         log.info("Processando TSE %s…", uf)
@@ -439,7 +459,13 @@ def etl_dados_eleitorais(sb: Client, ufs: list[str]) -> None:
         total = 0
         erros = 0
 
-        for ibge_id, locais in tqdm(tse_data.items(), desc=f"TSE {uf}", unit="mun"):
+        for chave_mun, locais in tqdm(tse_data.items(), desc=f"TSE {uf}", unit="mun"):
+            ibge_id = mun_map.get(chave_mun)
+            if ibge_id is None:
+                log.warning("Município não encontrado no banco: %s", chave_mun)
+                erros += len(locais)
+                continue
+
             # Busca localidades do município via supabase-py
             try:
                 resp = (
@@ -453,46 +479,27 @@ def etl_dados_eleitorais(sb: Client, ufs: list[str]) -> None:
                 log.warning("Falha ao buscar localidades do mun %d: %s", ibge_id, exc)
                 continue
 
+            # Fallback: se não há localidades, usa primeiro registro qualquer do município
             if not localidades:
-                continue
-
-            # Índice: nome_normalizado → id
-            loc_idx: dict[str, int] = {
-                loc["nome_normalizado"]: loc["id"]
-                for loc in localidades
-                if loc.get("nome_normalizado")
-            }
+                localidade_id_fallback = None
+            else:
+                localidade_id_fallback = localidades[0]["id"]
 
             batch: list[dict] = []
             for nr_local, info in locais.items():
-                bairro_norm = normalize(info["bairro"])
-                localidade_id: int | None = None
-
-                # Match exato
-                if bairro_norm in loc_idx:
-                    localidade_id = loc_idx[bairro_norm]
-                else:
-                    # Match parcial
-                    matches = [v for k, v in loc_idx.items() if bairro_norm and bairro_norm in k]
-                    if matches:
-                        localidade_id = matches[0]
-
-                if localidade_id is None:
-                    # Fallback: primeira localidade urbana do município
-                    urbanas = [loc["id"] for loc in localidades]
-                    if urbanas:
-                        localidade_id = urbanas[0]
-                    else:
-                        continue
+                # Sem bairro disponível no CSV TSE 2024, sempre usa fallback
+                if localidade_id_fallback is None:
+                    erros += 1
+                    continue
 
                 batch.append({
-                    "localidade_id": localidade_id,
+                    "localidade_id": localidade_id_fallback,
                     "codigo_local_votacao": nr_local,
                     "nome_local_votacao": info["nome"],
                     "endereco_local": info["endereco"],
                     "quantidade_eleitores": info["eleitores"],
                     "secoes_vinculadas": ",".join(sorted(info["secoes"])),
-                    "metodo_vinculo": "EXATO" if bairro_norm in loc_idx else "PARCIAL",
+                    "metodo_vinculo": "ESPACIAL",
                     "ano_atualizacao": TSE_YEAR,
                     "fonte_detalhada": f"TSE Perfil Eleitorado {TSE_YEAR} - {uf}",
                 })
