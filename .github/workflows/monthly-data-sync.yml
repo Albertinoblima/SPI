@@ -46,7 +46,7 @@ jobs:
   data-sync:
     name: 🔄 Sincronizar Dados Geográficos e Eleitorais
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ env.ETL_TIMEOUT_MINUTES }}
+    timeout-minutes: 300  # 5 horas para all-ufs (env.ETL_TIMEOUT_MINUTES não é suportado aqui)
     
     outputs:
       has_changes: ${{ steps.detect_changes.outputs.has_changes }}
@@ -137,18 +137,15 @@ jobs:
         id: commit
         run: |
           DATE=$(date -u +"%d/%m/%Y %H:%M UTC")
-          COMMIT_MSG="data(geo/tse): sincronização mensal automática
-
-- Atualização de municípios e localidades (IBGE)
-- Atualização de dados eleitorais (TSE)
-- Regiões: Todas as 27 UFs
-- Data/Hora: $DATE
-- Trigger: GitHub Actions (agenda mensal)"
-          
           git add -A
-          git commit -m "$COMMIT_MSG" \
+          git commit \
+            -m "data(geo/tse): sincronização mensal automática" \
+            -m "- Atualização de municípios e localidades (IBGE)" \
+            -m "- Atualização de dados eleitorais (TSE)" \
+            -m "- Regiões: Todas as 27 UFs" \
+            -m "- Data/Hora: $DATE" \
+            -m "- Trigger: GitHub Actions (agenda mensal)" \
             -m "Co-authored-by: github-actions[bot] <41898752+github-actions[bot]@users.noreply.github.com>"
-          
           echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: 🚀 Push para main
