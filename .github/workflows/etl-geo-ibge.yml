@@ -1,9 +1,9 @@
-name: ETL Geográfico IBGE
+name: ETL Geográfico IBGE (Manual)
 
 on:
-  schedule:
-    # Todo dia 1 de janeiro às 03:00 UTC (00:00 Brasília) — dados IBGE mudam raramente
-    - cron: '0 3 1 1 *'
+  # ⚠️ DESATIVADO: Use workflow "monthly-data-sync.yml" para sincronização automática mensal
+  # schedule:
+  #   - cron: '0 3 1 1 *'  # Substituído por monthly-data-sync.yml
   workflow_dispatch:
     # Permite disparo manual via GitHub UI com parâmetros
     inputs:

@@ -1,9 +1,9 @@
-name: Update TSE Voter Data
+name: Update TSE Voter Data (Manual)
 
 on:
-  schedule:
-    # Executar no primeiro dia do mês às 00:00 UTC (20:00 Brasília)
-    - cron: '0 0 1 * *'
+  # ⚠️ DESATIVADO: Use workflow "monthly-data-sync.yml" para sincronização automática mensal
+  # schedule:
+  #   - cron: '0 0 1 * *'  # Substituído por monthly-data-sync.yml
   workflow_dispatch:
     # Permitir disparo manual via GitHub UI
 

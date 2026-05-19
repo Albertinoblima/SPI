@@ -1,0 +1,231 @@
+name: 📊 Sincronização Mensal de Dados (Geográficos + Eleitorais)
+
+on:
+  schedule:
+    # Executar no primeiro domingo do mês às 02:00 UTC (23:00 BRT anterior)
+    # Cron: minuto hora dia-do-mês mês dia-da-semana
+    # 0 2 1-7 * 0 = qualquer domingo entre 1-7 do mês, às 02:00 UTC
+    - cron: '0 2 1-7 * 0'
+  
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Forçar ETL completo (Fases 1-3)?'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      skip_ibge:
+        description: 'Pular dados IBGE (Fases 1-2)?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      skip_tse:
+        description: 'Pular dados TSE (Fase 3)?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHON_VERSION: '3.12'
+  ETL_TIMEOUT_MINUTES: 300  # 5 horas para all-ufs
+
+jobs:
+  data-sync:
+    name: 🔄 Sincronizar Dados Geográficos e Eleitorais
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ env.ETL_TIMEOUT_MINUTES }}
+    
+    outputs:
+      has_changes: ${{ steps.detect_changes.outputs.has_changes }}
+      etl_status: ${{ steps.etl.outputs.status }}
+      rows_affected: ${{ steps.etl.outputs.rows_affected }}
+
+    steps:
+      - name: 📥 Checkout repositório
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: 🐍 Configurar Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements-etl.txt
+
+      - name: 📦 Instalar dependências ETL
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements-etl.txt
+        env:
+          PIP_QUIET: 1
+
+      - name: 🔐 Criar arquivo de credenciais
+        run: |
+          mkdir -p apps/web
+          cat > apps/web/.env.local <<'EOF'
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EOF
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: 🚀 Executar ETL (Sincronização Mensal)
+        id: etl
+        run: |
+          # Determinar flags baseado em inputs ou agendamento
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            # Em agendamento: executar ETL completo
+            FLAGS="--all-ufs"
+            echo "status=scheduled" >> $GITHUB_OUTPUT
+          else
+            # Em workflow_dispatch: respeitar inputs do usuário
+            FLAGS="--all-ufs"
+            [[ "${{ github.event.inputs.skip_ibge }}" == "true" ]] && FLAGS="$FLAGS --skip-ibge"
+            [[ "${{ github.event.inputs.skip_tse }}" == "true" ]] && FLAGS="$FLAGS --skip-tse"
+            echo "status=manual" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "🔄 Iniciando ETL com flags: $FLAGS"
+          python scripts/etl_geo_ibge_tse_v2.py $FLAGS 2>&1 | tee etl_output.log
+          
+          # Extrair métricas do log
+          ROWS=$(grep -oP 'inseridas/atualizadas: \K\d+' etl_output.log | tail -1)
+          echo "rows_affected=${ROWS:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: 📋 Detectar mudanças
+        id: detect_changes
+        run: |
+          STATUS=$(git status --porcelain)
+          if [ -z "$STATUS" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "✅ Nenhuma mudança detectada"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Mudanças detectadas:"
+            echo "$STATUS"
+          fi
+
+      - name: ⚙️ Configurar Git
+        if: steps.detect_changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898752+github-actions[bot]@users.noreply.github.com"
+
+      - name: 💾 Fazer Commit de Atualizações
+        if: steps.detect_changes.outputs.has_changes == 'true'
+        id: commit
+        run: |
+          DATE=$(date -u +"%d/%m/%Y %H:%M UTC")
+          COMMIT_MSG="data(geo/tse): sincronização mensal automática
+
+- Atualização de municípios e localidades (IBGE)
+- Atualização de dados eleitorais (TSE)
+- Regiões: Todas as 27 UFs
+- Data/Hora: $DATE
+- Trigger: GitHub Actions (agenda mensal)"
+          
+          git add -A
+          git commit -m "$COMMIT_MSG" \
+            -m "Co-authored-by: github-actions[bot] <41898752+github-actions[bot]@users.noreply.github.com>"
+          
+          echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Push para main
+        if: steps.detect_changes.outputs.has_changes == 'true'
+        run: |
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Resumo da Execução
+        if: always()
+        run: |
+          echo "## 📊 Relatório de Sincronização"
+          echo ""
+          echo "| Métrica | Valor |"
+          echo "|---------|-------|"
+          echo "| **Tipo de Execução** | ${{ steps.etl.outputs.status }} |"
+          echo "| **Status ETL** | ${{ job.status }} |"
+          echo "| **Mudanças Detectadas** | ${{ steps.detect_changes.outputs.has_changes }} |"
+          echo "| **Linhas Afetadas** | ${{ steps.etl.outputs.rows_affected }} |"
+          echo "| **Data/Hora UTC** | $(date -u '+%d/%m/%Y %H:%M:%S') |"
+          echo ""
+          echo "### 🔍 Log ETL (últimas 20 linhas)"
+          echo "\`\`\`"
+          tail -20 etl_output.log 2>/dev/null || echo "Nenhum log disponível"
+          echo "\`\`\`"
+
+      - name: ❌ Notificar Falha (Issues)
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR', { 
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'UTC'
+            });
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Falha na Sincronização Mensal de Dados',
+              body: `**Relatório de Falha**\n\n` +
+                    `- **Data**: ${dateStr}\n` +
+                    `- **Workflow**: Monthly Data Sync\n` +
+                    `- **Status do ETL**: ${{ steps.etl.outcome }}\n` +
+                    `- **Run URL**: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n` +
+                    `**Ação Necessária**: Revisar logs e executar manualmente se necessário.`,
+              labels: ['🚨 data-sync-failed', 'bug', 'automated']
+            });
+
+  notify-success:
+    name: ✅ Notificar Sucesso
+    runs-on: ubuntu-latest
+    needs: data-sync
+    if: needs.data-sync.outputs.has_changes == 'true' && success()
+    
+    steps:
+      - name: 📢 Criar discussão de sucesso
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR', { 
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            
+            console.log(`✅ Sincronização mensal concluída em ${dateStr}`);
+            console.log(`   - Status: ${needs.data-sync.outputs.etl_status}`);
+            console.log(`   - Linhas afetadas: ${needs.data-sync.outputs.rows_affected}`);
+
