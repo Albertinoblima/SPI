@@ -47,6 +47,10 @@ jobs:
     name: 🔄 Sincronizar Dados Geográficos e Eleitorais
     runs-on: ubuntu-latest
     timeout-minutes: 300  # 5 horas para all-ufs (env.ETL_TIMEOUT_MINUTES não é suportado aqui)
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     
     outputs:
       has_changes: ${{ steps.detect_changes.outputs.has_changes }}
@@ -74,17 +78,20 @@ jobs:
         env:
           PIP_QUIET: 1
 
+      - name: 🔍 Validar secrets obrigatórias
+        run: |
+          test -n "$NEXT_PUBLIC_SUPABASE_URL" || { echo "NEXT_PUBLIC_SUPABASE_URL não configurada"; exit 1; }
+          test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" || { echo "NEXT_PUBLIC_SUPABASE_ANON_KEY não configurada"; exit 1; }
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "SUPABASE_SERVICE_ROLE_KEY não configurada"; exit 1; }
+
       - name: 🔐 Criar arquivo de credenciais
         run: |
           mkdir -p apps/web
           cat > apps/web/.env.local <<'EOF'
-          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
           EOF
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: 🚀 Executar ETL (Sincronização Mensal)
         id: etl
@@ -109,9 +116,6 @@ jobs:
           ROWS=$(grep -oP 'inseridas/atualizadas: \K\d+' etl_output.log | tail -1)
           echo "rows_affected=${ROWS:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: 📋 Detectar mudanças
         id: detect_changes

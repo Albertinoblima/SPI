@@ -28,6 +28,9 @@ jobs:
     name: Carregar municípios e localidades IBGE
     runs-on: ubuntu-latest
     timeout-minutes: 240  # 4 horas — todas as UFs levam ~3h
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - name: Checkout
@@ -43,12 +46,17 @@ jobs:
       - name: Instalar dependências
         run: pip install -r scripts/requirements-etl.txt
 
+      - name: Validar secrets obrigatórias
+        run: |
+          test -n "$NEXT_PUBLIC_SUPABASE_URL" || { echo "NEXT_PUBLIC_SUPABASE_URL não configurada"; exit 1; }
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "SUPABASE_SERVICE_ROLE_KEY não configurada"; exit 1; }
+
       - name: Criar .env.local com credenciais
         run: |
           mkdir -p apps/web
           cat > apps/web/.env.local <<EOF
-          NEXT_PUBLIC_SUPABASE_URL=${{ secrets['NEXT_PUBLIC_SUPABASE_URL'] }}
-          SUPABASE_SERVICE_ROLE_KEY=${{ secrets['SUPABASE_SERVICE_ROLE_KEY'] }}
+          NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
           EOF
 
       - name: Executar ETL (todas as UFs)
