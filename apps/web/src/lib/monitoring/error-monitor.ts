@@ -15,8 +15,29 @@ interface CaptureSystemErrorInput {
     tenantId?: string | null;
     userId?: string | null;
     httpStatusCode?: number | null;
+    httpPath?: string | null;
+    httpMethod?: string | null;
     correlationId?: string;
     metadata?: Record<string, unknown>;
+}
+
+function derivePathFromTarget(target: unknown): string | null {
+    if (typeof target !== 'string' || target.trim().length === 0) {
+        return null;
+    }
+
+    const value = target.trim();
+
+    if (value.startsWith('/')) {
+        return value;
+    }
+
+    try {
+        const parsed = new URL(value);
+        return parsed.pathname || null;
+    } catch {
+        return null;
+    }
 }
 
 function safeJson(value: unknown): string {
@@ -75,8 +96,16 @@ export async function captureSystemError(input: CaptureSystemErrorInput): Promis
         definition.userMessage;
 
     const request = input.request;
-    const httpMethod = request?.method ?? null;
-    const httpPath = request ? request.nextUrl.pathname : null;
+    const requestPath = request ? request.nextUrl.pathname : null;
+
+    const pathFromTarget = derivePathFromTarget(input.metadata?.target);
+    const inferredPath =
+        requestPath === '/api/system/errors/ingest' && pathFromTarget
+            ? pathFromTarget
+            : requestPath;
+
+    const httpMethod = input.httpMethod ?? request?.method ?? null;
+    const httpPath = input.httpPath ?? inferredPath;
 
     const userAgent = request?.headers.get('user-agent') ?? null;
     const forwardedFor = request?.headers.get('x-forwarded-for') ?? null;

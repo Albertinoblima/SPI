@@ -29,18 +29,32 @@ export async function POST(request: NextRequest) {
                 ? body.severity
                 : undefined;
 
+        const metadata =
+            body.metadata && typeof body.metadata === 'object'
+                ? (body.metadata as Record<string, unknown>)
+                : undefined;
+
+        const httpMethod =
+            typeof metadata?.method === 'string' && metadata.method.trim().length > 0
+                ? metadata.method.trim().toUpperCase()
+                : undefined;
+
+        const httpPath =
+            typeof metadata?.target === 'string' && metadata.target.trim().length > 0
+                ? metadata.target.trim()
+                : undefined;
+
         const result = await captureSystemError({
             request,
             errorCode,
             errorMessage,
             severity,
             correlationId,
+            httpMethod,
+            httpPath,
             httpStatusCode:
                 typeof body.httpStatusCode === 'number' ? body.httpStatusCode : undefined,
-            metadata:
-                body.metadata && typeof body.metadata === 'object'
-                    ? (body.metadata as Record<string, unknown>)
-                    : undefined,
+            metadata,
         });
 
         return apiSuccess({ accepted: true, correlationId: result.correlationId }, 202);

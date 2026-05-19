@@ -26,6 +26,37 @@ export default function GlobalErrorMonitor() {
             return true;
         };
 
+        const extractTarget = (input: RequestInfo | URL): string => {
+            if (typeof input === 'string') {
+                return input;
+            }
+
+            if (input instanceof URL) {
+                return input.toString();
+            }
+
+            if (typeof Request !== 'undefined' && input instanceof Request) {
+                return input.url;
+            }
+
+            return String(input);
+        };
+
+        const extractMethod = (
+            input: RequestInfo | URL,
+            init?: RequestInit
+        ): string | undefined => {
+            if (init?.method) {
+                return init.method;
+            }
+
+            if (typeof Request !== 'undefined' && input instanceof Request) {
+                return input.method;
+            }
+
+            return undefined;
+        };
+
         const reportWithRetry = async (
             payload: ReportPayload,
             maxAttempts: number = 3,
@@ -126,7 +157,8 @@ export default function GlobalErrorMonitor() {
         };
 
         window.fetch = async (...args: Parameters<typeof fetch>) => {
-            const target = typeof args[0] === 'string' ? args[0] : args[0]?.toString();
+            const target = extractTarget(args[0]);
+            const method = extractMethod(args[0], args[1]);
 
             if (target?.includes('/api/system/errors/ingest')) {
                 return originalFetch(...args);
@@ -150,6 +182,10 @@ export default function GlobalErrorMonitor() {
 
                 return response;
             } catch (error) {
+                if (error instanceof Error && error.name === 'AbortError') {
+                    throw error;
+                }
+
                 void report({
                     errorCode: 'NETWORK_FETCH_FAILED',
                     errorMessage:
@@ -157,6 +193,9 @@ export default function GlobalErrorMonitor() {
                     severity: 'high',
                     metadata: {
                         target,
+                        method,
+                        online:
+                            typeof navigator !== 'undefined' ? navigator.onLine : undefined,
                     },
                 });
 
