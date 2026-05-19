@@ -2,7 +2,7 @@
 
 -- Insert a sample tenant
 INSERT INTO tenants (id, name, slug) VALUES
-  ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Partido Exemplo', 'partido-exemplo');
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Partido Exemplo', 'partido-exemplo');
 
 -- Note: Users need to be created through Supabase Auth first
 -- Then their profile is inserted into the users table

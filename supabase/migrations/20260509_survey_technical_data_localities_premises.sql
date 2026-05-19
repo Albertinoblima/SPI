@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================================
 
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS survey_type VARCHAR(50);
-ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS margin_of_error DECIMAL(5,2);
+ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS margin_of_error DECIMAL(5, 2);
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS confidence_interval INTEGER;
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS objective TEXT;
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS methodology TEXT;
@@ -31,22 +31,22 @@ COMMENT ON COLUMN public.surveys.total_interviews IS 'Total calculado de entrevi
 
 CREATE TABLE IF NOT EXISTS public.survey_localities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    survey_id UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+    survey_id UUID NOT NULL REFERENCES public.surveys (id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
 
     name VARCHAR(255) NOT NULL,
     zone VARCHAR(10) NOT NULL CHECK (zone IN ('urban', 'rural', 'mixed')),
     population INTEGER NOT NULL,
     population_type VARCHAR(20) DEFAULT 'voters' CHECK (population_type IN ('voters', 'inhabitants')),
     interviews_required INTEGER,
-    interviews_weight DECIMAL(5,4),
+    interviews_weight DECIMAL(5, 4),
 
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_survey_localities_survey ON public.survey_localities(survey_id);
-CREATE INDEX IF NOT EXISTS idx_survey_localities_tenant ON public.survey_localities(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_survey_localities_survey ON public.survey_localities (survey_id);
+CREATE INDEX IF NOT EXISTS idx_survey_localities_tenant ON public.survey_localities (tenant_id);
 
 -- ============================================================================
 -- PARTE 3: TABELA DE PREMISSAS DA PESQUISA (PERFIL DO ENTREVISTADO)
@@ -54,23 +54,22 @@ CREATE INDEX IF NOT EXISTS idx_survey_localities_tenant ON public.survey_localit
 
 CREATE TABLE IF NOT EXISTS public.survey_premises (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    survey_id UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+    survey_id UUID NOT NULL REFERENCES public.surveys (id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
 
     category VARCHAR(100) NOT NULL,
     label VARCHAR(255) NOT NULL,
     options JSONB NOT NULL DEFAULT '[]',
-    is_required BOOLEAN DEFAULT true,
-    allow_multiple BOOLEAN DEFAULT false,
+    is_required BOOLEAN DEFAULT TRUE,
+    allow_multiple BOOLEAN DEFAULT FALSE,
     order_index INTEGER NOT NULL DEFAULT 0,
 
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_survey_premises_survey ON public.survey_premises(survey_id, order_index);
-CREATE INDEX IF NOT EXISTS idx_survey_premises_tenant ON public.survey_premises(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_survey_premises_survey ON public.survey_premises (survey_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_survey_premises_tenant ON public.survey_premises (tenant_id);
 
 COMMENT ON TABLE public.survey_premises IS 'Premissas/cotas do entrevistado: faixa etÃ¡ria, sexo, escolaridade, etc.';
 COMMENT ON COLUMN public.survey_premises.options IS 'Array de opÃ§Ãµes: [{"label":"Masculino","value":"M","quota_pct":50}]';
-

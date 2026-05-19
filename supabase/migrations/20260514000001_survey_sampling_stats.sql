@@ -8,10 +8,10 @@
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS population_size INTEGER;
 
 -- Efeito de Delineamento - Design Effect (padrão 1.0 = amostra aleatória simples)
-ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS deff DECIMAL(5,2) DEFAULT 1.0;
+ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS deff DECIMAL(5, 2) DEFAULT 1.0;
 
 -- Estimativa de proporção p (padrão 0.5 = variância máxima)
-ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS p_proportion DECIMAL(5,3) DEFAULT 0.5;
+ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS p_proportion DECIMAL(5, 3) DEFAULT 0.5;
 
 -- Modo de cálculo: 'auto' (calculadora do sistema) | 'manual' (usuário define)
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS stats_mode VARCHAR(10) DEFAULT 'auto';

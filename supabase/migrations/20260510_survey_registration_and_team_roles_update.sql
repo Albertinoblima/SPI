@@ -14,13 +14,13 @@ ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS registered_responsible_regis
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS registered_responsible_body VARCHAR(120);
 
 COMMENT ON COLUMN public.surveys.is_registered_research IS
-    'Indica se a pesquisa foi registrada em Ã³rgÃ£o de classe oficial';
+'Indica se a pesquisa foi registrada em Ã³rgÃ£o de classe oficial';
 COMMENT ON COLUMN public.surveys.registered_responsible_name IS
-    'Nome do responsÃ¡vel tÃ©cnico quando houver registro oficial';
+'Nome do responsÃ¡vel tÃ©cnico quando houver registro oficial';
 COMMENT ON COLUMN public.surveys.registered_responsible_registry IS
-    'NÃºmero de cadastro/registro profissional do responsÃ¡vel';
+'NÃºmero de cadastro/registro profissional do responsÃ¡vel';
 COMMENT ON COLUMN public.surveys.registered_responsible_body IS
-    'Ã“rgÃ£o de classe do registro profissional';
+'Ã“rgÃ£o de classe do registro profissional';
 
 -- ============================================================================
 -- PARTE 2: REVISÃƒO DOS CARGOS DA EQUIPE
@@ -38,16 +38,15 @@ WHERE role = 'fiscal';
 -- Recria a constraint de roles com os cargos atualizados
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE public.users ADD CONSTRAINT users_role_check
-    CHECK (role IN (
-        'admin',
-        'manager',
-        'interviewer',
-        'driver',
-        'coordinator_general',
-        'coordinator_field',
-        'supervisor_quality'
-    ));
+CHECK (role IN (
+    'admin',
+    'manager',
+    'interviewer',
+    'driver',
+    'coordinator_general',
+    'coordinator_field',
+    'supervisor_quality'
+));
 
 COMMENT ON COLUMN public.users.role IS
-    'Cargo do usuÃ¡rio: admin=Administrador, manager=Gerente, coordinator_general=Coordenador Geral, coordinator_field=Coordenador de Campo, interviewer=Entrevistador, supervisor_quality=Supervisor de Coleta e Qualidade, driver=Motorista';
-
+'Cargo do usuÃ¡rio: admin=Administrador, manager=Gerente, coordinator_general=Coordenador Geral, coordinator_field=Coordenador de Campo, interviewer=Entrevistador, supervisor_quality=Supervisor de Coleta e Qualidade, driver=Motorista';

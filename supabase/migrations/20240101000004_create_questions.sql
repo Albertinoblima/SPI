@@ -15,33 +15,33 @@ CREATE TYPE question_type AS ENUM (
 );
 
 CREATE TABLE questions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    survey_id UUID NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    survey_id uuid NOT NULL REFERENCES surveys (id) ON DELETE CASCADE,
+    tenant_id uuid NOT NULL REFERENCES tenants (id) ON DELETE CASCADE,
+
     -- Question details
-    question_text TEXT NOT NULL,
+    question_text text NOT NULL,
     question_type question_type NOT NULL,
-    is_required BOOLEAN DEFAULT false,
-    
+    is_required boolean DEFAULT FALSE,
+
     -- Order and logic
-    order_index INTEGER NOT NULL,
-    parent_question_id UUID REFERENCES questions(id), -- Conditional questions
-    show_if_answer JSONB, -- {"parent_answer": "value"}
-    
+    order_index integer NOT NULL,
+    parent_question_id uuid REFERENCES questions (id), -- Conditional questions
+    show_if_answer jsonb, -- {"parent_answer": "value"}
+
     -- Options (for choice questions)
-    options JSONB, -- [{"value": "A", "label": "Option A"}, ...]
-    
+    options jsonb, -- [{"value": "A", "label": "Option A"}, ...]
+
     -- Validation
-    validation_rules JSONB, -- {"min": 1, "max": 5, "regex": "..."}
-    
+    validation_rules jsonb, -- {"min": 1, "max": 5, "regex": "..."}
+
     -- Metadata
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    UNIQUE(survey_id, order_index)
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+
+    UNIQUE (survey_id, order_index)
 );
 
-CREATE INDEX idx_questions_survey ON questions(survey_id, order_index);
-CREATE INDEX idx_questions_tenant ON questions(tenant_id);
-CREATE INDEX idx_questions_parent ON questions(parent_question_id);
+CREATE INDEX idx_questions_survey ON questions (survey_id, order_index);
+CREATE INDEX idx_questions_tenant ON questions (tenant_id);
+CREATE INDEX idx_questions_parent ON questions (parent_question_id);

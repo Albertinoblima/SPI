@@ -4,7 +4,7 @@
 
 -- FunÃ§Ã£o: incrementar contador de respostas de um ticket
 CREATE OR REPLACE FUNCTION public.increment_ticket_response_count(ticket_uuid UUID)
-RETURNS void
+RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -17,4 +17,3 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.increment_ticket_response_count(UUID) TO authenticated;
-

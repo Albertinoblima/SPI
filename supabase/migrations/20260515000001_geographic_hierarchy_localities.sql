@@ -16,15 +16,15 @@ ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS scope_city_name VARCHAR(120)
 ALTER TABLE public.surveys ADD COLUMN IF NOT EXISTS specific_public_description TEXT;
 
 COMMENT ON COLUMN public.surveys.geographic_scope IS
-    'Abrangencia territorial: national, state, city, specific_public';
+'Abrangencia territorial: national, state, city, specific_public';
 COMMENT ON COLUMN public.surveys.scope_country_name IS
-    'Pais de referencia para pesquisas em nivel nacional';
+'Pais de referencia para pesquisas em nivel nacional';
 COMMENT ON COLUMN public.surveys.scope_state_name IS
-    'Estado de referencia para pesquisas estaduais e municipais';
+'Estado de referencia para pesquisas estaduais e municipais';
 COMMENT ON COLUMN public.surveys.scope_city_name IS
-    'Cidade de referencia para pesquisas municipais';
+'Cidade de referencia para pesquisas municipais';
 COMMENT ON COLUMN public.surveys.specific_public_description IS
-    'Descricao do recorte de publico especifico quando a abrangencia nao for territorial';
+'Descricao do recorte de publico especifico quando a abrangencia nao for territorial';
 
 ALTER TABLE public.surveys DROP CONSTRAINT IF EXISTS surveys_geographic_scope_check;
 ALTER TABLE public.surveys ADD CONSTRAINT surveys_geographic_scope_check CHECK (
@@ -41,11 +41,11 @@ ALTER TABLE public.survey_localities ADD COLUMN IF NOT EXISTS parent_state_name 
 ALTER TABLE public.survey_localities ADD COLUMN IF NOT EXISTS parent_city_name VARCHAR(120);
 
 COMMENT ON COLUMN public.survey_localities.geo_level IS
-    'Nivel da localidade: state, city, locality';
+'Nivel da localidade: state, city, locality';
 COMMENT ON COLUMN public.survey_localities.parent_state_name IS
-    'Estado pai quando o nivel for city/locality';
+'Estado pai quando o nivel for city/locality';
 COMMENT ON COLUMN public.survey_localities.parent_city_name IS
-    'Cidade pai quando o nivel for locality';
+'Cidade pai quando o nivel for locality';
 
 ALTER TABLE public.survey_localities DROP CONSTRAINT IF EXISTS survey_localities_geo_level_check;
 ALTER TABLE public.survey_localities ADD CONSTRAINT survey_localities_geo_level_check CHECK (
@@ -57,4 +57,4 @@ ALTER TABLE public.survey_localities DROP CONSTRAINT IF EXISTS survey_localities
 ALTER TABLE public.survey_localities ALTER COLUMN population_type TYPE VARCHAR(50);
 
 CREATE INDEX IF NOT EXISTS idx_survey_localities_hierarchy
-    ON public.survey_localities(survey_id, geo_level, parent_state_name, parent_city_name);
+ON public.survey_localities (survey_id, geo_level, parent_state_name, parent_city_name);

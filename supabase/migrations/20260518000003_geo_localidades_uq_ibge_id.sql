@@ -5,5 +5,5 @@
 -- Migration validada e aplicada com sucesso no banco Supabase (constraint uq_geo_localidades_mun_ibge_id confirmada em pg_constraint).
 
 ALTER TABLE geo_localidades
-    ADD CONSTRAINT uq_geo_localidades_mun_ibge_id
-    UNIQUE (municipio_id, ibge_id);
+ADD CONSTRAINT uq_geo_localidades_mun_ibge_id
+UNIQUE (municipio_id, ibge_id);

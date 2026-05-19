@@ -12,16 +12,16 @@
 --    a mesma localidade no mesmo ano.
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.geo_dados_eleitorais
-    ADD CONSTRAINT uq_geo_eleitorais_localidade_local_ano
-        UNIQUE (localidade_id, codigo_local_votacao, ano_atualizacao);
+ADD CONSTRAINT uq_geo_eleitorais_localidade_local_ano
+UNIQUE (localidade_id, codigo_local_votacao, ano_atualizacao);
 
 -- ----------------------------------------------------------------------------
 -- 2. Unicidade em geo_dados_demograficos
 --    Evita duplicatas por setor censitario dentro de uma localidade.
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.geo_dados_demograficos
-    ADD CONSTRAINT uq_geo_demograficos_localidade_setor
-        UNIQUE (localidade_id, setor_censitario);
+ADD CONSTRAINT uq_geo_demograficos_localidade_setor
+UNIQUE (localidade_id, setor_censitario);
 
 -- ----------------------------------------------------------------------------
 -- 3. Indice de suporte para match textual bairro TSE → localidade
@@ -31,7 +31,7 @@ ALTER TABLE public.geo_dados_demograficos
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE INDEX IF NOT EXISTS idx_geo_localidades_nome_trgm
-    ON public.geo_localidades USING GIN (nome_normalizado gin_trgm_ops);
+ON public.geo_localidades USING gin (nome_normalizado gin_trgm_ops);
 
 -- ----------------------------------------------------------------------------
 -- 4. Funcao auxiliar: fn_upsert_localidade
@@ -39,14 +39,14 @@ CREATE INDEX IF NOT EXISTS idx_geo_localidades_nome_trgm
 --    Garante atomicidade no INSERT … ON CONFLICT sem race condition.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.fn_upsert_localidade(
-    p_municipio_id  INTEGER,
-    p_nome          VARCHAR,
-    p_tipo          VARCHAR,
-    p_ibge_id       BIGINT    DEFAULT NULL,
-    p_fonte         VARCHAR   DEFAULT 'IBGE',
-    p_zona          VARCHAR   DEFAULT 'URBANA',
-    p_geom_lng      DOUBLE PRECISION DEFAULT NULL,
-    p_geom_lat      DOUBLE PRECISION DEFAULT NULL
+    p_municipio_id INTEGER,
+    p_nome VARCHAR,
+    p_tipo VARCHAR,
+    p_ibge_id BIGINT DEFAULT NULL,
+    p_fonte VARCHAR DEFAULT 'IBGE',
+    p_zona VARCHAR DEFAULT 'URBANA',
+    p_geom_lng DOUBLE PRECISION DEFAULT NULL,
+    p_geom_lat DOUBLE PRECISION DEFAULT NULL
 )
 RETURNS BIGINT
 LANGUAGE plpgsql
@@ -83,7 +83,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.fn_upsert_localidade IS
-    'Upsert atômico de localidade – usado pelo ETL Python e pela carga sob demanda (Opção A)';
+'Upsert atômico de localidade – usado pelo ETL Python e pela carga sob demanda (Opção A)';
 
 GRANT EXECUTE ON FUNCTION public.fn_upsert_localidade TO authenticated;
 
@@ -100,10 +100,12 @@ SELECT
     m.populacao_estimada,
     m.criado_em
 FROM public.geo_municipios m
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.geo_localidades l WHERE l.municipio_id = m.id_ibge
-)
+WHERE
+    NOT EXISTS (
+        SELECT 1 FROM public.geo_localidades l
+        WHERE l.municipio_id = m.id_ibge
+    )
 ORDER BY m.uf, m.nome;
 
 COMMENT ON VIEW public.vw_municipios_sem_localidades IS
-    'Municípios cadastrados mas sem nenhuma localidade – precisam de ETL';
+'Municípios cadastrados mas sem nenhuma localidade – precisam de ETL';

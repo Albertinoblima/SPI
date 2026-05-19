@@ -12,10 +12,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================================
 
 -- Adiciona coluna para diferenciar system_admin
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_system_admin BOOLEAN DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_system_admin BOOLEAN DEFAULT FALSE;
 
 -- Índice para melhor performance em queries de system_admin
-CREATE INDEX IF NOT EXISTS idx_users_system_admin ON public.users(is_system_admin) WHERE is_system_admin = true;
+CREATE INDEX IF NOT EXISTS idx_users_system_admin ON public.users (is_system_admin) WHERE is_system_admin = TRUE;
 
 -- Constraint para garantir que system_admin não tem tenant específico ou tem tenant especial
 DO $$
@@ -40,7 +40,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS public.system_analytics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Métricas contáveis
     total_tenants INTEGER DEFAULT 0,
     active_tenants INTEGER DEFAULT 0,
@@ -50,23 +50,23 @@ CREATE TABLE IF NOT EXISTS public.system_analytics (
     active_surveys INTEGER DEFAULT 0,
     total_responses INTEGER DEFAULT 0,
     total_questions INTEGER DEFAULT 0,
-    
+
     -- Storage
     total_storage_used_mb DECIMAL(10, 2) DEFAULT 0,
-    
+
     -- Performance
     avg_response_time_ms DECIMAL(10, 2),
     total_errors_24h INTEGER DEFAULT 0,
-    
+
     -- Período desta métrica
-    date_recorded TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    UNIQUE(date_recorded)
+    date_recorded TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+
+    UNIQUE (date_recorded)
 );
 
-CREATE INDEX IF NOT EXISTS idx_system_analytics_date ON public.system_analytics(date_recorded DESC);
+CREATE INDEX IF NOT EXISTS idx_system_analytics_date ON public.system_analytics (date_recorded DESC);
 
 -- ============================================================================
 -- PARTE 3: CRIAR TABELA ERROR_LOGS
@@ -75,41 +75,41 @@ CREATE INDEX IF NOT EXISTS idx_system_analytics_date ON public.system_analytics(
 
 CREATE TABLE IF NOT EXISTS public.error_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Contexto do erro
-    tenant_id UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    
+    tenant_id UUID REFERENCES public.tenants (id) ON DELETE SET NULL,
+    user_id UUID REFERENCES auth.users (id) ON DELETE SET NULL,
+
     -- Detalhes do erro
     error_code VARCHAR(50) NOT NULL,
     error_message TEXT NOT NULL,
     error_stack TEXT,
-    
+
     -- Contexto HTTP
     http_method VARCHAR(10),
     http_path VARCHAR(500),
     http_status_code INTEGER,
-    
+
     -- Severidade
     severity VARCHAR(20) CHECK (severity IN ('low', 'medium', 'high', 'critical')),
-    
+
     -- Rastreamento
     correlation_id UUID, -- Para agrupar erros relacionados
     ip_address INET,
     user_agent TEXT,
-    
+
     -- Status
-    resolved BOOLEAN DEFAULT false,
+    resolved BOOLEAN DEFAULT FALSE,
     resolved_at TIMESTAMPTZ,
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_error_logs_tenant ON public.error_logs(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON public.error_logs(severity);
-CREATE INDEX IF NOT EXISTS idx_error_logs_created ON public.error_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON public.error_logs(resolved) WHERE resolved = false;
+CREATE INDEX IF NOT EXISTS idx_error_logs_tenant ON public.error_logs (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON public.error_logs (severity);
+CREATE INDEX IF NOT EXISTS idx_error_logs_created ON public.error_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON public.error_logs (resolved) WHERE resolved = FALSE;
 
 -- ============================================================================
 -- PARTE 4: CRIAR TABELA SUPPORT_TICKETS
@@ -118,44 +118,44 @@ CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON public.error_logs(resolved
 
 CREATE TABLE IF NOT EXISTS public.support_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Relacionamento
-    tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- System admin responsável
-    
+    tenant_id UUID NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    assigned_to UUID REFERENCES auth.users (id) ON DELETE SET NULL, -- System admin responsável
+
     -- Conteúdo
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     category VARCHAR(50) NOT NULL CHECK (category IN (
         'bug', 'feature_request', 'account', 'billing', 'performance', 'other'
     )),
-    
+
     -- Status
     status VARCHAR(50) DEFAULT 'open' CHECK (status IN (
         'open', 'in_progress', 'waiting_user', 'resolved', 'closed'
     )),
-    
+
     -- Prioridade
     priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN (
         'low', 'medium', 'high', 'urgent'
     )),
-    
+
     -- Metadata
     response_count INTEGER DEFAULT 0,
     last_response_at TIMESTAMPTZ,
     resolved_at TIMESTAMPTZ,
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    UNIQUE(tenant_id, id)
+
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+
+    UNIQUE (tenant_id, id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_support_tickets_tenant ON public.support_tickets(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets(status);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_assigned ON public.support_tickets(assigned_to);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON public.support_tickets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_tenant ON public.support_tickets (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets (status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_assigned ON public.support_tickets (assigned_to);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON public.support_tickets (created_at DESC);
 
 -- ============================================================================
 -- PARTE 5: CRIAR TABELA SUPPORT_MESSAGES
@@ -164,23 +164,23 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON public.support_tickets
 
 CREATE TABLE IF NOT EXISTS public.support_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-    ticket_id UUID NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
-    sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    
+
+    ticket_id UUID NOT NULL REFERENCES public.support_tickets (id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+
     -- Determina se é user ou admin respondendo
-    is_admin_response BOOLEAN DEFAULT false,
-    
+    is_admin_response BOOLEAN DEFAULT FALSE,
+
     -- Conteúdo
     message TEXT NOT NULL,
     attachments JSONB, -- URLs de arquivos anexados
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON public.support_messages(ticket_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_support_messages_sender ON public.support_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON public.support_messages (ticket_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_support_messages_sender ON public.support_messages (sender_id);
 
 -- ============================================================================
 -- PARTE 6: CRIAR TABELA AUDIT_LOG
@@ -189,37 +189,37 @@ CREATE INDEX IF NOT EXISTS idx_support_messages_sender ON public.support_message
 
 CREATE TABLE IF NOT EXISTS public.audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Ator da ação
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    tenant_id UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
-    
+    user_id UUID REFERENCES auth.users (id) ON DELETE SET NULL,
+    tenant_id UUID REFERENCES public.tenants (id) ON DELETE SET NULL,
+
     -- Ação
     action VARCHAR(100) NOT NULL, -- Ex: 'survey_created', 'user_deleted', 'tenant_suspended'
     entity_type VARCHAR(100) NOT NULL, -- Ex: 'survey', 'user', 'tenant'
     entity_id UUID NOT NULL,
-    
+
     -- Detalhes da mudança
     old_values JSONB, -- Estado anterior
     new_values JSONB, -- Estado novo
     changes_description TEXT, -- Descrição em linguagem natural
-    
+
     -- Contexto
     ip_address INET,
     user_agent TEXT,
-    
+
     -- Severidade
-    is_critical BOOLEAN DEFAULT false, -- Para alertar admins
-    
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    is_critical BOOLEAN DEFAULT FALSE, -- Para alertar admins
+
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_log_user ON public.audit_log(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_log_tenant ON public.audit_log(tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON public.audit_log(entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_audit_log_action ON public.audit_log(action);
-CREATE INDEX IF NOT EXISTS idx_audit_log_critical ON public.audit_log(is_critical) WHERE is_critical = true;
-CREATE INDEX IF NOT EXISTS idx_audit_log_created ON public.audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user ON public.audit_log (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_tenant ON public.audit_log (tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON public.audit_log (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_action ON public.audit_log (action);
+CREATE INDEX IF NOT EXISTS idx_audit_log_critical ON public.audit_log (is_critical) WHERE is_critical = TRUE;
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON public.audit_log (created_at DESC);
 
 -- ============================================================================
 -- PARTE 7: CRIAR TRIGGERS PARA ATUALIZAR UPDATED_AT
@@ -236,22 +236,22 @@ $$ LANGUAGE plpgsql;
 -- Trigger para error_logs
 DROP TRIGGER IF EXISTS update_error_logs_updated_at ON public.error_logs;
 CREATE TRIGGER update_error_logs_updated_at BEFORE UPDATE ON public.error_logs
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Trigger para support_tickets
 DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON public.support_tickets;
 CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON public.support_tickets
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Trigger para support_messages
 DROP TRIGGER IF EXISTS update_support_messages_updated_at ON public.support_messages;
 CREATE TRIGGER update_support_messages_updated_at BEFORE UPDATE ON public.support_messages
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Trigger para system_analytics
 DROP TRIGGER IF EXISTS update_system_analytics_updated_at ON public.system_analytics;
 CREATE TRIGGER update_system_analytics_updated_at BEFORE UPDATE ON public.system_analytics
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
 -- PARTE 8: VIEWS PARA ANALYTICS
@@ -259,40 +259,40 @@ CREATE TRIGGER update_system_analytics_updated_at BEFORE UPDATE ON public.system
 
 -- View para estatísticas agregadas de um tenant
 CREATE OR REPLACE VIEW public.vw_tenant_stats AS
-SELECT 
+SELECT
     t.id AS tenant_id,
     t.name AS tenant_name,
-    COUNT(DISTINCT u.id) AS total_users,
-    COUNT(DISTINCT CASE WHEN u.is_active THEN u.id END) AS active_users,
-    COUNT(DISTINCT s.id) AS total_surveys,
-    COUNT(DISTINCT CASE WHEN s.status = 'active' THEN s.id END) AS active_surveys,
-    COUNT(DISTINCT r.id) AS total_responses,
-    COUNT(DISTINCT e.id) AS recent_errors_7d,
-    MAX(r.created_at) AS last_response_at
+    count(DISTINCT u.id) AS total_users,
+    count(DISTINCT CASE WHEN u.is_active THEN u.id END) AS active_users,
+    count(DISTINCT s.id) AS total_surveys,
+    count(DISTINCT CASE WHEN s.status = 'active' THEN s.id END) AS active_surveys,
+    count(DISTINCT r.id) AS total_responses,
+    count(DISTINCT e.id) AS recent_errors_7d,
+    max(r.created_at) AS last_response_at
 FROM public.tenants t
-LEFT JOIN public.users u ON u.tenant_id = t.id
-LEFT JOIN public.surveys s ON s.tenant_id = t.id
-LEFT JOIN public.responses r ON r.tenant_id = t.id AND r.created_at > NOW() - INTERVAL '7 days'
-LEFT JOIN public.error_logs e ON e.tenant_id = t.id AND e.created_at > NOW() - INTERVAL '7 days'
+LEFT JOIN public.users u ON t.id = u.tenant_id
+LEFT JOIN public.surveys s ON t.id = s.tenant_id
+LEFT JOIN public.responses r ON t.id = r.tenant_id AND r.created_at > now() - INTERVAL '7 days'
+LEFT JOIN public.error_logs e ON t.id = e.tenant_id AND e.created_at > now() - INTERVAL '7 days'
 WHERE t.deleted_at IS NULL
 GROUP BY t.id, t.name;
 
 -- View para estatísticas gerais do sistema
 CREATE OR REPLACE VIEW public.vw_system_stats AS
-SELECT 
-    COUNT(DISTINCT t.id) AS total_tenants,
-    COUNT(DISTINCT CASE WHEN t.status = 'active' THEN t.id END) AS active_tenants,
-    COUNT(DISTINCT u.id) AS total_users,
-    COUNT(DISTINCT CASE WHEN u.is_active THEN u.id END) AS active_users,
-    COUNT(DISTINCT s.id) AS total_surveys,
-    COUNT(DISTINCT r.id) AS total_responses,
-    COUNT(DISTINCT CASE WHEN e.created_at > NOW() - INTERVAL '24 hours' THEN e.id END) AS errors_24h,
-    COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (e.updated_at - e.created_at)) * 1000)), 0) AS avg_error_resolution_ms
+SELECT
+    count(DISTINCT t.id) AS total_tenants,
+    count(DISTINCT CASE WHEN t.status = 'active' THEN t.id END) AS active_tenants,
+    count(DISTINCT u.id) AS total_users,
+    count(DISTINCT CASE WHEN u.is_active THEN u.id END) AS active_users,
+    count(DISTINCT s.id) AS total_surveys,
+    count(DISTINCT r.id) AS total_responses,
+    count(DISTINCT CASE WHEN e.created_at > now() - INTERVAL '24 hours' THEN e.id END) AS errors_24h,
+    coalesce(round(avg(extract(EPOCH FROM (e.updated_at - e.created_at)) * 1000)), 0) AS avg_error_resolution_ms
 FROM public.tenants t
-LEFT JOIN public.users u ON u.tenant_id = t.id
-LEFT JOIN public.surveys s ON s.tenant_id = t.id
-LEFT JOIN public.responses r ON r.tenant_id = t.id
-LEFT JOIN public.error_logs e ON e.resolved = true;
+LEFT JOIN public.users u ON t.id = u.tenant_id
+LEFT JOIN public.surveys s ON t.id = s.tenant_id
+LEFT JOIN public.responses r ON t.id = r.tenant_id
+LEFT JOIN public.error_logs e ON e.resolved = TRUE;
 
 -- ============================================================================
 -- PARTE 9: COMENTÁRIOS PARA DOCUMENTAÇÃO
@@ -321,7 +321,7 @@ CREATE OR REPLACE FUNCTION public.log_audit(
     p_old_values JSONB DEFAULT NULL,
     p_new_values JSONB DEFAULT NULL,
     p_changes_description TEXT DEFAULT NULL,
-    p_is_critical BOOLEAN DEFAULT false
+    p_is_critical BOOLEAN DEFAULT FALSE
 ) RETURNS UUID AS $$
 DECLARE
     audit_id UUID;

@@ -24,5 +24,8 @@ build/
 # Exemplo: Ignorar um arquivo específico
 # supabase/migrations/20240101_old_schema.sql
 
-# Nota: Padrões globais também podem ser definidos em .sqlfluff.yaml
-# na seção core.ignore_paths
+# Nota: Padrões globais também podem ser definidos em .sqlfluff
+# na seção [sqlfluff] exclude_rules
+
+# Arquivo com sintaxe SET search_path não suportada pelo parser do SQLFluff
+supabase/migrations/20260504_function_security_hardening.sql

@@ -34,8 +34,8 @@ ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
 
 -- Criar nova constraint com todos os cargos
 ALTER TABLE public.users ADD CONSTRAINT users_role_check
-    CHECK (role IN ('admin', 'manager', 'interviewer', 'fiscal', 'driver', 'coordinator'));
+CHECK (role IN ('admin', 'manager', 'interviewer', 'fiscal', 'driver', 'coordinator'));
 
 -- Atualizar comentários
-COMMENT ON COLUMN public.users.role IS 
-    'Cargo do usuário: admin=Administrador, manager=Gerente, coordinator=Coordenador, interviewer=Pesquisador, fiscal=Fiscal, driver=Motorista';
+COMMENT ON COLUMN public.users.role IS
+'Cargo do usuário: admin=Administrador, manager=Gerente, coordinator=Coordenador, interviewer=Pesquisador, fiscal=Fiscal, driver=Motorista';

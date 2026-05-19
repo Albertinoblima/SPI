@@ -43,17 +43,17 @@ USING (public.is_system_admin());
 -- POLICY: INSERT - Apenas service_role (backend) pode inserir
 CREATE POLICY "system_analytics_insert_policy" ON public.system_analytics
 FOR INSERT
-WITH CHECK (false);
+WITH CHECK (FALSE);
 
 -- POLICY: UPDATE - Apenas service_role pode atualizar
 CREATE POLICY "system_analytics_update_policy" ON public.system_analytics
 FOR UPDATE
-USING (false);
+USING (FALSE);
 
 -- POLICY: DELETE - Não permitir delete
 CREATE POLICY "system_analytics_delete_policy" ON public.system_analytics
 FOR DELETE
-USING (false);
+USING (FALSE);
 
 -- ============================================================================
 -- PARTE 3: POLICIES PARA TABELA ERROR_LOGS
@@ -73,15 +73,15 @@ USING (public.is_system_admin());
 CREATE POLICY "error_logs_select_tenant_admin" ON public.error_logs
 FOR SELECT
 USING (
-  NOT public.is_system_admin()
-  AND tenant_id = public.get_user_tenant_id()
-  AND public.is_manager_or_admin()
+    NOT public.is_system_admin()
+    AND tenant_id = public.get_user_tenant_id()
+    AND public.is_manager_or_admin()
 );
 
 -- POLICY: INSERT - Backend (service_role) insere logs de erro
 CREATE POLICY "error_logs_insert_policy" ON public.error_logs
 FOR INSERT
-WITH CHECK (false);
+WITH CHECK (FALSE);
 
 -- POLICY: UPDATE - System_admin pode resolver erros
 CREATE POLICY "error_logs_update_system_admin" ON public.error_logs
@@ -92,7 +92,7 @@ WITH CHECK (public.is_system_admin());
 -- POLICY: DELETE - Não permitir delete
 CREATE POLICY "error_logs_delete_policy" ON public.error_logs
 FOR DELETE
-USING (false);
+USING (FALSE);
 
 -- ============================================================================
 -- PARTE 4: POLICIES PARA TABELA SUPPORT_TICKETS
@@ -111,17 +111,17 @@ DROP POLICY IF EXISTS "support_tickets_delete_policy" ON public.support_tickets;
 CREATE POLICY "support_tickets_select_own" ON public.support_tickets
 FOR SELECT
 USING (
-  NOT public.is_system_admin()
-  AND user_id = auth.uid()
+    NOT public.is_system_admin()
+    AND user_id = auth.uid()
 );
 
 -- POLICY: SELECT - Tenant admin vê todos do seu tenant
 CREATE POLICY "support_tickets_select_tenant_admin" ON public.support_tickets
 FOR SELECT
 USING (
-  NOT public.is_system_admin()
-  AND tenant_id = public.get_user_tenant_id()
-  AND public.is_manager_or_admin()
+    NOT public.is_system_admin()
+    AND tenant_id = public.get_user_tenant_id()
+    AND public.is_manager_or_admin()
 );
 
 -- POLICY: SELECT - System_admin vê tudo
@@ -133,33 +133,33 @@ USING (public.is_system_admin());
 CREATE POLICY "support_tickets_insert_policy" ON public.support_tickets
 FOR INSERT
 WITH CHECK (
-  tenant_id = public.get_user_tenant_id()
-  AND user_id = auth.uid()
+    tenant_id = public.get_user_tenant_id()
+    AND user_id = auth.uid()
 );
 
 -- POLICY: UPDATE - Proprietário ou admin do tenant pode atualizar
 CREATE POLICY "support_tickets_update_own" ON public.support_tickets
 FOR UPDATE
 USING (
-  NOT public.is_system_admin()
-  AND tenant_id = public.get_user_tenant_id()
-  AND user_id = auth.uid()
+    NOT public.is_system_admin()
+    AND tenant_id = public.get_user_tenant_id()
+    AND user_id = auth.uid()
 )
 WITH CHECK (
-  NOT public.is_system_admin()
-  AND tenant_id = public.get_user_tenant_id()
+    NOT public.is_system_admin()
+    AND tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: UPDATE - Admin do tenant pode atualizar
 CREATE POLICY "support_tickets_update_assigned" ON public.support_tickets
 FOR UPDATE
 USING (
-  NOT public.is_system_admin()
-  AND tenant_id = public.get_user_tenant_id()
-  AND public.is_manager_or_admin()
+    NOT public.is_system_admin()
+    AND tenant_id = public.get_user_tenant_id()
+    AND public.is_manager_or_admin()
 )
 WITH CHECK (
-  tenant_id = public.get_user_tenant_id()
+    tenant_id = public.get_user_tenant_id()
 );
 
 -- POLICY: UPDATE - System_admin pode atualizar (atribuição)
@@ -171,7 +171,7 @@ WITH CHECK (public.is_system_admin());
 -- POLICY: DELETE - Não permitir delete
 CREATE POLICY "support_tickets_delete_policy" ON public.support_tickets
 FOR DELETE
-USING (false);
+USING (FALSE);
 
 -- ============================================================================
 -- PARTE 5: POLICIES PARA TABELA SUPPORT_MESSAGES
@@ -187,24 +187,26 @@ DROP POLICY IF EXISTS "support_messages_delete_policy" ON public.support_message
 CREATE POLICY "support_messages_select_own" ON public.support_messages
 FOR SELECT
 USING (
-  EXISTS (
-    SELECT 1 FROM public.support_tickets st
-    WHERE st.id = support_messages.ticket_id
-    AND st.user_id = auth.uid()
-  )
+    EXISTS (
+        SELECT 1 FROM public.support_tickets st
+        WHERE
+            st.id = support_messages.ticket_id
+            AND st.user_id = auth.uid()
+    )
 );
 
 -- POLICY: SELECT - Admin do tenant vê mensagens do seu tenant
 CREATE POLICY "support_messages_select_tenant_admin" ON public.support_messages
 FOR SELECT
 USING (
-  NOT public.is_system_admin()
-  AND EXISTS (
-    SELECT 1 FROM public.support_tickets st
-    WHERE st.id = support_messages.ticket_id
-    AND st.tenant_id = public.get_user_tenant_id()
-    AND public.is_manager_or_admin()
-  )
+    NOT public.is_system_admin()
+    AND EXISTS (
+        SELECT 1 FROM public.support_tickets st
+        WHERE
+            st.id = support_messages.ticket_id
+            AND st.tenant_id = public.get_user_tenant_id()
+            AND public.is_manager_or_admin()
+    )
 );
 
 -- POLICY: SELECT - System_admin vê tudo
@@ -216,32 +218,34 @@ USING (public.is_system_admin());
 CREATE POLICY "support_messages_insert_policy" ON public.support_messages
 FOR INSERT
 WITH CHECK (
-  sender_id = auth.uid()
-  AND (
+    sender_id = auth.uid()
+    AND (
     -- Caso 1: Usuário em seu próprio ticket
-    EXISTS (
-      SELECT 1 FROM public.support_tickets st
-      WHERE st.id = ticket_id
-      AND st.user_id = auth.uid()
+        EXISTS (
+            SELECT 1 FROM public.support_tickets st
+            WHERE
+                st.id = st.ticket_id
+                AND st.user_id = auth.uid()
+        )
+        -- Caso 2: Admin do tenant respondendo
+        OR (
+            public.is_manager_or_admin()
+            AND EXISTS (
+                SELECT 1 FROM public.support_tickets st
+                WHERE
+                    st.id = st.ticket_id
+                    AND st.tenant_id = public.get_user_tenant_id()
+            )
+        )
+        -- Caso 3: System_admin respondendo
+        OR public.is_system_admin()
     )
-    -- Caso 2: Admin do tenant respondendo
-    OR (
-      public.is_manager_or_admin()
-      AND EXISTS (
-        SELECT 1 FROM public.support_tickets st
-        WHERE st.id = ticket_id
-        AND st.tenant_id = public.get_user_tenant_id()
-      )
-    )
-    -- Caso 3: System_admin respondendo
-    OR public.is_system_admin()
-  )
 );
 
 -- POLICY: DELETE - Não permitir delete
 CREATE POLICY "support_messages_delete_policy" ON public.support_messages
 FOR DELETE
-USING (false);
+USING (FALSE);
 
 -- ============================================================================
 -- PARTE 6: POLICIES PARA TABELA AUDIT_LOG
@@ -262,25 +266,25 @@ USING (public.is_system_admin());
 CREATE POLICY "audit_log_select_tenant" ON public.audit_log
 FOR SELECT
 USING (
-  NOT public.is_system_admin()
-  AND tenant_id = public.get_user_tenant_id()
-  AND public.is_manager_or_admin()
+    NOT public.is_system_admin()
+    AND tenant_id = public.get_user_tenant_id()
+    AND public.is_manager_or_admin()
 );
 
 -- POLICY: INSERT - Backend (service_role) insere logs
 CREATE POLICY "audit_log_insert_policy" ON public.audit_log
 FOR INSERT
-WITH CHECK (false);
+WITH CHECK (FALSE);
 
 -- POLICY: UPDATE - Não permitir update
 CREATE POLICY "audit_log_update_policy" ON public.audit_log
 FOR UPDATE
-USING (false);
+USING (FALSE);
 
 -- POLICY: DELETE - Não permitir delete
 CREATE POLICY "audit_log_delete_policy" ON public.audit_log
 FOR DELETE
-USING (false);
+USING (FALSE);
 
 -- ============================================================================
 -- PARTE 7: ATUALIZAR POLICIES EXISTENTES PARA RESPEITAR SYSTEM_ADMIN
@@ -292,8 +296,8 @@ DROP POLICY IF EXISTS "tenants_select_policy" ON public.tenants;
 CREATE POLICY "tenants_select_policy" ON public.tenants
 FOR SELECT
 USING (
-  id = public.get_user_tenant_id()
-  OR public.is_system_admin()
+    id = public.get_user_tenant_id()
+    OR public.is_system_admin()
 );
 
 -- ============================================================================

@@ -19,13 +19,13 @@ CREATE TABLE IF NOT EXISTS public.geo_ibge_cache (
 );
 
 CREATE INDEX IF NOT EXISTS idx_geo_ibge_cache_resource_type
-    ON public.geo_ibge_cache(resource_type);
+ON public.geo_ibge_cache (resource_type);
 
 CREATE INDEX IF NOT EXISTS idx_geo_ibge_cache_expires_at
-    ON public.geo_ibge_cache(expires_at);
+ON public.geo_ibge_cache (expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_geo_ibge_cache_updated_at
-    ON public.geo_ibge_cache(updated_at DESC);
+ON public.geo_ibge_cache (updated_at DESC);
 
 ALTER TABLE public.geo_ibge_cache ENABLE ROW LEVEL SECURITY;
 

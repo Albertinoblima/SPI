@@ -4,9 +4,9 @@
 -- ============================================================================
 
 -- 1) Views devem executar com privilegios do usuario chamador (SECURITY INVOKER)
-ALTER VIEW IF EXISTS public.vw_survey_stats SET (security_invoker = true);
-ALTER VIEW IF EXISTS public.vw_tenant_stats SET (security_invoker = true);
-ALTER VIEW IF EXISTS public.vw_system_stats SET (security_invoker = true);
+ALTER VIEW IF EXISTS public.vw_survey_stats SET (security_invoker = TRUE);
+ALTER VIEW IF EXISTS public.vw_tenant_stats SET (security_invoker = TRUE);
+ALTER VIEW IF EXISTS public.vw_system_stats SET (security_invoker = TRUE);
 
 -- 2) Tabela do PostGIS exposta no schema public precisa de RLS habilitado
 DO $$
