@@ -99,15 +99,50 @@ function computeAutoTotalInterviews(tech: SurveyTechData, localities: Locality[]
     const deff = tech.deff ?? 1;
     const mode = tech.infinite_population_mode ?? 'national_only';
 
+    const effectiveLocs = getEffectiveLocalities(localities);
+
+    if (effectiveLocs.length > 0) {
+        const threshold = tech.infinite_population_threshold ?? 50000;
+        const isNational = tech.geographic_scope === 'national';
+
+        const totalByLocality = effectiveLocs.reduce((acc, loc) => {
+            const manualInterviews = Math.max(0, Number(loc.interviews_required ?? 0));
+            if (manualInterviews > 0) {
+                return acc + Math.ceil(manualInterviews);
+            }
+
+            const population = Number(loc.population ?? 0);
+            // Populacao 0 significa valor desconhecido: so considera se houver entrevistas manuais.
+            if (!Number.isFinite(population) || population <= 0) {
+                return acc;
+            }
+
+            const useInfinite =
+                mode === 'force_all'
+                    ? true
+                    : mode === 'auto_threshold'
+                        ? population >= threshold
+                        : isNational;
+
+            const n = useInfinite
+                ? n0
+                : n0 / (1 + (n0 - 1) / population);
+
+            return acc + Math.ceil(n * deff);
+        }, 0);
+
+        if (totalByLocality > 0) {
+            return totalByLocality;
+        }
+    }
+
     if (mode === 'force_all') {
         return Math.ceil(n0 * deff);
     }
 
-    const effectiveLocs = getEffectiveLocalities(localities);
-
     if (mode === 'auto_threshold') {
-        const threshold = tech.infinite_population_threshold ?? 50000;
         if (effectiveLocs.length === 0) return Math.ceil(n0 * deff);
+        const threshold = tech.infinite_population_threshold ?? 50000;
         const total = effectiveLocs.reduce((acc, loc) => {
             const useInfinite = (loc.population ?? 0) >= threshold;
             const n = useInfinite || loc.population <= 0

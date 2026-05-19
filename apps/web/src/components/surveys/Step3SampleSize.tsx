@@ -25,6 +25,8 @@ interface Props {
         | 'infinite_population_mode'
         | 'infinite_population_threshold'
         | 'population_type'
+        | 'scope_state_name'
+        | 'scope_city_name'
     >;
     onTechChange: (updates: Partial<Pick<SurveyTechData, 'infinite_population_mode' | 'infinite_population_threshold' | 'margin_of_error' | 'confidence_interval'>>) => void;
     onLocalitiesChange: (localities: Locality[]) => void;
@@ -124,7 +126,7 @@ function findLocalityValue(
 const GEO_LEVEL_LABELS: Record<Locality['geo_level'], string> = {
     state: 'Estado',
     city: 'Cidade',
-    locality: 'Localidade especÃ­fica',
+    locality: 'Localidade especifica',
 };
 
 const ZONE_LABELS: Record<Locality['zone'], string> = {
@@ -176,17 +178,51 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
     const effectiveLocalities = useMemo(() => getEffectiveLocalities(localities), [localities]);
 
     const totalPopulation = effectiveLocalities.reduce((acc, l) => acc + (l.population ?? 0), 0);
-    const totalInterviews = tech.total_interviews ?? 0;
 
     const localitiesWithCalc = useMemo(() => {
         return effectiveLocalities.map((loc) => {
             const useInfinite = localityIsInfinite(loc, mode, threshold, isNational);
-            const calc = usesSampling
+            const suggested = usesSampling
                 ? calcInterviews(loc.population, tech.margin_of_error, tech.confidence_interval, useInfinite)
                 : (loc.interviews_required ?? 0);
-            return { ...loc, calc_interviews: calc, use_infinite: useInfinite };
+            const manualInterviews = Math.max(0, Number(loc.interviews_required ?? 0));
+            const populationUnknown = (loc.population ?? 0) <= 0;
+            const effectiveInterviews = manualInterviews > 0 ? manualInterviews : (populationUnknown ? 0 : suggested);
+            return {
+                ...loc,
+                suggested_interviews: suggested,
+                effective_interviews: effectiveInterviews,
+                manual_interviews: manualInterviews,
+                population_unknown: populationUnknown,
+                use_infinite: useInfinite,
+            };
         });
     }, [effectiveLocalities, usesSampling, tech.margin_of_error, tech.confidence_interval, mode, threshold, isNational]);
+
+    const tableInterviewsTotal = localitiesWithCalc.reduce((sum, loc) => sum + loc.effective_interviews, 0);
+    const totalInterviews = tableInterviewsTotal > 0 ? tableInterviewsTotal : (tech.total_interviews ?? 0);
+
+    const selectedScopePopulation = useMemo(() => {
+        if (tech.geographic_scope === 'state' && tech.scope_state_name) {
+            const scopeState = normalizeGeoText(tech.scope_state_name);
+            const scoped = effectiveLocalities.filter((loc) => {
+                if (loc.geo_level === 'state') return normalizeGeoText(loc.name) === scopeState;
+                return normalizeGeoText(loc.parent_state_name ?? '') === scopeState;
+            });
+            return scoped.reduce((sum, loc) => sum + (loc.population ?? 0), 0);
+        }
+
+        if (tech.geographic_scope === 'city' && tech.scope_city_name) {
+            const scopeCity = normalizeGeoText(tech.scope_city_name);
+            const scoped = effectiveLocalities.filter((loc) => {
+                if (loc.geo_level === 'city') return normalizeGeoText(loc.name) === scopeCity;
+                return normalizeGeoText(loc.parent_city_name ?? '') === scopeCity;
+            });
+            return scoped.reduce((sum, loc) => sum + (loc.population ?? 0), 0);
+        }
+
+        return null;
+    }, [effectiveLocalities, tech.geographic_scope, tech.scope_state_name, tech.scope_city_name]);
 
     const Z = getZ(tech.confidence_interval);
     const E = tech.margin_of_error / 100;
@@ -209,6 +245,15 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
         const nextPopulation = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
         const updated = localities.map((loc) =>
             loc.id === localityId ? { ...loc, population: nextPopulation } : loc,
+        );
+        onLocalitiesChange(updated);
+    };
+
+    const handleInterviewsChange = (localityId: string, value: string) => {
+        const parsed = parseInt(value, 10);
+        const nextInterviews = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        const updated = localities.map((loc) =>
+            loc.id === localityId ? { ...loc, interviews_required: nextInterviews } : loc,
         );
         onLocalitiesChange(updated);
     };
@@ -588,20 +633,20 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                 )}
             </div>
 
-            {/* Controle de abrangÃªncia amostral */}
+            {/* Controle de abrangencia amostral */}
             {usesSampling && (
                 <div className="border border-indigo-200 rounded-xl p-5 mb-6 bg-indigo-50">
                     <h3 className="text-sm font-semibold text-indigo-800 mb-1 flex items-center gap-2">
                         <TrendingDown size={15} className="text-indigo-600" />
-                        AbrangÃªncia amostral â€” tratamento da populaÃ§Ã£o
-                        <Tooltip text="Define como o sistema trata o tamanho da populaÃ§Ã£o em cada localidade. PopulaÃ§Ãµes 'infinitas' eliminam a correÃ§Ã£o de populaÃ§Ã£o finita, reduzindo drasticamente o tamanho mÃ­nimo da amostra." helpId="sample-size-review" />
+                        Abrangencia amostral - tratamento da populacao
+                        <Tooltip text="Define como o sistema trata o tamanho da populacao em cada localidade. Populacoes infinitas eliminam a correcao de populacao finita e reduzem o tamanho minimo da amostra." helpId="sample-size-review" />
                     </h3>
                     <p className="text-xs text-indigo-600 mb-4">
-                        Grandes institutos tratam populaÃ§Ãµes acima de um limiar como infinitas, reduzindo o tamanho da amostra e tornando a pesquisa viÃ¡vel sem comprometer margem de erro ou intervalo de confianÃ§a.
+                        Grandes institutos tratam populacoes acima de um limiar como infinitas, reduzindo o tamanho da amostra sem comprometer margem de erro ou intervalo de confianca.
                     </p>
 
                     <div className="space-y-3">
-                        {/* OpÃ§Ã£o 1: padrÃ£o finito */}
+                        {/* Opcao 1: padrao finito */}
                         <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${mode === 'national_only' ? 'border-indigo-400 bg-white ring-1 ring-indigo-300' : 'border-slate-200 bg-white hover:border-indigo-200'}`}>
                             <input
                                 type="radio"
@@ -612,14 +657,14 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                                 className="mt-0.5 accent-indigo-600"
                             />
                             <div>
-                                <p className="text-sm font-semibold text-slate-800">PadrÃ£o: populaÃ§Ã£o finita</p>
+                                <p className="text-sm font-semibold text-slate-800">Padrao: populacao finita</p>
                                 <p className="text-xs text-slate-500 mt-0.5">
-                                    Aplica a correÃ§Ã£o de populaÃ§Ã£o finita em todas as localidades. AbrangÃªncia nacional usa fÃ³rmula infinita automaticamente.
+                                    Aplica a correcao de populacao finita em todas as localidades. Abrangencia nacional usa formula infinita automaticamente.
                                 </p>
                             </div>
                         </label>
 
-                        {/* OpÃ§Ã£o 2: limiar automÃ¡tico */}
+                        {/* Opcao 2: limiar automatico */}
                         <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${mode === 'auto_threshold' ? 'border-indigo-400 bg-white ring-1 ring-indigo-300' : 'border-slate-200 bg-white hover:border-indigo-200'}`}>
                             <input
                                 type="radio"
@@ -631,11 +676,11 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                             />
                             <div className="flex-1">
                                 <p className="text-sm font-semibold text-slate-800">
-                                    AutomÃ¡tico por limiar
-                                    <span className="ml-2 text-xs font-normal text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">recomendado para municÃ­pios grandes</span>
+                                    Automatico por limiar
+                                    <span className="ml-2 text-xs font-normal text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">recomendado para municipios grandes</span>
                                 </p>
                                 <p className="text-xs text-slate-500 mt-0.5">
-                                    Localidades com populaÃ§Ã£o â‰¥ ao limiar sÃ£o tratadas como infinitas. Reduz significativamente o n mÃ­nimo.
+                                    Localidades com populacao acima do limiar sao tratadas como infinitas. Reduz significativamente o n minimo.
                                 </p>
                                 {mode === 'auto_threshold' && (
                                     <div className="mt-2 flex items-center gap-2">
@@ -650,13 +695,13 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                                             className="w-28 text-sm border border-indigo-300 rounded px-2 py-1 focus:ring-1 focus:ring-indigo-400"
                                         />
                                         <span className="text-xs text-slate-500">habitantes</span>
-                                        <span className="text-xs text-slate-400">(padrÃ£o: 50.000)</span>
+                                        <span className="text-xs text-slate-400">(padrao: 50.000)</span>
                                     </div>
                                 )}
                             </div>
                         </label>
 
-                        {/* OpÃ§Ã£o 3: forÃ§ar infinita */}
+                        {/* Opcao 3: forcar infinita */}
                         <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${mode === 'force_all' ? 'border-indigo-400 bg-white ring-1 ring-indigo-300' : 'border-slate-200 bg-white hover:border-indigo-200'}`}>
                             <input
                                 type="radio"
@@ -669,11 +714,11 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                             <div>
                                 <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
                                     <Infinity size={14} className="text-indigo-500" />
-                                    ForÃ§ar infinita para todas as localidades
+                                    Forcar infinita para todas as localidades
                                 </p>
                                 <p className="text-xs text-slate-500 mt-0.5">
-                                    Usa n = ZÂ²Ã—pÃ—q/eÂ² em todas. Minimiza a amostra independente do tamanho da populaÃ§Ã£o.
-                                    Recomendado apenas quando o universo Ã© desconhecido ou muito amplo.
+                                    Usa n = Z^2 x p x q / e^2 em todas. Minimiza a amostra independente do tamanho da populacao.
+                                    Recomendado apenas quando o universo e desconhecido ou muito amplo.
                                 </p>
                             </div>
                         </label>
@@ -712,22 +757,29 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                 </div>
             </div>
 
-            {/* DistribuiÃ§Ã£o por localidade */}
+            {/* Distribuicao por localidade */}
             {localitiesWithCalc.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center text-amber-800 text-sm">
-                    Nenhuma localidade cadastrada. Volte Ã  Etapa 2 e adicione pelo menos uma localidade.
+                    Nenhuma localidade cadastrada. Volte a Etapa 2 e adicione pelo menos uma localidade.
                 </div>
             ) : (
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
-                        <BarChart2 size={14} className="text-slate-500" />
-                        <span className="text-sm font-semibold text-slate-700">DistribuiÃ§Ã£o amostral por localidade</span>
+                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <BarChart2 size={14} className="text-slate-500" />
+                            <span className="text-sm font-semibold text-slate-700">Distribuicao amostral por localidade</span>
+                        </div>
+                        {selectedScopePopulation !== null && (
+                            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                                Populacao do escopo selecionado: {selectedScopePopulation > 0 ? selectedScopePopulation.toLocaleString('pt-BR') : 'sem informacao'}
+                            </span>
+                        )}
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-600">
                                 <tr>
-                                    <th className="text-left px-4 py-3 font-semibold">NÃ­vel</th>
+                                    <th className="text-left px-4 py-3 font-semibold">Nivel</th>
                                     <th className="text-left px-4 py-3 font-semibold">Nome</th>
                                     <th className="text-left px-4 py-3 font-semibold">Zona</th>
                                     <th className="text-right px-4 py-3 font-semibold">
@@ -737,12 +789,12 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                                     {usesSampling && (
                                         <th className="text-center px-4 py-3 font-semibold">
                                             Pop. tratada
-                                            <Tooltip text="Se a populaÃ§Ã£o Ã© tratada como finita ou infinita no cÃ¡lculo amostral." helpId="sample-size-review" />
+                                            <Tooltip text="Se a populacao e tratada como finita ou infinita no calculo amostral." helpId="sample-size-review" />
                                         </th>
                                     )}
                                     <th className="text-right px-4 py-3 font-semibold">
                                         Entrevistas
-                                        <Tooltip text="Entrevistas calculadas por fÃ³rmula amostral ou definidas manualmente." helpId="sample-size-review" />
+                                        <Tooltip text="Entrevistas calculadas por formula amostral ou definidas manualmente." helpId="sample-size-review" />
                                     </th>
                                     <th className="text-right px-4 py-3 font-semibold">Peso (%)</th>
                                 </tr>
@@ -751,8 +803,8 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                                 {localitiesWithCalc.map((loc, idx) => {
                                     const weight =
                                         totalInterviews > 0
-                                            ? ((loc.calc_interviews / totalInterviews) * 100).toFixed(1)
-                                            : 'â€”';
+                                            ? ((loc.effective_interviews / totalInterviews) * 100).toFixed(1)
+                                            : '-';
                                     return (
                                         <tr
                                             key={loc.id}
@@ -790,8 +842,21 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="px-4 py-3 text-right font-semibold text-blue-700">
-                                                {loc.calc_interviews > 0 ? loc.calc_interviews.toLocaleString('pt-BR') : <span className="text-slate-400">â€”</span>}
+                                            <td className="px-4 py-3 text-right text-slate-700">
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    value={loc.manual_interviews > 0 ? loc.manual_interviews : ''}
+                                                    onChange={(e) => handleInterviewsChange(loc.id, e.target.value)}
+                                                    className="w-28 ml-auto text-right border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500"
+                                                    placeholder={String(loc.suggested_interviews)}
+                                                    aria-label={`Entrevistas da localidade ${loc.name}`}
+                                                />
+                                                <div className="text-[11px] text-slate-500 mt-1">
+                                                    {loc.population_unknown
+                                                        ? 'Populacao 0: informe entrevistas para considerar esta localidade.'
+                                                        : `Sugerido: ${loc.suggested_interviews.toLocaleString('pt-BR')}`}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 text-right text-slate-500 text-xs">{weight}%</td>
                                         </tr>
@@ -819,7 +884,7 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
 
             <p className="mt-4 text-xs text-slate-400">
                 Nesta etapa você define os parâmetros estatísticos e a população de cada localidade para o cálculo.
-                Use a Etapa 2 apenas para ajustar a estrutura territorial. Confirme os dados acima antes de elaborar o questionário.
+                Se populacao ficar em 0, o sistema ignora o calculo automatico para aquela localidade e considera apenas entrevistas informadas manualmente.
             </p>
         </div>
     );
