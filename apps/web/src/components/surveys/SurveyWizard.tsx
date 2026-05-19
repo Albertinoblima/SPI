@@ -625,8 +625,8 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             />
                         )}
                         {currentStep === 4 && (
-                            <Step3Premises 
-                                premises={data.premises} 
+                            <Step3Premises
+                                premises={data.premises}
                                 onChange={updatePremises}
                                 localities={data.localities}
                             />
