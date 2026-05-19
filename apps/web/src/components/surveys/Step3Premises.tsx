@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Trash2, GripVertical, HelpCircle, X, Loader2, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
@@ -16,6 +16,7 @@ export interface Premise {
     id: string;
     category: string;
     label: string;
+    stratification_label?: string;
     options: PremiseOption[];
     is_required: boolean;
     allow_multiple: boolean;
@@ -320,6 +321,23 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
     const [suggestionError, setSuggestionError] = useState<string | null>(null);
     const [suggestionApplied, setSuggestionApplied] = useState(false);
+    const [stratificationLabel, setStratificationLabel] = useState('');
+
+    useEffect(() => {
+        const persistedLabel = premises.find(p => p.stratification_label)?.stratification_label ?? '';
+        setStratificationLabel(persistedLabel);
+    }, [premises]);
+
+    const applyStratificationLabel = (label: string) => {
+        setStratificationLabel(label);
+
+        if (premises.length === 0) return;
+
+        onChange(premises.map(premise => ({
+            ...premise,
+            stratification_label: label || undefined,
+        })));
+    };
 
     const applySuggestedQuotas = async () => {
         if (localities.length === 0) {
@@ -359,7 +377,7 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
                     return suggestedOption ? { ...opt, quota_pct: suggestedOption.quota_pct } : { ...opt, quota_pct: undefined };
                 });
 
-                return { ...premise, options: updatedOptions };
+                return { ...premise, options: updatedOptions, stratification_label: stratificationLabel || premise.stratification_label };
             });
 
             onChange(updatedPremises);
@@ -378,6 +396,7 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
             id: `prem_${Date.now()}`,
             category: preset.category,
             label: preset.label,
+            stratification_label: stratificationLabel || undefined,
             options: [...preset.options],
             is_required: true,
             allow_multiple: preset.allow_multiple,
@@ -391,6 +410,7 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
             id: `prem_${Date.now()}`,
             category: 'nova_premissa',
             label: 'Nova premissa',
+            stratification_label: stratificationLabel || undefined,
             options: [],
             is_required: true,
             allow_multiple: false,
@@ -423,124 +443,125 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
     ];
 
     return (
-    <div>
-        <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 4 — Estratificação da Amostra</h2>
-        <p className="text-sm text-slate-500 mb-4">
-            Defina o perfil do entrevistado e as cotas esperadas. A estratificação garante que a amostra represente
-            adequadamente os diferentes segmentos da população pesquisada.
-            <span className="inline-flex ml-1 align-middle">
-                <Tooltip text="Use a estratificação para controlar a composição da coleta e manter aderência ao desenho metodológico." helpId="premises-overview" />
-            </span>
-        </p>
+        <div>
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 4 — Estratificação da Amostra</h2>
+            <p className="text-sm text-slate-500 mb-4">
+                Defina o perfil do entrevistado e as cotas esperadas. A estratificação garante que a amostra represente
+                adequadamente os diferentes segmentos da população pesquisada.
+                <span className="inline-flex ml-1 align-middle">
+                    <Tooltip text="Use a estratificação para controlar a composição da coleta e manter aderência ao desenho metodológico." helpId="premises-overview" />
+                </span>
+            </p>
 
-        {/* Seletor de nomenclatura da estratificação */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <label className="text-sm font-semibold text-blue-900 block mb-2">
-                Denominação da Estratificação da Amostra
-                <Tooltip text="Selecione o nome técnico que será utilizado para identificar este bloco nos relatórios e documentos da pesquisa." helpId="premises-overview" />
-            </label>
-            <select
-                className="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 bg-white text-slate-700 text-sm"
-                aria-label="Denominação da estratificação"
-                defaultValue=""
-            >
-                <option value="" disabled>— Selecione uma denominação —</option>
-                {ESTRATIFICACAO_ALTERNATIVAS.map(alt => (
-                    <option key={alt} value={alt}>{alt}</option>
-                ))}
-            </select>
-        </div>
+            {/* Seletor de nomenclatura da estratificação */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <label className="text-sm font-semibold text-blue-900 block mb-2">
+                    Denominação da Estratificação da Amostra
+                    <Tooltip text="Selecione o nome técnico que será utilizado para identificar este bloco nos relatórios e documentos da pesquisa." helpId="premises-overview" />
+                </label>
+                <select
+                    value={stratificationLabel}
+                    onChange={e => applyStratificationLabel(e.target.value)}
+                    className="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 bg-white text-slate-700 text-sm"
+                    aria-label="Denominação da estratificação"
+                >
+                    <option value="" disabled>— Selecione uma denominação —</option>
+                    {ESTRATIFICACAO_ALTERNATIVAS.map(alt => (
+                        <option key={alt} value={alt}>{alt}</option>
+                    ))}
+                </select>
+            </div>
 
-        {/* Sugestão Automática de Cotas */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-amber-900 mb-1 flex items-center gap-2">
-                        <Zap size={16} className="text-amber-600" />
-                        Sugerir Cotas com Dados Demográficos IBGE
-                    </h3>
-                    <p className="text-xs text-amber-700 mb-3">
-                        Gera automaticamente cotas proporcionais aos dados do Censo 2022 para: sexo, faixa etária e escolaridade.
-                        Se não houver dados, não gera cota para esse critério.
-                    </p>
-                    {suggestionError && (
-                        <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mb-3">
-                            ⚠️ {suggestionError}
-                        </div>
-                    )}
-                    {suggestionApplied && (
-                        <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2.5 py-1.5 mb-3">
-                            ✓ Cotas sugeridas aplicadas com sucesso!
-                        </div>
-                    )}
-                </div>
-                <button
-                    type="button"
-                    onClick={applySuggestedQuotas}
-                    disabled={loadingSuggestions || localities.length === 0}
-                    className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap ${loadingSuggestions || localities.length === 0
+            {/* Sugestão Automática de Cotas */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-amber-900 mb-1 flex items-center gap-2">
+                            <Zap size={16} className="text-amber-600" />
+                            Sugerir Cotas com Dados Demográficos IBGE
+                        </h3>
+                        <p className="text-xs text-amber-700 mb-3">
+                            Gera automaticamente cotas proporcionais aos dados do Censo 2022 para: sexo, faixa etária e escolaridade.
+                            Se não houver dados, não gera cota para esse critério.
+                        </p>
+                        {suggestionError && (
+                            <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mb-3">
+                                ⚠️ {suggestionError}
+                            </div>
+                        )}
+                        {suggestionApplied && (
+                            <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2.5 py-1.5 mb-3">
+                                ✓ Cotas sugeridas aplicadas com sucesso!
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={applySuggestedQuotas}
+                        disabled={loadingSuggestions || localities.length === 0}
+                        className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap ${loadingSuggestions || localities.length === 0
                             ? 'bg-amber-100 text-amber-500 cursor-not-allowed'
                             : 'bg-amber-600 text-white hover:bg-amber-700'
-                        }`}
-                >
-                    {loadingSuggestions && <Loader2 size={14} className="animate-spin" />}
-                    {loadingSuggestions ? 'Gerando...' : 'Sugerir Cotas'}
-                </button>
-            </div>
-        </div>
-
-        {/* Atalhos de premissas comuns */}
-        <div className="mb-6">
-            <h3 className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                3. Perfil do Entrevistado — Adicionar rapidamente
-                <Tooltip text="Adiciona critérios pré-configurados para estratificação. Você poderá editar as opções após adicionar." helpId="premises-overview" />
-            </h3>
-            <p className="text-xs text-slate-400 mb-3">Clique nos critérios abaixo para incluir na estratificação:</p>
-            <div className="flex flex-wrap gap-2">
-                {PRESET_CATEGORIES.map(preset => (
-                    <button
-                        key={preset.category}
-                        type="button"
-                        onClick={() => addPreset(preset)}
-                        disabled={existingCategories.has(preset.category)}
-                        className={`px-3 py-1.5 rounded-lg text-sm border transition
-                                ${existingCategories.has(preset.category)
-                                ? 'bg-green-50 border-green-300 text-green-700 cursor-default'
-                                : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                            }`}
                     >
-                        {existingCategories.has(preset.category) ? '✓ ' : '+ '}{preset.label}
+                        {loadingSuggestions && <Loader2 size={14} className="animate-spin" />}
+                        {loadingSuggestions ? 'Gerando...' : 'Sugerir Cotas'}
                     </button>
-                ))}
-                <button
-                    type="button"
-                    onClick={addCustom}
-                    className="px-3 py-1.5 rounded-lg text-sm border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 transition flex items-center gap-1"
-                >
-                    <Plus size={14} />
-                    Personalizada
-                </button>
+                </div>
             </div>
-        </div>
 
-        {/* Lista de premissas */}
-        {premises.length > 0 ? (
-            <div className="space-y-4">
-                {premises.map(premise => (
-                    <PremiseCard
-                        key={premise.id}
-                        premise={premise}
-                        onRemove={() => removePremise(premise.id)}
-                        onUpdate={updates => updatePremise(premise.id, updates)}
-                    />
-                ))}
+            {/* Atalhos de premissas comuns */}
+            <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                    3. Perfil do Entrevistado — Adicionar rapidamente
+                    <Tooltip text="Adiciona critérios pré-configurados para estratificação. Você poderá editar as opções após adicionar." helpId="premises-overview" />
+                </h3>
+                <p className="text-xs text-slate-400 mb-3">Clique nos critérios abaixo para incluir na estratificação:</p>
+                <div className="flex flex-wrap gap-2">
+                    {PRESET_CATEGORIES.map(preset => (
+                        <button
+                            key={preset.category}
+                            type="button"
+                            onClick={() => addPreset(preset)}
+                            disabled={existingCategories.has(preset.category)}
+                            className={`px-3 py-1.5 rounded-lg text-sm border transition
+                                ${existingCategories.has(preset.category)
+                                    ? 'bg-green-50 border-green-300 text-green-700 cursor-default'
+                                    : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                        >
+                            {existingCategories.has(preset.category) ? '✓ ' : '+ '}{preset.label}
+                        </button>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={addCustom}
+                        className="px-3 py-1.5 rounded-lg text-sm border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 transition flex items-center gap-1"
+                    >
+                        <Plus size={14} />
+                        Personalizada
+                    </button>
+                </div>
             </div>
-        ) : (
-            <div className="text-center text-slate-400 py-10 border-2 border-dashed border-slate-200 rounded-xl">
-                <p className="text-lg mb-1">Nenhuma premissa definida</p>
-                <p className="text-sm">Use os atalhos acima ou adicione premissas personalizadas</p>
-                <p className="text-xs mt-1 text-slate-300">(Esta etapa é opcional)</p>
-            </div>
-        )}
-    </div>
-);
+
+            {/* Lista de premissas */}
+            {premises.length > 0 ? (
+                <div className="space-y-4">
+                    {premises.map(premise => (
+                        <PremiseCard
+                            key={premise.id}
+                            premise={premise}
+                            onRemove={() => removePremise(premise.id)}
+                            onUpdate={updates => updatePremise(premise.id, updates)}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center text-slate-400 py-10 border-2 border-dashed border-slate-200 rounded-xl">
+                    <p className="text-lg mb-1">Nenhuma premissa definida</p>
+                    <p className="text-sm">Use os atalhos acima ou adicione premissas personalizadas</p>
+                    <p className="text-xs mt-1 text-slate-300">(Esta etapa é opcional)</p>
+                </div>
+            )}
+        </div>
+    );
 }
