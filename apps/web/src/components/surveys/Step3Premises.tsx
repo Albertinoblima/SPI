@@ -372,56 +372,57 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
         }
     };
 
-    if (premises.some(p => p.category === preset.category)) return;
-    const newPremise: Premise = {
-        id: `prem_${Date.now()}`,
-        category: preset.category,
-        label: preset.label,
-        options: [...preset.options],
-        is_required: true,
-        allow_multiple: preset.allow_multiple,
-        order_index: premises.length,
+    const addPreset = (preset: typeof PRESET_CATEGORIES[0]) => {
+        if (premises.some(p => p.category === preset.category)) return;
+        const newPremise: Premise = {
+            id: `prem_${Date.now()}`,
+            category: preset.category,
+            label: preset.label,
+            options: [...preset.options],
+            is_required: true,
+            allow_multiple: preset.allow_multiple,
+            order_index: premises.length,
+        };
+        onChange([...premises, newPremise]);
     };
-    onChange([...premises, newPremise]);
-};
 
-const addCustom = () => {
-    const newPremise: Premise = {
-        id: `prem_${Date.now()}`,
-        category: 'nova_premissa',
-        label: 'Nova premissa',
-        options: [],
-        is_required: true,
-        allow_multiple: false,
-        order_index: premises.length,
+    const addCustom = () => {
+        const newPremise: Premise = {
+            id: `prem_${Date.now()}`,
+            category: 'nova_premissa',
+            label: 'Nova premissa',
+            options: [],
+            is_required: true,
+            allow_multiple: false,
+            order_index: premises.length,
+        };
+        onChange([...premises, newPremise]);
     };
-    onChange([...premises, newPremise]);
-};
 
-const removePremise = (id: string) =>
-    onChange(premises.filter(p => p.id !== id).map((p, i) => ({ ...p, order_index: i })));
+    const removePremise = (id: string) =>
+        onChange(premises.filter(p => p.id !== id).map((p, i) => ({ ...p, order_index: i })));
 
-const updatePremise = (id: string, updates: Partial<Premise>) =>
-    onChange(premises.map(p => p.id === id ? { ...p, ...updates } : p));
+    const updatePremise = (id: string, updates: Partial<Premise>) =>
+        onChange(premises.map(p => p.id === id ? { ...p, ...updates } : p));
 
-const existingCategories = new Set(premises.map(p => p.category));
+    const existingCategories = new Set(premises.map(p => p.category));
 
-const ESTRATIFICACAO_ALTERNATIVAS = [
-    'Aspecto Sócio Econômico da Amostra',
-    'Aspecto Sócio Econômico',
-    'Perfil do Entrevistado',
-    'Base Estrutural da Amostra',
-    'Base Sócio Econômica da Amostra',
-    'Característica dos Entrevistados',
-    'Característica do Perfil da Amostra',
-    'Característica do Perfil dos Entrevistados',
-    'Estratificação do Perfil Amostral',
-    'Estrutura Sócio Econômica da Amostra',
-    'Perfil dos Entrevistados',
-    'Perfil Estratificado da Amostra',
-];
+    const ESTRATIFICACAO_ALTERNATIVAS = [
+        'Aspecto Sócio Econômico da Amostra',
+        'Aspecto Sócio Econômico',
+        'Perfil do Entrevistado',
+        'Base Estrutural da Amostra',
+        'Base Sócio Econômica da Amostra',
+        'Característica dos Entrevistados',
+        'Característica do Perfil da Amostra',
+        'Característica do Perfil dos Entrevistados',
+        'Estratificação do Perfil Amostral',
+        'Estrutura Sócio Econômica da Amostra',
+        'Perfil dos Entrevistados',
+        'Perfil Estratificado da Amostra',
+    ];
 
-return (
+    return (
     <div>
         <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 4 — Estratificação da Amostra</h2>
         <p className="text-sm text-slate-500 mb-4">

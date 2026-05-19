@@ -10,7 +10,7 @@
 
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 interface LocalityInput {
     id: string;
@@ -286,7 +286,7 @@ function generateSuggestions(demographics: DemographicData[]): CotaSuggestion[] 
 
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createServerClient();
+        const supabase = await createClient();
         const body = await request.json();
         const { localities } = body;
 
