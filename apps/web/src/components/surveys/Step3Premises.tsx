@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, GripVertical, HelpCircle, X } from 'lucide-react';
+import { Plus, Trash2, GripVertical, HelpCircle, X, Loader2, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { HELP_HOVER_EVENT, HELP_TOPICS_BY_ID } from '@/lib/help-topics';
+import type { Locality } from './Step2Localities';
 
 export interface PremiseOption {
     label: string;
@@ -24,6 +25,7 @@ export interface Premise {
 interface Props {
     premises: Premise[];
     onChange: (premises: Premise[]) => void;
+    localities?: Locality[];
 }
 
 function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
@@ -314,8 +316,62 @@ function PremiseCard({ premise, onRemove, onUpdate }: {
     );
 }
 
-export function Step3Premises({ premises, onChange }: Props) {
-    const addPreset = (preset: typeof PRESET_CATEGORIES[0]) => {
+export function Step3Premises({ premises, onChange, localities = [] }: Props) {
+    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+    const [suggestionError, setSuggestionError] = useState<string | null>(null);
+    const [suggestionApplied, setSuggestionApplied] = useState(false);
+
+    const applySuggestedQuotas = async () => {
+        if (localities.length === 0) {
+            setSuggestionError('Nenhuma localidade selecionada. Retorne à Etapa 2 para selecionar localidades.');
+            return;
+        }
+
+        setLoadingSuggestions(true);
+        setSuggestionError(null);
+        setSuggestionApplied(false);
+
+        try {
+            const response = await fetch('/api/surveys/stratification-suggestions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ localities }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Erro ao gerar sugestões');
+            }
+
+            const { suggestions } = await response.json();
+
+            if (!suggestions || suggestions.length === 0) {
+                setSuggestionError('Nenhuma sugestão disponível. Verifique se os dados demográficos foram carregados.');
+                return;
+            }
+
+            const updatedPremises = premises.map((premise) => {
+                const suggestion = suggestions.find((s: { category: string }) => s.category === premise.category);
+                if (!suggestion) return premise;
+
+                const updatedOptions = premise.options.map((opt) => {
+                    const suggestedOption = suggestion.suggestions.find((s: { value: string }) => s.value === opt.value);
+                    return suggestedOption ? { ...opt, quota_pct: suggestedOption.quota_pct } : { ...opt, quota_pct: undefined };
+                });
+
+                return { ...premise, options: updatedOptions };
+            });
+
+            onChange(updatedPremises);
+            setSuggestionApplied(true);
+            setTimeout(() => setSuggestionApplied(false), 5000);
+        } catch (error) {
+            setSuggestionError(error instanceof Error ? error.message : 'Erro ao buscar sugestões.');
+        } finally {
+            setLoadingSuggestions(false);
+        }
+    };
+
         if (premises.some(p => p.category === preset.category)) return;
         const newPremise: Premise = {
             id: `prem_${Date.now()}`,
@@ -392,6 +448,45 @@ export function Step3Premises({ premises, onChange }: Props) {
                         <option key={alt} value={alt}>{alt}</option>
                     ))}
                 </select>
+            </div>
+
+            {/* Sugestão Automática de Cotas */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-amber-900 mb-1 flex items-center gap-2">
+                            <Zap size={16} className="text-amber-600" />
+                            Sugerir Cotas com Dados Demográficos IBGE
+                        </h3>
+                        <p className="text-xs text-amber-700 mb-3">
+                            Gera automaticamente cotas proporcionais aos dados do Censo 2022 para: sexo, faixa etária e escolaridade.
+                            Se não houver dados, não gera cota para esse critério.
+                        </p>
+                        {suggestionError && (
+                            <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mb-3">
+                                ⚠️ {suggestionError}
+                            </div>
+                        )}
+                        {suggestionApplied && (
+                            <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2.5 py-1.5 mb-3">
+                                ✓ Cotas sugeridas aplicadas com sucesso!
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={applySuggestedQuotas}
+                        disabled={loadingSuggestions || localities.length === 0}
+                        className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 whitespace-nowrap ${
+                            loadingSuggestions || localities.length === 0
+                                ? 'bg-amber-100 text-amber-500 cursor-not-allowed'
+                                : 'bg-amber-600 text-white hover:bg-amber-700'
+                        }`}
+                    >
+                        {loadingSuggestions && <Loader2 size={14} className="animate-spin" />}
+                        {loadingSuggestions ? 'Gerando...' : 'Sugerir Cotas'}
+                    </button>
+                </div>
             </div>
 
             {/* Atalhos de premissas comuns */}
