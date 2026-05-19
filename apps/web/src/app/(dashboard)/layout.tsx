@@ -30,7 +30,7 @@ interface DashboardLayoutProps {
 const navItems = [
     { label: 'Início', href: '/dashboard', icon: BarChart3 },
     { label: 'Pesquisas', href: '/surveys', icon: FileText },
-    { label: 'Municípios', href: '/municipios', icon: Globe2 },
+    { label: 'Base Geográfica', href: '/municipios', icon: Globe2 },
     { label: 'Equipe', href: '/team', icon: Users },
     { label: 'Suporte', href: '/support', icon: LifeBuoy },
     { label: 'Ajuda', href: '/help', icon: CircleHelp },
