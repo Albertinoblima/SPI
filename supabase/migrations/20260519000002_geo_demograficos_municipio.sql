@@ -99,10 +99,10 @@ SELECT
         dm.populacao_total,
         coalesce(sum(d.populacao_total), 0)::integer
     )                                                                 AS populacao_censo,
-    dm.populacao_masculina                                            AS populacao_masculina,
-    dm.populacao_feminina                                             AS populacao_feminina,
-    dm.faixas_etarias                                                 AS faixas_etarias,
-    dm.escolaridade                                                   AS escolaridade,
+    dm.populacao_masculina,
+    dm.populacao_feminina,
+    dm.faixas_etarias,
+    dm.escolaridade,
     coalesce(sum(e.quantidade_eleitores), 0)::integer                 AS total_eleitores,
     -- percentual_eleitores: prioridade nova tabela, depois setor censitário, depois estimada
     CASE
