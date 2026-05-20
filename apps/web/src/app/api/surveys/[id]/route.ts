@@ -187,7 +187,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', ctx.userData.tenant_id).single();
         if (!existing) return apiError('Pesquisa não encontrada', 404);
 
-        const { localities, premises, questions, ...surveyFields } = body;
+        const { localities, premises, questions, skip_validation, ...surveyFields } = body;
 
         const hasLegalFieldInPayload = LEGAL_FIELDS.some((key) => key in surveyFields);
         if (!skipValidation && hasLegalFieldInPayload) {
