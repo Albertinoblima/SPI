@@ -42,6 +42,7 @@ from tqdm import tqdm
 
 MAX_RETRIES = 5
 RETRY_BACKOFF = [2, 4, 8, 16, 32]  # segundos
+UPSERT_BATCH_SIZE = 200  # registros por lote
 
 
 def retry_execute(request_builder):
@@ -77,6 +78,12 @@ def normalize_key(text: str) -> str:
     nfd = unicodedata.normalize("NFD", text)
     stripped = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
     return re.sub(r"\s+", " ", stripped).lower().strip()
+
+
+def chunk_list(lst: list, size: int):
+    """Divide lista em sublistas de tamanho máximo `size`."""
+    for i in range(0, len(lst), size):
+        yield lst[i : i + size]
 
 
 def load_supabase() -> Client:
@@ -169,14 +176,15 @@ def sync_uf(sb: Client, uf: str, rows: list[dict]) -> dict[str, int]:
                 })
 
         if missing:
-            inserted = retry_execute(
-                sb.table("geo_localidades")
-                .upsert(missing, on_conflict="municipio_id,nome_normalizado,tipo", ignore_duplicates=True)
-                .select("id,nome,nome_normalizado,tipo,zona")
-            )
-            for item in inserted.data:
-                existing.setdefault(item["nome_normalizado"], item)
-            stats["inseridos_localidade"] += len(inserted.data)
+            for chunk in chunk_list(missing, UPSERT_BATCH_SIZE):
+                inserted = retry_execute(
+                    sb.table("geo_localidades")
+                    .upsert(chunk, on_conflict="municipio_id,nome_normalizado,tipo", ignore_duplicates=True)
+                    .select("id,nome,nome_normalizado,tipo,zona")
+                )
+                for item in inserted.data:
+                    existing.setdefault(item["nome_normalizado"], item)
+                stats["inseridos_localidade"] += len(inserted.data)
 
         # Upsert em geo_dados_residenciais
         residenciais: list[dict] = []
@@ -194,10 +202,11 @@ def sync_uf(sb: Client, uf: str, rows: list[dict]) -> dict[str, int]:
             })
 
         if residenciais:
-            retry_execute(
-                sb.table("geo_dados_residenciais")
-                .upsert(residenciais, on_conflict="localidade_id,zona,ano_censo")
-            )
+            for chunk in chunk_list(residenciais, UPSERT_BATCH_SIZE):
+                retry_execute(
+                    sb.table("geo_dados_residenciais")
+                    .upsert(chunk, on_conflict="localidade_id,zona,ano_censo")
+                )
             stats["upserted_residencias"] += len(residenciais)
 
     return stats
