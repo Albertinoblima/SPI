@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw, Rocket } from 'lucide-react';
 import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
 import { getEffectiveLocalities, checkLocalitiesCompatibility } from '@/lib/survey-decisions';
 import { Step2Localities, type Locality } from './Step2Localities';
@@ -454,7 +454,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const persistDraft = useCallback(async (
         wizardData: WizardData,
         currentId: string | undefined,
-        options: { skipValidation?: boolean } = {},
+        options: { skipValidation?: boolean; status?: string } = {},
     ): Promise<{ id: string | null; error: string | null }> => {
         try {
             const payload = {
@@ -463,6 +463,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 premises: wizardData.premises,
                 questions: wizardData.questions,
                 skip_validation: options.skipValidation ?? false,
+                ...(options.status ? { status: options.status } : {}),
             };
 
             if (currentId) {
@@ -560,7 +561,20 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             setCurrentStep(5);
             return;
         }
-        await handleSaveDraft();
+        setSaving(true);
+        setAlert(null);
+        try {
+            const result = await persistDraft(data, surveyId, { skipValidation: false, status: 'active' });
+            if (result.id && !surveyId) setSurveyId(result.id);
+            if (result.error) {
+                setAlert({ type: 'error', message: result.error });
+                return;
+            }
+            setAlert({ type: 'success', message: 'Pesquisa publicada com sucesso! Redirecionando...' });
+            setTimeout(() => router.push('/surveys'), 1800);
+        } finally {
+            setSaving(false);
+        }
     };
 
     /** Salva silenciosamente e avança para o próximo passo. */
@@ -751,8 +765,8 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                     disabled={saving}
                                     className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition disabled:opacity-50"
                                 >
-                                    <CheckCircle2 size={18} />
-                                    {saving ? 'Salvando...' : 'Concluir e Salvar'}
+                                    {saving ? <RefreshCw size={16} className="animate-spin" /> : <Rocket size={18} />}
+                                    {saving ? 'Publicando...' : 'Publicar Pesquisa'}
                                 </button>
                             )}
                         </div>
