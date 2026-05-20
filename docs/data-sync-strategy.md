@@ -51,6 +51,35 @@ Parâmetros configuráveis:
 - **skip_ibge**: Pular dados IBGE (padrão: false)
 - **skip_tse**: Pular dados TSE (padrão: false)
 
+### Nova Carga CNEFE 2022
+
+Além da sincronização IBGE/TSE, o projeto passa a suportar a consolidação dos
+arquivos estaduais do CNEFE 2022 em `C:/Users/alber/Downloads/ibge/<UF>/<UF>.csv`.
+
+O ETL novo em `scripts/etl_cnefe_localidades.py` gera um arquivo agregado com:
+
+- Estado e UF
+- Código IBGE do município e nome do município
+- Localidade
+- Zona derivada: urbana, rural ou mista
+- Tipo da localidade inferido do nome
+- Quantidade de residencias
+
+Quando executado com `--sync-db`, o processo também preenche:
+
+- `geo_localidades` com localidades ainda inexistentes
+- `geo_dados_residenciais` com a contagem consolidada por localidade
+
+Observação: o CNEFE não expõe uma coluna formal de zona urbana/rural no arquivo
+base; a classificação é derivada por heurística a partir do nome da localidade e
+dos campos textuais do endereço.
+
+Exemplo de execução:
+
+```bash
+python scripts/etl_cnefe_localidades.py --sync-db
+```
+
 ## 🔐 Segurança
 
 ### Secrets Necessários

@@ -40,6 +40,17 @@ body.json
 result.txt
 .etl_cache/
 
+# Data files (large CSVs/processed data)
+data/
+
+# Logs
+logs/
+
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+
 # Mobile
 *.apk
 *.aab
