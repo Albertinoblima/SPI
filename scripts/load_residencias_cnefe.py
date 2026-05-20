@@ -44,24 +44,19 @@ MAX_RETRIES = 5
 RETRY_BACKOFF = [2, 4, 8, 16, 32]  # segundos
 
 
-def retry_execute(fn, *args, **kwargs):
-    """Executa fn(*args, **kwargs).execute() com retry em erros de rede."""
+def retry_execute(request_builder):
+    """Chama request_builder.execute() com retry em erros de rede."""
     import httpx
     for attempt in range(MAX_RETRIES):
         try:
-            return fn(*args, **kwargs).execute()
+            return request_builder.execute()
         except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError,
-                httpx.TimeoutException, Exception) as exc:
-            # Relança imediatamente erros de lógica (4xx)
-            msg = str(exc)
-            if hasattr(exc, 'response') and getattr(exc, 'response', None) is not None:
-                if exc.response.status_code < 500:
-                    raise
+                httpx.TimeoutException) as exc:
             if attempt == MAX_RETRIES - 1:
                 raise
             wait = RETRY_BACKOFF[attempt]
             logger.warning("Erro de rede (tentativa %d/%d): %s — aguardando %ds",
-                           attempt + 1, MAX_RETRIES, msg, wait)
+                           attempt + 1, MAX_RETRIES, str(exc), wait)
             time.sleep(wait)
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -176,11 +171,7 @@ def sync_uf(sb: Client, uf: str, rows: list[dict]) -> dict[str, int]:
         if missing:
             inserted = retry_execute(
                 sb.table("geo_localidades")
-                .upsert(
-                    missing,
-                    on_conflict="municipio_id,nome_normalizado,tipo",
-                    ignore_duplicates=True,
-                )
+                .upsert(missing, on_conflict="municipio_id,nome_normalizado,tipo", ignore_duplicates=True)
                 .select("id,nome,nome_normalizado,tipo,zona")
             )
             for item in inserted.data:
