@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
         let query = auth.supabase
             .from('vw_municipio_resumo')
-            .select('*', { count: 'exact' });
+            .select('*', { count: 'estimated' });
 
         if (q) {
             // Busca por nome normalizado (sem acento, minusculo)
