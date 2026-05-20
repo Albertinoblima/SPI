@@ -258,6 +258,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             surveyFields.population_size = null;
         }
 
+        // Normalizar campos de data: string vazia deve ser null para evitar erro de tipo no Postgres
+        if ('started_at' in surveyFields) {
+            surveyFields.started_at = surveyFields.started_at || null;
+        }
+        if ('ended_at' in surveyFields) {
+            surveyFields.ended_at = surveyFields.ended_at || null;
+        }
+
         // Atualizar survey
         const { data: updated, error: updateError } = await adminSupabase
             .from('surveys')
