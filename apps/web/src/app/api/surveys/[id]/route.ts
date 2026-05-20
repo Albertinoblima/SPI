@@ -187,7 +187,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', ctx.userData.tenant_id).single();
         if (!existing) return apiError('Pesquisa não encontrada', 404);
 
-        const { localities, premises, questions, skip_validation, ...surveyFields } = body;
+        // Campos que pertencem a tabelas filhas ou que não existem na tabela surveys
+        // devem ser extraídos aqui para evitar erro de coluna desconhecida no Supabase
+        const { localities, premises, questions, skip_validation, population_type: _popType, ...surveyFields } = body;
 
         const hasLegalFieldInPayload = LEGAL_FIELDS.some((key) => key in surveyFields);
         if (!skipValidation && hasLegalFieldInPayload) {
@@ -301,9 +303,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             if (premises.length > 0) {
                 await adminSupabase.from('survey_premises').insert(
                     premises.map((p: Record<string, unknown>, i: number) => ({
-                        ...p,
                         survey_id: params.id,
                         tenant_id: ctx.userData.tenant_id,
+                        category: p.category,
+                        label: p.label,
+                        options: p.options ?? [],
+                        is_required: p.is_required ?? true,
+                        allow_multiple: p.allow_multiple ?? false,
+                        stratification_label: (p.stratification_label as string) ?? null,
                         order_index: i,
                     }))
                 );
