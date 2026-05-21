@@ -266,6 +266,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             surveyFields.ended_at = surveyFields.ended_at || null;
         }
 
+        // Normalizar campos com CHECK constraint de enum: string vazia deve ser null
+        const enumFields = [
+            'geographic_scope', 'scope_country_name', 'scope_state_name', 'scope_city_name',
+            'specific_public_description', 'survey_type', 'funding_source',
+        ] as const;
+        for (const field of enumFields) {
+            if (field in surveyFields && surveyFields[field as keyof typeof surveyFields] === '') {
+                (surveyFields as Record<string, unknown>)[field] = null;
+            }
+        }
+
         // Atualizar survey
         const { data: updated, error: updateError } = await adminSupabase
             .from('surveys')
