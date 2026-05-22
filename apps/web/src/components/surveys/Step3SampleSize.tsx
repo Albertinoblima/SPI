@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useMemo, useState } from 'react';
-import { Calculator, Users, HelpCircle, BarChart2, Infinity, TrendingDown, RefreshCw, Database } from 'lucide-react';
+import { Calculator, HelpCircle, BarChart2, Infinity, TrendingDown, RefreshCw, Database } from 'lucide-react';
 import Link from 'next/link';
 import { shouldUseStatisticalSampling, type SurveyTechData } from './Step1TechnicalData';
 import type { Locality } from './Step2Localities';
@@ -728,19 +728,7 @@ export function Step3SampleSize({ localities, tech, onTechChange, onLocalitiesCh
             )}
 
             {/* Resumo do universo e amostra */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-center gap-4">
-                    <Users size={22} className="text-emerald-600 shrink-0" />
-                    <div>
-                        <p className="text-xs text-emerald-700 font-semibold uppercase tracking-wide mb-0.5">
-                            Universo total pesquisado
-                        </p>
-                        <p className="text-2xl font-extrabold text-emerald-800">
-                            {totalPopulation.toLocaleString('pt-BR')}
-                            <span className="text-xs font-normal text-emerald-600 ml-1">pessoas / eleitores</span>
-                        </p>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 gap-4 mb-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-center gap-4">
                     <BarChart2 size={22} className="text-blue-600 shrink-0" />
                     <div>

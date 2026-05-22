@@ -105,17 +105,6 @@ const PRESET_CATEGORIES: Array<{
             ],
         },
         {
-            label: 'Zona de residência', category: 'zona', allow_multiple: false,
-            options: [
-                { label: 'Urbana', value: 'urban' },
-                { label: 'Rural', value: 'rural' },
-            ],
-        },
-        {
-            label: 'Bairro / Região', category: 'bairro', allow_multiple: false,
-            options: [],
-        },
-        {
             label: 'Estado Civil', category: 'estado_civil', allow_multiple: false,
             options: [
                 { label: 'Solteiro(a)', value: 'solteiro' },

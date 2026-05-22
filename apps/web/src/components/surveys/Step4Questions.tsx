@@ -59,7 +59,7 @@ const TYPE_OPTIONS: Array<{ value: QuestionType; label: string; icon: string; de
 ];
 
 function QuestionCard({
-    question, index, onRemove, onUpdate, onAddOption, onRemoveOption, onUpdateOptionLabel,
+    question, index, onRemove, onUpdate, onAddOption, onRemoveOption, onUpdateOptionLabel, onUpdateChoiceLimits,
 }: {
     question: Question;
     index: number;

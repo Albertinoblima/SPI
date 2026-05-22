@@ -26,11 +26,11 @@ export async function GET(request: NextRequest) {
 
         if (userError || !userData) return apiError('Usuário não encontrado', 404);
 
-        const { data: tenant, error: tenantError } = await supabase
+        const { data: tenantWithTradeName, error: tenantError } = await supabase
             .from('tenants')
             .select(`
                 id, name, slug, status,
-                cnpj, phone, email, website, logo_url,
+                nome_fantasia, cnpj, phone, email, website, logo_url,
                 address, address_number, address_complement, neighborhood,
                 city, state, zip_code, responsavel_tecnico,
                 max_users, max_surveys, storage_limit_mb
@@ -38,9 +38,26 @@ export async function GET(request: NextRequest) {
             .eq('id', userData.tenant_id)
             .single();
 
-        if (tenantError || !tenant) return apiError('Empresa não encontrada', 404);
+        if (tenantError?.code === 'PGRST204') {
+            const { data: tenantLegacy, error: tenantLegacyError } = await supabase
+                .from('tenants')
+                .select(`
+                    id, name, slug, status,
+                    cnpj, phone, email, website, logo_url,
+                    address, address_number, address_complement, neighborhood,
+                    city, state, zip_code, responsavel_tecnico,
+                    max_users, max_surveys, storage_limit_mb
+                `)
+                .eq('id', userData.tenant_id)
+                .single();
 
-        return apiSuccess({ tenant });
+            if (tenantLegacyError || !tenantLegacy) return apiError('Empresa não encontrada', 404);
+            return apiSuccess({ tenant: { ...tenantLegacy, nome_fantasia: null } });
+        }
+
+        if (tenantError || !tenantWithTradeName) return apiError('Empresa não encontrada', 404);
+
+        return apiSuccess({ tenant: tenantWithTradeName });
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -69,34 +86,58 @@ export async function PUT(request: NextRequest) {
 
         const body = await request.json();
         const {
-            name, cnpj, phone, email, website,
+            name, nome_fantasia, cnpj, phone, email, website,
             address, address_number, address_complement, neighborhood,
             city, state, zip_code, responsavel_tecnico,
         } = body;
 
         if (!name?.trim()) return apiError('Nome da empresa é obrigatório', 400);
 
+        const payload = {
+            name: name.trim(),
+            nome_fantasia: nome_fantasia?.trim() || null,
+            cnpj: cnpj?.trim() || null,
+            phone: phone?.trim() || null,
+            email: email?.trim() || null,
+            website: website?.trim() || null,
+            address: address?.trim() || null,
+            address_number: address_number?.trim() || null,
+            address_complement: address_complement?.trim() || null,
+            neighborhood: neighborhood?.trim() || null,
+            city: city?.trim() || null,
+            state: state?.trim() || null,
+            zip_code: zip_code?.trim() || null,
+            responsavel_tecnico: responsavel_tecnico?.trim() || null,
+            updated_at: new Date().toISOString(),
+        };
+
         const { data: updated, error: updateError } = await supabase
             .from('tenants')
-            .update({
-                name: name.trim(),
-                cnpj: cnpj?.trim() || null,
-                phone: phone?.trim() || null,
-                email: email?.trim() || null,
-                website: website?.trim() || null,
-                address: address?.trim() || null,
-                address_number: address_number?.trim() || null,
-                address_complement: address_complement?.trim() || null,
-                neighborhood: neighborhood?.trim() || null,
-                city: city?.trim() || null,
-                state: state?.trim() || null,
-                zip_code: zip_code?.trim() || null,
-                responsavel_tecnico: responsavel_tecnico?.trim() || null,
-                updated_at: new Date().toISOString(),
-            })
+            .update(payload)
             .eq('id', userData.tenant_id)
             .select('id, name')
             .single();
+
+        if (updateError?.code === 'PGRST204') {
+            const { nome_fantasia: _ignored, ...legacyPayload } = payload;
+            const { data: updatedLegacy, error: updateLegacyError } = await supabase
+                .from('tenants')
+                .update(legacyPayload)
+                .eq('id', userData.tenant_id)
+                .select('id, name')
+                .single();
+
+            if (updateLegacyError || !updatedLegacy) {
+                return trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
+                    errorCode: 'DB_WRITE_FAILED',
+                    userId: user.id,
+                    tenantId: userData.tenant_id,
+                    metadata: { route: '/api/settings/company', operation: 'PUT', mode: 'legacy-fallback' },
+                });
+            }
+
+            return apiSuccess({ tenant: updatedLegacy, message: 'Dados atualizados com sucesso' });
+        }
 
         if (updateError) {
             return trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
