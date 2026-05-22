@@ -799,6 +799,7 @@ export function Step2Localities({
                                             aria-expanded={isLocalityDropdownOpen}
                                             aria-autocomplete="list"
                                             aria-controls="locality-suggestions-listbox"
+                                            aria-activedescendant={activeLocalityIndex >= 0 ? `locality-option-${activeLocalityIndex}` : undefined}
                                         />
                                         {(loadingLocalities || loadingGlobalLocalities) && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
 
@@ -812,6 +813,7 @@ export function Step2Localities({
                                                 {previewSuggestions.map((suggestion, index) => (
                                                     <button
                                                         key={`${suggestion.source}:${suggestion.name}`}
+                                                        id={`locality-option-${index}`}
                                                         type="button"
                                                         role="option"
                                                         aria-selected={index === activeLocalityIndex}
