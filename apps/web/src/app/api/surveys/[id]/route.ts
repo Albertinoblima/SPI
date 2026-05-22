@@ -182,10 +182,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Verificar ownership
         const { data: existing } = await adminSupabase
             .from('surveys')
-            .select('id, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code, geographic_scope, scope_country_name, scope_state_name, scope_city_name, specific_public_description, population_size')
+            .select('id, status, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code, geographic_scope, scope_country_name, scope_state_name, scope_city_name, specific_public_description, population_size')
             .eq('id', params.id)
             .eq('tenant_id', ctx.userData.tenant_id).single();
         if (!existing) return apiError('Pesquisa não encontrada', 404);
+
+        if (existing.status === 'published') {
+            return apiError('Pesquisa publicada está em coleta e não pode mais ser editada.', 400);
+        }
 
         // Campos que pertencem a tabelas filhas ou que não existem na tabela surveys
         // devem ser extraídos aqui para evitar erro de coluna desconhecida no Supabase

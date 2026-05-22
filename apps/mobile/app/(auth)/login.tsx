@@ -104,9 +104,7 @@ export default function LoginScreen() {
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                    <Text style={styles.link}>Não tem conta? Cadastre-se</Text>
-                </TouchableOpacity>
+                <Text style={styles.link}>Acesso liberado somente para entrevistadores cadastrados pela equipe gestora.</Text>
             </View>
         </KeyboardAvoidingView>
     );
@@ -204,10 +202,10 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     link: {
-        color: '#2563eb',
+        color: '#475569',
         textAlign: 'center',
         marginTop: 20,
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 13,
+        lineHeight: 20,
     },
 });

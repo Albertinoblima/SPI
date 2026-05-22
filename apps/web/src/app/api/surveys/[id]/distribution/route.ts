@@ -72,6 +72,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
         if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (survey.status === 'published') {
+            return apiError('Pesquisa publicada esta em coleta e nao pode mais alterar distribuicao.', 400);
+        }
 
         const body: DistributionInput = await request.json();
         const admin = createAdminClient();

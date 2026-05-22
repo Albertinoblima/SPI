@@ -68,9 +68,12 @@ function QuestionCard({
     onAddOption: () => void;
     onRemoveOption: (optIdx: number) => void;
     onUpdateOptionLabel: (optIdx: number, label: string) => void;
+    onUpdateChoiceLimits: (limits: { min?: number; max?: number }) => void;
 }) {
     const typeInfo = TYPE_OPTIONS.find(t => t.value === question.question_type);
     const hasOptions = question.question_type === 'single_choice' || question.question_type === 'multiple_choice';
+    const minSelections = question.validation_rules?.min_selections ?? 1;
+    const maxSelections = question.validation_rules?.max_selections ?? question.options?.length ?? 1;
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -145,6 +148,39 @@ function QuestionCard({
                                 <Plus size={15} />
                                 Adicionar opção
                             </button>
+
+                            {question.question_type === 'multiple_choice' && (
+                                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                    <label className="text-xs text-slate-700">
+                                        Mínimo de respostas
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={question.options?.length ?? 1}
+                                            value={minSelections}
+                                            onChange={(e) => {
+                                                const nextMin = Number(e.target.value);
+                                                onUpdateChoiceLimits({ min: Number.isFinite(nextMin) ? nextMin : 0, max: maxSelections });
+                                            }}
+                                            className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                                        />
+                                    </label>
+                                    <label className="text-xs text-slate-700">
+                                        Máximo de respostas
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={question.options?.length ?? 1}
+                                            value={maxSelections}
+                                            onChange={(e) => {
+                                                const nextMax = Number(e.target.value);
+                                                onUpdateChoiceLimits({ min: minSelections, max: Number.isFinite(nextMax) ? nextMax : 1 });
+                                            }}
+                                            className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                                        />
+                                    </label>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -238,6 +274,26 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
 
     const updateQuestion = (id: string, updates: Partial<Question>) =>
         onChange(questions.map(q => q.id === id ? { ...q, ...updates } : q));
+
+    const updateChoiceLimits = (qId: string, limits: { min?: number; max?: number }) => {
+        const question = questions.find((q) => q.id === qId);
+        if (!question) return;
+
+        const optionsCount = question.options?.length ?? 1;
+        const rawMin = limits.min ?? question.validation_rules?.min_selections ?? 1;
+        const rawMax = limits.max ?? question.validation_rules?.max_selections ?? optionsCount;
+
+        const normalizedMin = Math.max(0, Math.min(rawMin, optionsCount));
+        const normalizedMax = Math.max(1, Math.min(rawMax, optionsCount));
+        const finalMin = Math.min(normalizedMin, normalizedMax);
+
+        updateQuestion(qId, {
+            validation_rules: {
+                min_selections: finalMin,
+                max_selections: normalizedMax,
+            },
+        });
+    };
 
     const addOption = (id: string) => {
         const q = questions.find(q => q.id === id);
@@ -339,14 +395,14 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
                 </div>
             ) : (
                 /* ── Edit Mode ── */
-                <div className="space-y-6">
+                <div className="space-y-6 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
                     {/* Paleta de tipos */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                        <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                    <aside className="bg-slate-50 border border-slate-200 rounded-xl p-4 lg:col-span-4 lg:sticky lg:top-6 lg:h-fit">
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-1">
                             Adicionar pergunta
                             <Tooltip text="Clique em um tipo de pergunta para adicioná-la ao final do questionário." helpId="question-type" />
                         </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
                             {TYPE_OPTIONS.map(type => (
                                 <button
                                     key={type.value}
@@ -360,57 +416,60 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
                                 </button>
                             ))}
                         </div>
-                    </div>
+                    </aside>
 
                     {/* Lista drag & drop */}
-                    {questions.length > 0 ? (
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <Droppable droppableId="survey-questions">
-                                {provided => (
-                                    <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
-                                        {questions.map((q, index) => (
-                                            <Draggable key={q.id} draggableId={q.id} index={index}>
-                                                {(provided, snapshot) => (
-                                                    <div
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        className={snapshot.isDragging ? 'shadow-2xl ring-2 ring-blue-400 rounded-xl' : ''}
-                                                    >
-                                                        <QuestionCard
-                                                            question={q}
-                                                            index={index}
-                                                            onRemove={() => removeQuestion(q.id)}
-                                                            onUpdate={updates => updateQuestion(q.id, updates)}
-                                                            onAddOption={() => addOption(q.id)}
-                                                            onRemoveOption={optIdx => removeOption(q.id, optIdx)}
-                                                            onUpdateOptionLabel={(optIdx, label) => updateOptionLabel(q.id, optIdx, label)}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        ))}
-                                        {provided.placeholder}
-                                    </div>
-                                )}
-                            </Droppable>
-                        </DragDropContext>
-                    ) : (
-                        <div className="text-center text-slate-400 py-12 border-2 border-dashed border-slate-200 rounded-xl">
-                            <p className="text-lg mb-1">Questionário vazio</p>
-                            <p className="text-sm">Clique em um tipo de pergunta acima para começar</p>
-                        </div>
-                    )}
+                    <div className="lg:col-span-8 space-y-3">
+                        {questions.length > 0 ? (
+                            <DragDropContext onDragEnd={onDragEnd}>
+                                <Droppable droppableId="survey-questions">
+                                    {provided => (
+                                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
+                                            {questions.map((q, index) => (
+                                                <Draggable key={q.id} draggableId={q.id} index={index}>
+                                                    {(provided, snapshot) => (
+                                                        <div
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className={snapshot.isDragging ? 'shadow-2xl ring-2 ring-blue-400 rounded-xl' : ''}
+                                                        >
+                                                            <QuestionCard
+                                                                question={q}
+                                                                index={index}
+                                                                onRemove={() => removeQuestion(q.id)}
+                                                                onUpdate={updates => updateQuestion(q.id, updates)}
+                                                                onAddOption={() => addOption(q.id)}
+                                                                onRemoveOption={optIdx => removeOption(q.id, optIdx)}
+                                                                onUpdateOptionLabel={(optIdx, label) => updateOptionLabel(q.id, optIdx, label)}
+                                                                onUpdateChoiceLimits={(limits) => updateChoiceLimits(q.id, limits)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ))}
+                                            {provided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
+                        ) : (
+                            <div className="text-center text-slate-400 py-12 border-2 border-dashed border-slate-200 rounded-xl">
+                                <p className="text-lg mb-1">Questionário vazio</p>
+                                <p className="text-sm">Clique em um tipo de pergunta acima para começar</p>
+                            </div>
+                        )}
 
-                    {questions.length > 0 && (
-                        <div className="text-sm text-slate-500 text-center">
-                            {questions.length} pergunta{questions.length !== 1 ? 's' : ''} •{' '}
-                            {questions.filter(q => q.is_required).length} obrigatória{questions.filter(q => q.is_required).length !== 1 ? 's' : ''}
-                            <span className="inline-flex ml-1 align-middle">
-                                <Tooltip text="Revise a ordem final para evitar vies de priming e manter fluxo logico da entrevista." helpId="question-order" />
-                            </span>
-                        </div>
-                    )}
+                        {questions.length > 0 && (
+                            <div className="text-sm text-slate-500 text-center">
+                                {questions.length} pergunta{questions.length !== 1 ? 's' : ''} •{' '}
+                                {questions.filter(q => q.is_required).length} obrigatória{questions.filter(q => q.is_required).length !== 1 ? 's' : ''}
+                                <span className="inline-flex ml-1 align-middle">
+                                    <Tooltip text="Revise a ordem final para evitar vies de priming e manter fluxo logico da entrevista." helpId="question-order" />
+                                </span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

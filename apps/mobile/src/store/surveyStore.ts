@@ -1,7 +1,7 @@
 // Survey Store (Zustand)
 import { create } from 'zustand';
-import { supabase } from '@/services/supabase';
 import type { Survey } from '@political-research/shared-types';
+import { fetchAssignedSurveys, fetchSurveyBundle } from '@/services/mobileApi';
 
 interface SurveyState {
     surveys: Survey[];
@@ -20,28 +20,16 @@ export const useSurveyStore = create<SurveyState>((set) => ({
     fetchSurveys: async () => {
         set({ loading: true });
         try {
-            const { data, error } = await supabase
-                .from('surveys')
-                .select('*')
-                .in('status', ['active', 'published'])
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            set({ surveys: data ?? [] });
+            const surveys = await fetchAssignedSurveys();
+            set({ surveys: surveys ?? [] });
         } finally {
             set({ loading: false });
         }
     },
 
     fetchSurveyById: async (id) => {
-        const { data, error } = await supabase
-            .from('surveys')
-            .select('*, questions(*)')
-            .eq('id', id)
-            .single();
-
-        if (error) throw error;
-        set({ currentSurvey: data });
+        const bundle = await fetchSurveyBundle(id);
+        set({ currentSurvey: bundle.survey ?? null });
     },
 
     setCurrentSurvey: (survey) => set({ currentSurvey: survey }),

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyMobileAccessToken } from '@/lib/mobile/token';
 
 export interface MobileAuthContext {
     userId: string;
@@ -17,6 +18,27 @@ export async function getMobileAuthContext(request: NextRequest): Promise<Mobile
     if (!token) return null;
 
     const admin = createAdminClient();
+
+    // Prefer mobile short-lived JWT first; fallback keeps backward compatibility
+    // with existing Supabase bearer tokens until all clients migrate.
+    const mobileClaims = await verifyMobileAccessToken(token);
+    if (mobileClaims) {
+        const { data: profile } = await admin
+            .from('users')
+            .select('tenant_id, role, is_active')
+            .eq('id', mobileClaims.sub)
+            .single();
+
+        if (!profile?.tenant_id || profile.is_active === false) return null;
+        if (profile.tenant_id !== mobileClaims.tenantId) return null;
+
+        return {
+            userId: mobileClaims.sub,
+            tenantId: profile.tenant_id,
+            role: profile.role,
+        };
+    }
+
     const {
         data: { user },
         error,

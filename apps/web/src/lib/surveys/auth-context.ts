@@ -39,7 +39,7 @@ export async function surveyBelongsToTenant(surveyId: string, tenantId: string) 
     const admin = createAdminClient();
     const { data: survey } = await admin
         .from('surveys')
-        .select('id, tenant_id, title, started_at, ended_at, status, total_interviews')
+        .select('id, tenant_id, title, started_at, ended_at, status, published_at, total_interviews')
         .eq('id', surveyId)
         .eq('tenant_id', tenantId)
         .is('deleted_at', null)

@@ -25,6 +25,10 @@ export interface Question {
     question_type: QuestionType;
     is_required: boolean;
     options?: QuestionOption[];
+    validation_rules?: {
+        min_selections?: number;
+        max_selections?: number;
+    };
     order_index: number;
     parent_question_id?: string;
     show_if_answer?: string;

@@ -14,6 +14,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
         if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (survey.status === 'published') {
+            return apiSuccess({
+                survey_id: params.id,
+                status: 'published',
+                published_at: survey.published_at,
+                notified_users: 0,
+                message: 'Pesquisa ja estava publicada.',
+            });
+        }
 
         const admin = createAdminClient();
 

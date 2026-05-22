@@ -2,14 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import type { Survey } from '@political-research/shared-types';
+import { useSurveyStore } from '@/store/surveyStore';
 
 export default function SurveyDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const [survey, setSurvey] = useState<Survey | null>(null);
+    const fetchSurveyById = useSurveyStore((state) => state.fetchSurveyById);
+    const currentSurvey = useSurveyStore((state) => state.currentSurvey);
 
     useEffect(() => {
-        // TODO: Load survey from local DB or API
-    }, [id]);
+        if (!id) return;
+
+        fetchSurveyById(id).catch(() => {
+            setSurvey(null);
+        });
+    }, [fetchSurveyById, id]);
+
+    useEffect(() => {
+        if (!currentSurvey) return;
+        if (currentSurvey.id === id) {
+            setSurvey(currentSurvey);
+        }
+    }, [currentSurvey, id]);
 
     if (!survey) {
         return (

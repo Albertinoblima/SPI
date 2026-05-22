@@ -180,6 +180,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [loadingDraft, setLoadingDraft] = useState(!!draftId);
     const [surveyId, setSurveyId] = useState<string | undefined>(draftId);
+    const [isPublished, setIsPublished] = useState(false);
     const [localitiesConflict, setLocalitiesConflict] = useState<string | null>(null);
     const autosaveTimerRef = useRef<number | null>(null);
     const autosaveInitializedRef = useRef(false);
@@ -194,6 +195,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             .then(json => {
                 const s = json.data?.survey;
                 if (!s) return;
+                setIsPublished(s.status === 'published');
                 setData({
                     tech: {
                         title: s.title ?? '',
@@ -520,6 +522,10 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     }, []);
 
     const handleSaveDraft = async () => {
+        if (isPublished) {
+            setAlert({ type: 'error', message: 'Pesquisa publicada esta em coleta e esta em modo somente leitura.' });
+            return;
+        }
         if (!data.tech.title.trim()) {
             setAlert({ type: 'error', message: 'Preencha ao menos o título da pesquisa antes de salvar.' });
             setCurrentStep(1);
@@ -548,6 +554,10 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     };
 
     const handleFinish = async () => {
+        if (isPublished) {
+            setAlert({ type: 'error', message: 'Pesquisa ja publicada. Nao e possivel publicar novamente.' });
+            return;
+        }
         if (!data.tech.title.trim()) {
             setAlert({ type: 'error', message: 'Preencha o título da pesquisa.' });
             setCurrentStep(1);
@@ -603,6 +613,10 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
 
     /** Salva silenciosamente e avança para o próximo passo. */
     const goNext = async () => {
+        if (isPublished) {
+            setCurrentStep(s => Math.min(s + 1, STEPS.length));
+            return;
+        }
         if (!data.tech.title.trim()) {
             setAlert({ type: 'error', message: 'Preencha o título da pesquisa antes de avançar.' });
             return;
@@ -681,6 +695,12 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         <div className={`mb-6 px-4 py-3 rounded-lg text-sm font-medium
                     ${alert.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
                             {alert.message}
+                        </div>
+                    )}
+
+                    {isPublished && (
+                        <div className="mb-6 px-4 py-3 rounded-lg text-sm font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                            Pesquisa publicada em campo. O wizard esta em modo somente leitura para preservar a coleta em andamento.
                         </div>
                     )}
 
@@ -778,7 +798,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             <button
                                 type="button"
                                 onClick={handleSaveDraft}
-                                disabled={saving}
+                                disabled={saving || isPublished}
                                 className="px-5 py-2.5 border border-blue-300 text-blue-700 rounded-lg font-medium hover:bg-blue-50 transition disabled:opacity-50"
                             >
                                 {saving ? 'Salvando...' : 'Salvar Rascunho'}
@@ -806,7 +826,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                 <button
                                     type="button"
                                     onClick={handleFinish}
-                                    disabled={saving}
+                                    disabled={saving || isPublished}
                                     className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition disabled:opacity-50"
                                 >
                                     {saving ? <RefreshCw size={16} className="animate-spin" /> : <Rocket size={18} />}
