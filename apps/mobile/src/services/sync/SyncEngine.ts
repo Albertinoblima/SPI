@@ -91,7 +91,7 @@ export class SyncEngine {
         const { data: surveys, error } = await supabase
             .from('surveys')
             .select('*, questions(*)')
-            .eq('status', 'active')
+            .in('status', ['active', 'published'])
             .is('deleted_at', null)
             .order('created_at', { ascending: false });
 

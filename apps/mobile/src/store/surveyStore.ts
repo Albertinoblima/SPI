@@ -23,7 +23,7 @@ export const useSurveyStore = create<SurveyState>((set) => ({
             const { data, error } = await supabase
                 .from('surveys')
                 .select('*')
-                .eq('status', 'active')
+                .in('status', ['active', 'published'])
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

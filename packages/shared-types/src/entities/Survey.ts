@@ -1,6 +1,6 @@
 // Survey Entity Types
 
-export type SurveyStatus = 'draft' | 'active' | 'paused' | 'closed';
+export type SurveyStatus = 'draft' | 'active' | 'published' | 'paused' | 'closed';
 
 export interface Survey {
     id: string;

@@ -9,6 +9,10 @@ import { Step2Localities, type Locality } from './Step2Localities';
 import { Step3SampleSize } from './Step3SampleSize';
 import { Step3Premises, type Premise } from './Step3Premises';
 import { Step4Questions } from './Step4Questions';
+import { Step5QuestionnaireOutput } from './Step5QuestionnaireOutput';
+import { Step6Team } from './Step6Team';
+import { Step7Routes } from './Step7Routes';
+import { Step8Distribution } from './Step8Distribution';
 import type { Question } from '@political-research/shared-types';
 
 const STEPS = [
@@ -17,6 +21,10 @@ const STEPS = [
     { id: 3, label: 'Dimensionamento', description: 'Revisão do cálculo amostral' },
     { id: 4, label: 'Premissas', description: 'Perfil e cotas do entrevistado' },
     { id: 5, label: 'Questionário', description: 'Perguntas da pesquisa' },
+    { id: 6, label: 'Visualização', description: 'Preview e download' },
+    { id: 7, label: 'Equipe', description: 'Membros da pesquisa' },
+    { id: 8, label: 'Rotas', description: 'Distribuição por zona' },
+    { id: 9, label: 'Distribuição', description: 'Cotas e publicação' },
 ];
 
 export interface WizardData {
@@ -249,7 +257,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 const loadedLocalities = s.survey_localities ?? [];
                 const loadedPremises = s.survey_premises ?? [];
                 const loadedQuestions = s.questions ?? [];
-                if (loadedQuestions.length > 0) setCurrentStep(5);
+                if (loadedQuestions.length > 0) setCurrentStep(6);
                 else if (loadedPremises.length > 0) setCurrentStep(4);
                 else if (loadedLocalities.length > 0) setCurrentStep(3);
                 else if (s.geographic_scope) setCurrentStep(2);
@@ -564,12 +572,28 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         setSaving(true);
         setAlert(null);
         try {
-            const result = await persistDraft(data, surveyId, { skipValidation: false, status: 'active' });
+            const result = await persistDraft(data, surveyId, { skipValidation: false, status: 'draft' });
+            const effectiveSurveyId = result.id ?? surveyId;
             if (result.id && !surveyId) setSurveyId(result.id);
             if (result.error) {
                 setAlert({ type: 'error', message: result.error });
                 return;
             }
+
+            if (!effectiveSurveyId) {
+                setAlert({ type: 'error', message: 'Nao foi possivel identificar a pesquisa para publicacao.' });
+                return;
+            }
+
+            const publishRes = await fetch(`/api/surveys/${effectiveSurveyId}/publish`, {
+                method: 'POST',
+            });
+            const publishJson = await publishRes.json();
+            if (!publishRes.ok) {
+                setAlert({ type: 'error', message: publishJson.error || 'Falha ao publicar pesquisa.' });
+                return;
+            }
+
             setAlert({ type: 'success', message: 'Pesquisa publicada com sucesso! Redirecionando...' });
             setTimeout(() => router.push('/surveys'), 1800);
         } finally {
@@ -595,7 +619,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         } finally {
             setAutoSaving(false);
         }
-        setCurrentStep(s => Math.min(s + 1, 5));
+        setCurrentStep(s => Math.min(s + 1, STEPS.length));
     };
 
     return (
@@ -614,7 +638,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                             {surveyId ? 'Editar Rascunho' : 'Nova Pesquisa'}
                         </h1>
-                        <p className="text-slate-500 mt-1">Preencha as informações nas 5 etapas abaixo</p>
+                        <p className="text-slate-500 mt-1">Preencha as informações nas etapas abaixo</p>
                     </div>
 
                     {/* Stepper */}
@@ -704,6 +728,26 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                 surveyTitle={data.tech.title}
                             />
                         )}
+                        {currentStep === 6 && (
+                            <Step5QuestionnaireOutput
+                                surveyId={surveyId}
+                                surveyTitle={data.tech.title}
+                                questions={data.questions}
+                                premises={data.premises}
+                            />
+                        )}
+                        {currentStep === 7 && (
+                            <Step6Team surveyId={surveyId} />
+                        )}
+                        {currentStep === 8 && (
+                            <Step7Routes
+                                surveyId={surveyId}
+                                localities={data.localities}
+                            />
+                        )}
+                        {currentStep === 9 && (
+                            <Step8Distribution surveyId={surveyId} />
+                        )}
                     </div>
 
 
@@ -739,7 +783,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             >
                                 {saving ? 'Salvando...' : 'Salvar Rascunho'}
                             </button>
-                            {currentStep < 5 ? (
+                            {currentStep < STEPS.length ? (
                                 <button
                                     type="button"
                                     onClick={goNext}
@@ -766,7 +810,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                                     className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition disabled:opacity-50"
                                 >
                                     {saving ? <RefreshCw size={16} className="animate-spin" /> : <Rocket size={18} />}
-                                    {saving ? 'Publicando...' : 'Publicar Pesquisa'}
+                                    {saving ? 'Publicando...' : 'Finalizar e Publicar'}
                                 </button>
                             )}
                         </div>

@@ -31,11 +31,63 @@ export const surveys = sqliteTable('surveys', {
 
     requires_geolocation: integer('requires_geolocation', { mode: 'boolean' }).default(true),
     requires_photo: integer('requires_photo', { mode: 'boolean' }).default(false),
+    requires_signature: integer('requires_signature', { mode: 'boolean' }).default(false),
 
     // Sync metadata
     server_updated_at: text('server_updated_at'),
     local_updated_at: text('local_updated_at').default(sql`CURRENT_TIMESTAMP`),
     synced: integer('synced', { mode: 'boolean' }).default(false),
+});
+
+// ============================================================================
+// TABELA: survey_routes (rotas baixadas para coleta)
+// ============================================================================
+export const survey_routes = sqliteTable('survey_routes', {
+    id: text('id').primaryKey(),
+    survey_id: text('survey_id').notNull(),
+    zone: text('zone').notNull(),
+    route_number: integer('route_number').notNull(),
+    route_name: text('route_name'),
+    localities_json: text('localities_json').notNull(),
+    local_updated_at: text('local_updated_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// ============================================================================
+// TABELA: survey_quotas (cotas por entrevistador)
+// ============================================================================
+export const survey_quotas = sqliteTable('survey_quotas', {
+    id: text('id').primaryKey(),
+    survey_id: text('survey_id').notNull(),
+    interviewer_id: text('interviewer_id').notNull(),
+    locality_id: text('locality_id').notNull(),
+    zone: text('zone').notNull(),
+    gender: text('gender').notNull(),
+    age_group: text('age_group').notNull(),
+    quota_total: integer('quota_total').notNull(),
+    local_updated_at: text('local_updated_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+// ============================================================================
+// TABELA: interviews (entrevista em campo)
+// ============================================================================
+export const interviews = sqliteTable('interviews', {
+    id: text('id').primaryKey(),
+    server_id: text('server_id'),
+    survey_id: text('survey_id').notNull(),
+    interviewer_id: text('interviewer_id').notNull(),
+    locality_id: text('locality_id'),
+    started_at: text('started_at').notNull(),
+    ended_at: text('ended_at'),
+    duration_seconds: integer('duration_seconds'),
+    start_latitude: real('start_latitude'),
+    start_longitude: real('start_longitude'),
+    photo_local_path: text('photo_local_path'),
+    photo_server_path: text('photo_server_path'),
+    signature_name: text('signature_name'),
+    status: text('status').default('in_progress'),
+    synced: integer('synced', { mode: 'boolean' }).default(false),
+    created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    updated_at: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================================================
