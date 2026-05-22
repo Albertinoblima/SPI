@@ -20,10 +20,17 @@ export async function GET(request: NextRequest) {
 
         if (error) return apiError(`Falha ao carregar pesquisas: ${error.message}`, 500);
 
-        const surveys = (rows ?? []).map((row) => ({
-            ...(row.surveys as Record<string, unknown>),
-            team_role: row.role,
-        }));
+        const surveys = (rows ?? []).map((row) => {
+            const surveyRaw = Array.isArray(row.surveys) ? row.surveys[0] : row.surveys;
+            const survey = surveyRaw && typeof surveyRaw === 'object'
+                ? (surveyRaw as Record<string, unknown>)
+                : {};
+
+            return {
+                ...survey,
+                team_role: row.role,
+            };
+        });
 
         return apiSuccess({ surveys });
     } catch (error) {
