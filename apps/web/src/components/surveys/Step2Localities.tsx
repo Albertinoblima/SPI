@@ -54,6 +54,7 @@ interface Props {
 
 interface GeoStateOption { code: number; uf: string; name: string; }
 interface LocalityOption { name: string; zone: 'urban' | 'rural'; ibge_id?: number; }
+type LocalitySuggestion = LocalityOption & { source: 'city_context' | 'global_lookup' };
 
 // --- Helpers UI ---
 
@@ -278,20 +279,24 @@ export function Step2Localities({
         [ibgeStates],
     );
 
-    const localitySuggestions = useMemo(() => {
-        const byName = new Map<string, LocalityOption>();
+    const localitySuggestions = useMemo<LocalitySuggestion[]>(() => {
+        const byName = new Map<string, LocalitySuggestion>();
 
         ibgeLocalities.forEach((item) => {
-            byName.set(normalizeGeoText(item.name), item);
+            byName.set(normalizeGeoText(item.name), { ...item, source: 'city_context' });
         });
 
         globalLocalities.forEach((item) => {
             const key = normalizeGeoText(item.name);
-            if (!byName.has(key)) byName.set(key, item);
+            if (!byName.has(key)) {
+                byName.set(key, { ...item, source: 'global_lookup' });
+            }
         });
 
         return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     }, [ibgeLocalities, globalLocalities]);
+
+    const previewSuggestions = useMemo(() => localitySuggestions.slice(0, 10), [localitySuggestions]);
 
     const internalConflict = useMemo(
         () => checkLocalitiesCompatibility(localities, scopeData.geographic_scope, surveyType),
@@ -444,10 +449,11 @@ export function Step2Localities({
 
     // Quando seleciona localidade da lista IBGE, auto-preenche a zona
     const handleLocalitySelect = (name: string) => {
-        const found = localitySuggestions.find((l) => l.name === name);
+        const normalized = normalizeGeoText(name);
+        const found = localitySuggestions.find((l) => normalizeGeoText(l.name) === normalized);
         setCascade((prev) => ({
             ...prev,
-            localityName: name,
+            localityName: found?.name ?? name,
             zone: found ? found.zone : 'urban',
         }));
     };
@@ -724,6 +730,35 @@ export function Step2Localities({
                                         </datalist>
                                         {(loadingLocalities || loadingGlobalLocalities) && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
                                     </div>
+                                    {!loadingLocalities && !loadingGlobalLocalities && previewSuggestions.length > 0 && (
+                                        <div className="mt-2 space-y-1.5">
+                                            <p className="text-[11px] text-slate-500">
+                                                Sugestoes: contexto da cidade/estado e busca global.
+                                            </p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {previewSuggestions.map((suggestion) => (
+                                                    <button
+                                                        key={`${suggestion.source}:${suggestion.name}`}
+                                                        type="button"
+                                                        onClick={() => handleLocalitySelect(suggestion.name)}
+                                                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] transition ${suggestion.source === 'city_context'
+                                                                ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                                            }`}
+                                                        title={suggestion.source === 'city_context' ? 'Sugestao do contexto da cidade/estado' : 'Sugestao da busca global'}
+                                                    >
+                                                        <span>{suggestion.name}</span>
+                                                        <span className={`rounded px-1 py-0.5 text-[10px] uppercase tracking-wide ${suggestion.source === 'city_context'
+                                                                ? 'bg-blue-100 text-blue-700'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                            {suggestion.source === 'city_context' ? 'Contexto' : 'Global'}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {!loadingLocalities && ibgeLocalities.length === 1 && normalizeGeoText(ibgeLocalities[0].name) === normalizeGeoText(cascadeCityForLocalities) && (
                                         <p className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
                                             Este município não possui subdivisões cadastradas no IBGE. Você pode digitar o nome da localidade manualmente (ex: bairro, vila, distrito).
