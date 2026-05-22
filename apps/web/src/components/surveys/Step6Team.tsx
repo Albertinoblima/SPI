@@ -189,6 +189,8 @@ export function Step6Team({ surveyId }: Props) {
                                             value={selectedRole}
                                             onChange={(event) => updateRole(member.id, event.target.value as SelectedMember['role'])}
                                             disabled={!checked}
+                                            aria-label={`Papel de ${member.full_name}`}
+                                            title={`Papel de ${member.full_name}`}
                                             className="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 disabled:bg-slate-100 disabled:text-slate-400"
                                         >
                                             {ROLE_OPTIONS.map((option) => (

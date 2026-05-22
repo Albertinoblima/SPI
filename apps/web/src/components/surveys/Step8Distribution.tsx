@@ -115,20 +115,26 @@ export function Step8Distribution({ surveyId }: Props) {
                 <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1">Periodo inicio</label>
+                            <label htmlFor="distribution-period-start" className="block text-xs uppercase tracking-wide text-slate-500 mb-1">Periodo inicio</label>
                             <input
+                                id="distribution-period-start"
                                 type="date"
                                 value={periodStart}
                                 onChange={(event) => setPeriodStart(event.target.value)}
+                                aria-label="Periodo inicio"
+                                title="Periodo inicio"
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1">Periodo fim</label>
+                            <label htmlFor="distribution-period-end" className="block text-xs uppercase tracking-wide text-slate-500 mb-1">Periodo fim</label>
                             <input
+                                id="distribution-period-end"
                                 type="date"
                                 value={periodEnd}
                                 onChange={(event) => setPeriodEnd(event.target.value)}
+                                aria-label="Periodo fim"
+                                title="Periodo fim"
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
                             />
                         </div>

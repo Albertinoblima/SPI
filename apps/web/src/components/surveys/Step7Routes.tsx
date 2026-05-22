@@ -259,6 +259,8 @@ export function Step7Routes({ surveyId, localities }: Props) {
                                                     <button
                                                         type="button"
                                                         onClick={() => moveLocalityOrder(zoneState.zone, route.id, localityId, 'up')}
+                                                        aria-label={`Mover ${locality.name} para cima`}
+                                                        title={`Mover ${locality.name} para cima`}
                                                         className="p-1 text-slate-500 hover:text-slate-700"
                                                     >
                                                         <ArrowUp size={14} />
@@ -266,6 +268,8 @@ export function Step7Routes({ surveyId, localities }: Props) {
                                                     <button
                                                         type="button"
                                                         onClick={() => moveLocalityOrder(zoneState.zone, route.id, localityId, 'down')}
+                                                        aria-label={`Mover ${locality.name} para baixo`}
+                                                        title={`Mover ${locality.name} para baixo`}
                                                         className="p-1 text-slate-500 hover:text-slate-700"
                                                     >
                                                         <ArrowDown size={14} />
