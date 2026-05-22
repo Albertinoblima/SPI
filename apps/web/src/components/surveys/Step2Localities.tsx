@@ -121,8 +121,10 @@ export function Step2Localities({
     const [ibgeStates, setIbgeStates] = useState<GeoStateOption[]>([]);
     const [ibgeCities, setIbgeCities] = useState<string[]>([]);
     const [ibgeLocalities, setIbgeLocalities] = useState<LocalityOption[]>([]);
+    const [globalLocalities, setGlobalLocalities] = useState<LocalityOption[]>([]);
     const [loadingCities, setLoadingCities] = useState(false);
     const [loadingLocalities, setLoadingLocalities] = useState(false);
+    const [loadingGlobalLocalities, setLoadingGlobalLocalities] = useState(false);
     const [geoSource, setGeoSource] = useState<'ibge' | 'fallback' | null>(null);
 
     // --- Cascata de seleção para adicionar ---
@@ -232,10 +234,64 @@ export function Step2Localities({
         return () => { active = false; };
     }, [cascadeCityForLocalities, cascadeStateForCities]);
 
+    // Lookup global para autocomplete (q/limit), complementar ao carregamento por cidade/estado
+    useEffect(() => {
+        const query = cascade.localityName.trim();
+        if (query.length < 2) {
+            setGlobalLocalities([]);
+            setLoadingGlobalLocalities(false);
+            return;
+        }
+
+        let active = true;
+        const timeout = setTimeout(() => {
+            setLoadingGlobalLocalities(true);
+
+            fetch(`/api/geo/localities?q=${encodeURIComponent(query)}&limit=50`, { cache: 'force-cache' })
+                .then((r) => r.json())
+                .then((payload) => {
+                    if (!active) return;
+                    if (payload?.success && Array.isArray(payload?.data?.localities)) {
+                        setGlobalLocalities(payload.data.localities as LocalityOption[]);
+                        if (payload?.data?.source) setGeoSource(payload.data.source as 'ibge' | 'fallback');
+                    } else {
+                        setGlobalLocalities([]);
+                    }
+                })
+                .catch(() => {
+                    if (!active) return;
+                    setGlobalLocalities([]);
+                })
+                .finally(() => {
+                    if (active) setLoadingGlobalLocalities(false);
+                });
+        }, 250);
+
+        return () => {
+            active = false;
+            clearTimeout(timeout);
+        };
+    }, [cascade.localityName]);
+
     const stateNames = useMemo(
         () => Array.from(new Set(ibgeStates.map((s) => s.name))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
         [ibgeStates],
     );
+
+    const localitySuggestions = useMemo(() => {
+        const byName = new Map<string, LocalityOption>();
+
+        ibgeLocalities.forEach((item) => {
+            byName.set(normalizeGeoText(item.name), item);
+        });
+
+        globalLocalities.forEach((item) => {
+            const key = normalizeGeoText(item.name);
+            if (!byName.has(key)) byName.set(key, item);
+        });
+
+        return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    }, [ibgeLocalities, globalLocalities]);
 
     const internalConflict = useMemo(
         () => checkLocalitiesCompatibility(localities, scopeData.geographic_scope, surveyType),
@@ -388,7 +444,7 @@ export function Step2Localities({
 
     // Quando seleciona localidade da lista IBGE, auto-preenche a zona
     const handleLocalitySelect = (name: string) => {
-        const found = ibgeLocalities.find((l) => l.name === name);
+        const found = localitySuggestions.find((l) => l.name === name);
         setCascade((prev) => ({
             ...prev,
             localityName: name,
@@ -660,13 +716,13 @@ export function Step2Localities({
                                             onChange={(e) => handleLocalitySelect(e.target.value)}
                                             disabled={!localityPickerEnabled && scopeData.geographic_scope !== 'city'}
                                             className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            placeholder={loadingLocalities ? 'Carregando sugestões do IBGE...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
+                                            placeholder={loadingLocalities || loadingGlobalLocalities ? 'Carregando sugestões...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
                                             autoComplete="off"
                                         />
                                         <datalist id="ibge-localities-datalist">
-                                            {ibgeLocalities.map((l) => <option key={l.name} value={l.name} />)}
+                                            {localitySuggestions.map((l) => <option key={l.name} value={l.name} />)}
                                         </datalist>
-                                        {loadingLocalities && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
+                                        {(loadingLocalities || loadingGlobalLocalities) && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
                                     </div>
                                     {!loadingLocalities && ibgeLocalities.length === 1 && normalizeGeoText(ibgeLocalities[0].name) === normalizeGeoText(cascadeCityForLocalities) && (
                                         <p className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
