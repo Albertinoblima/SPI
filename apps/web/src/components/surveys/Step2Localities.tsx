@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronRight, Loader2, MapPin, Plus, Trash2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -150,6 +150,10 @@ export function Step2Localities({
     const [pendingScopeChange, setPendingScopeChange] = useState<ScopeData | null>(null);
     const stateInputRef = useRef<HTMLInputElement | null>(null);
     const cityInputRef = useRef<HTMLInputElement | null>(null);
+    const localityInputRef = useRef<HTMLInputElement | null>(null);
+    const localityDropdownRef = useRef<HTMLDivElement | null>(null);
+    const [isLocalityDropdownOpen, setIsLocalityDropdownOpen] = useState(false);
+    const [activeLocalityIndex, setActiveLocalityIndex] = useState(-1);
 
     // Sincroniza geo_level ao mudar abrangencia
     useEffect(() => {
@@ -296,7 +300,13 @@ export function Step2Localities({
         return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     }, [ibgeLocalities, globalLocalities]);
 
-    const previewSuggestions = useMemo(() => localitySuggestions.slice(0, 10), [localitySuggestions]);
+    const filteredLocalitySuggestions = useMemo(() => {
+        const query = normalizeGeoText(cascade.localityName);
+        if (!query) return localitySuggestions;
+        return localitySuggestions.filter((suggestion) => normalizeGeoText(suggestion.name).includes(query));
+    }, [localitySuggestions, cascade.localityName]);
+
+    const previewSuggestions = useMemo(() => filteredLocalitySuggestions.slice(0, 10), [filteredLocalitySuggestions]);
 
     const internalConflict = useMemo(
         () => checkLocalitiesCompatibility(localities, scopeData.geographic_scope, surveyType),
@@ -456,7 +466,56 @@ export function Step2Localities({
             localityName: found?.name ?? name,
             zone: found ? found.zone : 'urban',
         }));
+        setIsLocalityDropdownOpen(false);
+        setActiveLocalityIndex(-1);
     };
+
+    const handleLocalityKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (!previewSuggestions.length) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setIsLocalityDropdownOpen(true);
+            setActiveLocalityIndex((prev) => (prev + 1) % previewSuggestions.length);
+            return;
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setIsLocalityDropdownOpen(true);
+            setActiveLocalityIndex((prev) => (prev <= 0 ? previewSuggestions.length - 1 : prev - 1));
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            if (isLocalityDropdownOpen && activeLocalityIndex >= 0 && activeLocalityIndex < previewSuggestions.length) {
+                event.preventDefault();
+                handleLocalitySelect(previewSuggestions[activeLocalityIndex].name);
+            }
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            setIsLocalityDropdownOpen(false);
+            setActiveLocalityIndex(-1);
+        }
+    };
+
+    useEffect(() => {
+        if (!isLocalityDropdownOpen) return;
+
+        const handleOutsideClick = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (localityDropdownRef.current?.contains(target) || localityInputRef.current?.contains(target)) {
+                return;
+            }
+            setIsLocalityDropdownOpen(false);
+            setActiveLocalityIndex(-1);
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isLocalityDropdownOpen]);
 
     // Label do botao de adicionar
     const addButtonLabel = (() => {
@@ -717,18 +776,67 @@ export function Step2Localities({
                                     </label>
                                     <div className="relative">
                                         <input
-                                            list="ibge-localities-datalist"
+                                            ref={localityInputRef}
                                             value={cascade.localityName}
                                             onChange={(e) => handleLocalitySelect(e.target.value)}
+                                            onFocus={() => {
+                                                if (previewSuggestions.length > 0) {
+                                                    setIsLocalityDropdownOpen(true);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => {
+                                                    setIsLocalityDropdownOpen(false);
+                                                    setActiveLocalityIndex(-1);
+                                                }, 120);
+                                            }}
+                                            onKeyDown={handleLocalityKeyDown}
                                             disabled={!localityPickerEnabled && scopeData.geographic_scope !== 'city'}
                                             className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder={loadingLocalities || loadingGlobalLocalities ? 'Carregando sugestões...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
                                             autoComplete="off"
+                                            role="combobox"
+                                            aria-expanded={isLocalityDropdownOpen}
+                                            aria-autocomplete="list"
+                                            aria-controls="locality-suggestions-listbox"
                                         />
-                                        <datalist id="ibge-localities-datalist">
-                                            {localitySuggestions.map((l) => <option key={l.name} value={l.name} />)}
-                                        </datalist>
                                         {(loadingLocalities || loadingGlobalLocalities) && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-blue-500" />}
+
+                                        {isLocalityDropdownOpen && previewSuggestions.length > 0 && (
+                                            <div
+                                                ref={localityDropdownRef}
+                                                id="locality-suggestions-listbox"
+                                                role="listbox"
+                                                className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                                            >
+                                                {previewSuggestions.map((suggestion, index) => (
+                                                    <button
+                                                        key={`${suggestion.source}:${suggestion.name}`}
+                                                        type="button"
+                                                        role="option"
+                                                        aria-selected={index === activeLocalityIndex}
+                                                        onMouseDown={(event) => {
+                                                            event.preventDefault();
+                                                            handleLocalitySelect(suggestion.name);
+                                                        }}
+                                                        onMouseEnter={() => setActiveLocalityIndex(index)}
+                                                        className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition ${index === activeLocalityIndex
+                                                            ? 'bg-blue-100 text-blue-800'
+                                                            : 'text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                        title={suggestion.source === 'city_context' ? 'Sugestao do contexto da cidade/estado' : 'Sugestao da busca global'}
+                                                    >
+                                                        <span>{suggestion.name}</span>
+                                                        <span className={`rounded px-1 py-0.5 text-[10px] uppercase tracking-wide ${suggestion.source === 'city_context'
+                                                            ? 'bg-blue-100 text-blue-700'
+                                                            : 'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                            {suggestion.source === 'city_context' ? 'Contexto' : 'Global'}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     {!loadingLocalities && !loadingGlobalLocalities && previewSuggestions.length > 0 && (
                                         <div className="mt-2 space-y-1.5">
@@ -742,15 +850,15 @@ export function Step2Localities({
                                                         type="button"
                                                         onClick={() => handleLocalitySelect(suggestion.name)}
                                                         className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] transition ${suggestion.source === 'city_context'
-                                                                ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                                                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                                            ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                                                             }`}
                                                         title={suggestion.source === 'city_context' ? 'Sugestao do contexto da cidade/estado' : 'Sugestao da busca global'}
                                                     >
                                                         <span>{suggestion.name}</span>
                                                         <span className={`rounded px-1 py-0.5 text-[10px] uppercase tracking-wide ${suggestion.source === 'city_context'
-                                                                ? 'bg-blue-100 text-blue-700'
-                                                                : 'bg-slate-100 text-slate-600'
+                                                            ? 'bg-blue-100 text-blue-700'
+                                                            : 'bg-slate-100 text-slate-600'
                                                             }`}>
                                                             {suggestion.source === 'city_context' ? 'Contexto' : 'Global'}
                                                         </span>
