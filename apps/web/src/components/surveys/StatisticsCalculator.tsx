@@ -71,7 +71,8 @@ function Tip({ text, helpId }: { text: string; helpId?: string }) {
     return (
         <span className="relative group inline-flex items-center ml-1" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={14} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 h-2 w-12" aria-hidden="true" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50 pointer-events-auto">
                 {text}
                 <span className="mt-2 block">
                     <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">

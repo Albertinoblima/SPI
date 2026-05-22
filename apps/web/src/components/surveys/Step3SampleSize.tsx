@@ -157,7 +157,8 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
                     <HelpCircle size={13} />
                 </span>
             )}
-            <span className="absolute left-1/2 -translate-x-1/2 bottom-5 z-50 hidden group-hover:block bg-slate-800 text-white text-xs rounded px-2 py-1 w-52 shadow-lg pointer-events-none">
+            <span className="absolute left-1/2 -translate-x-1/2 bottom-4 h-2 w-12" aria-hidden="true" />
+            <span className="absolute left-1/2 -translate-x-1/2 bottom-5 z-50 hidden group-hover:block bg-slate-800 text-white text-xs rounded px-2 py-1 w-52 shadow-lg pointer-events-auto">
                 {text}
             </span>
         </span>

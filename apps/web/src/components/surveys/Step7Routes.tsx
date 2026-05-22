@@ -11,6 +11,7 @@ type RouteCard = {
     numero: number;
     nome: string;
     localityIds: string[];
+    freeLocalityName: string;
 };
 
 type ZoneRoutes = {
@@ -29,6 +30,29 @@ const ZONE_LABELS: Record<Zone, string> = {
     mixed: 'Mista',
 };
 
+const FREE_LOCALITY_PREFIX = 'free::';
+
+function normalizeFreeLocalityName(name: string) {
+    return name
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-');
+}
+
+function isFreeLocality(id: string) {
+    return id.startsWith(FREE_LOCALITY_PREFIX);
+}
+
+function getFreeLocalityName(id: string) {
+    return id
+        .replace(FREE_LOCALITY_PREFIX, '')
+        .replace(/-/g, ' ')
+        .trim();
+}
+
 export function Step7Routes({ surveyId, localities }: Props) {
     const [zonesState, setZonesState] = useState<ZoneRoutes[]>([]);
     const [message, setMessage] = useState<string | null>(null);
@@ -44,7 +68,7 @@ export function Step7Routes({ surveyId, localities }: Props) {
             if (prev.length > 0) return prev;
             return zones.map((zone): ZoneRoutes => ({
                 zone,
-                routes: [{ id: `${zone}-1`, numero: 1, nome: 'Primeira Rota', localityIds: [] }],
+                routes: [{ id: `${zone}-1`, numero: 1, nome: 'Primeira Rota', localityIds: [], freeLocalityName: '' }],
             }));
         });
     }, [zones]);
@@ -59,7 +83,9 @@ export function Step7Routes({ surveyId, localities }: Props) {
         const ids = new Set<string>();
         zonesState.forEach((zone) => {
             zone.routes.forEach((route) => {
-                route.localityIds.forEach((id) => ids.add(id));
+                route.localityIds.forEach((id) => {
+                    if (!isFreeLocality(id)) ids.add(id);
+                });
             });
         });
         return ids;
@@ -72,7 +98,36 @@ export function Step7Routes({ surveyId, localities }: Props) {
                 const nextNumber = item.routes.length + 1;
                 return {
                     ...item,
-                    routes: [...item.routes, { id: `${zone}-${nextNumber}-${Date.now()}`, numero: nextNumber, nome: `Rota ${nextNumber}`, localityIds: [] }],
+                    routes: [...item.routes, { id: `${zone}-${nextNumber}-${Date.now()}`, numero: nextNumber, nome: `Rota ${nextNumber}`, localityIds: [], freeLocalityName: '' }],
+                };
+            }),
+        );
+    };
+
+    const addFreeLocality = (zone: Zone, routeId: string) => {
+        setZonesState((prev) =>
+            prev.map((zoneItem) => {
+                if (zoneItem.zone !== zone) return zoneItem;
+
+                return {
+                    ...zoneItem,
+                    routes: zoneItem.routes.map((route) => {
+                        if (route.id !== routeId) return route;
+
+                        const normalized = normalizeFreeLocalityName(route.freeLocalityName);
+                        if (!normalized) return route;
+
+                        const encodedId = `${FREE_LOCALITY_PREFIX}${normalized}`;
+                        if (route.localityIds.includes(encodedId)) {
+                            return { ...route, freeLocalityName: '' };
+                        }
+
+                        return {
+                            ...route,
+                            localityIds: [...route.localityIds, encodedId],
+                            freeLocalityName: '',
+                        };
+                    }),
                 };
             }),
         );
@@ -129,7 +184,7 @@ export function Step7Routes({ surveyId, localities }: Props) {
         }
 
         if (assignedIds.size !== localities.length) {
-            setMessage('Todas as localidades devem ser alocadas em alguma rota.');
+            setMessage('Todas as localidades cadastradas devem ser alocadas em alguma rota.');
             return;
         }
 
@@ -141,10 +196,19 @@ export function Step7Routes({ surveyId, localities }: Props) {
                 rotas: zone.routes.map((route, index) => ({
                     numero: route.numero || index + 1,
                     nome: route.nome,
-                    localidades: route.localityIds.map((localityId, orderIndex) => ({
-                        locality_id: localityId,
-                        ordem: orderIndex + 1,
-                    })),
+                    localidades: route.localityIds.map((localityId, orderIndex) =>
+                        isFreeLocality(localityId)
+                            ? {
+                                locality_id: null,
+                                locality_name: getFreeLocalityName(localityId),
+                                ordem: orderIndex + 1,
+                            }
+                            : {
+                                locality_id: localityId,
+                                locality_name: null,
+                                ordem: orderIndex + 1,
+                            },
+                    ),
                 })),
             }));
 
@@ -169,7 +233,7 @@ export function Step7Routes({ surveyId, localities }: Props) {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-lg font-bold text-slate-900">Etapa 7 â€” Configuracao de Rotas por Zona</h2>
+                <h2 className="text-lg font-bold text-slate-900">Etapa 7 — Configuracao de Rotas por Zona</h2>
                 <p className="text-sm text-slate-500 mt-1">
                     Organize as localidades dentro das rotas de cada zona e ajuste a ordem de coleta.
                 </p>
@@ -251,16 +315,17 @@ export function Step7Routes({ surveyId, localities }: Props) {
                                     <div className="space-y-2">
                                         {route.localityIds.map((localityId, idx) => {
                                             const locality = localityById.get(localityId);
-                                            if (!locality) return null;
+                                            const localityLabel = locality ? locality.name : getFreeLocalityName(localityId);
+                                            if (!localityLabel) return null;
                                             return (
                                                 <div key={localityId} className="flex items-center gap-2 rounded border border-slate-200 bg-white px-2 py-1.5 text-sm">
                                                     <span className="w-5 text-slate-400">{idx + 1}</span>
-                                                    <span className="flex-1 text-slate-700">{locality.name}</span>
+                                                    <span className="flex-1 text-slate-700">{localityLabel}</span>
                                                     <button
                                                         type="button"
                                                         onClick={() => moveLocalityOrder(zoneState.zone, route.id, localityId, 'up')}
-                                                        aria-label={`Mover ${locality.name} para cima`}
-                                                        title={`Mover ${locality.name} para cima`}
+                                                        aria-label={`Mover ${localityLabel} para cima`}
+                                                        title={`Mover ${localityLabel} para cima`}
                                                         className="p-1 text-slate-500 hover:text-slate-700"
                                                     >
                                                         <ArrowUp size={14} />
@@ -268,8 +333,8 @@ export function Step7Routes({ surveyId, localities }: Props) {
                                                     <button
                                                         type="button"
                                                         onClick={() => moveLocalityOrder(zoneState.zone, route.id, localityId, 'down')}
-                                                        aria-label={`Mover ${locality.name} para baixo`}
-                                                        title={`Mover ${locality.name} para baixo`}
+                                                        aria-label={`Mover ${localityLabel} para baixo`}
+                                                        title={`Mover ${localityLabel} para baixo`}
                                                         className="p-1 text-slate-500 hover:text-slate-700"
                                                     >
                                                         <ArrowDown size={14} />
@@ -302,6 +367,39 @@ export function Step7Routes({ surveyId, localities }: Props) {
                                             {unassigned.length === 0 && (
                                                 <span className="text-xs text-slate-400">Sem pendencias nesta zona.</span>
                                             )}
+                                        </div>
+
+                                        <div className="mt-3 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={route.freeLocalityName}
+                                                onChange={(event) => {
+                                                    const value = event.target.value;
+                                                    setZonesState((prev) =>
+                                                        prev.map((zone) =>
+                                                            zone.zone !== zoneState.zone
+                                                                ? zone
+                                                                : {
+                                                                    ...zone,
+                                                                    routes: zone.routes.map((item) =>
+                                                                        item.id === route.id
+                                                                            ? { ...item, freeLocalityName: value }
+                                                                            : item,
+                                                                    ),
+                                                                },
+                                                        ),
+                                                    );
+                                                }}
+                                                placeholder="Localidade livre (texto)"
+                                                className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => addFreeLocality(zoneState.zone, route.id)}
+                                                className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs hover:bg-slate-50"
+                                            >
+                                                Adicionar livre
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

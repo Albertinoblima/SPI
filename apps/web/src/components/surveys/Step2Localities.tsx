@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronRight, Loader2, MapPin, Plus, Trash2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -69,7 +69,8 @@ function Tooltip({ text, helpId }: { text: string; helpId?: string }) {
     return (
         <span className="relative group inline-flex items-center ml-1.5" onMouseEnter={handleMouseEnter}>
             <HelpCircle size={15} className="text-slate-400 cursor-help" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 h-2 w-12" aria-hidden="true" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50 pointer-events-auto">
                 <span>{text}</span>
                 <span className="mt-2 block">
                     <Link href={href} className="text-blue-200 underline underline-offset-2 hover:text-white">Saber mais...</Link>
@@ -144,6 +145,8 @@ export function Step2Localities({
     const [scopeError, setScopeError] = useState('');
     const [confirmScopeReset, setConfirmScopeReset] = useState(false);
     const [pendingScopeChange, setPendingScopeChange] = useState<ScopeData | null>(null);
+    const stateInputRef = useRef<HTMLInputElement | null>(null);
+    const cityInputRef = useRef<HTMLInputElement | null>(null);
 
     // Sincroniza geo_level ao mudar abrangencia
     useEffect(() => {
@@ -343,14 +346,23 @@ export function Step2Localities({
 
         onChange([...localities, newLoc]);
 
-        // Mantém estado/cidade para facilitar adicao de multiplos itens no mesmo nivel
+        // Limpa selecoes para nova entrada, conforme fluxo de operacao em lote.
         setCascade((prev) => ({
             ...prev,
+            state: '',
+            city: '',
             localityName: '',
             zone: 'urban',
-            // Se adicionou uma cidade, reset so o nome; se adicionou localidade, reset localidade
-            city: level === 'city' ? '' : prev.city,
         }));
+
+        // Direciona foco para o primeiro campo util do fluxo.
+        requestAnimationFrame(() => {
+            if (showStatePicker && stateInputRef.current) {
+                stateInputRef.current.focus();
+                return;
+            }
+            cityInputRef.current?.focus();
+        });
     };
 
     const handleRemove = (id: string) => onChange(localities.filter((l) => l.id !== id));
@@ -569,6 +581,7 @@ export function Step2Localities({
                                             1. Estado {cascade.geo_level !== 'state' && <span className="text-red-500">*</span>}
                                         </label>
                                         <input
+                                            ref={stateInputRef}
                                             list="cascade-states-datalist"
                                             value={cascade.state}
                                             onChange={(e) => setCascade((prev) => ({ ...prev, state: e.target.value, city: '', localityName: '', zone: 'urban' }))}
@@ -606,6 +619,7 @@ export function Step2Localities({
                                         </label>
                                         <div className="relative">
                                             <input
+                                                ref={cityInputRef}
                                                 list="cascade-cities-datalist"
                                                 value={cascade.city}
                                                 onChange={(e) => setCascade((prev) => ({ ...prev, city: e.target.value, localityName: '', zone: 'urban' }))}

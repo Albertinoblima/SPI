@@ -48,6 +48,10 @@ function cityUrl(stateCode: number): string {
     return `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateCode}/municipios?orderBy=nome`;
 }
 
+function allCitiesUrl(): string {
+    return 'https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome';
+}
+
 function distritosUrl(cityId: number): string {
     return `https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${cityId}/distritos?orderBy=nome`;
 }
@@ -84,6 +88,50 @@ function inferZone(districName: string, cityName: string): 'urban' | 'rural' {
 }
 
 export async function GET(request: NextRequest) {
+    const qParam = request.nextUrl.searchParams.get('q')?.trim() ?? '';
+    const limitParam = Number(request.nextUrl.searchParams.get('limit') ?? '50');
+    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(Math.trunc(limitParam), 1), 50) : 50;
+
+    if (qParam.length >= 2) {
+        try {
+            const normalizedQuery = normalizeGeoText(qParam);
+            const cacheKey = `ibge:localities:v2:global:q:${normalizedQuery}:limit:${limit}`;
+
+            const cached = await getOrRefreshGeoCache<{ localities: LocalityOption[] }>({
+                cacheKey,
+                resourceType: 'localities_city',
+                scope: 'global',
+                ttlSeconds: CACHE,
+                fetchFresh: async () => {
+                    const municipalities = await fetchJson<IbgeMunicipio[]>(allCitiesUrl());
+                    const localities = municipalities
+                        .filter((m) => normalizeGeoText(m.nome).includes(normalizedQuery))
+                        .slice(0, limit)
+                        .map((m) => ({ name: m.nome, zone: 'urban' as const, ibge_id: m.id }));
+
+                    return {
+                        payload: { localities },
+                    };
+                },
+            });
+
+            return apiSuccess({
+                source: cached.source === 'cache' ? 'cache' : 'ibge',
+                localities: cached.payload.localities,
+                cache_status: cached.cacheStatus,
+                warning: cached.warning ?? null,
+            });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            return apiSuccess({
+                source: 'fallback',
+                localities: [],
+                cache_status: 'miss',
+                warning: `Erro ao consultar IBGE: ${message}`,
+            });
+        }
+    }
+
     const cityParam = request.nextUrl.searchParams.get('city')?.trim();
     const stateParam = request.nextUrl.searchParams.get('state')?.trim();
 
