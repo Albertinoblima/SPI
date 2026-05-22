@@ -233,7 +233,7 @@ export function Step7Routes({ surveyId, localities }: Props) {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-lg font-bold text-slate-900">Etapa 7 — Configuracao de Rotas por Zona</h2>
+                <h2 className="text-lg font-bold text-slate-900">Etapa 7 â€” Configuracao de Rotas por Zona</h2>
                 <p className="text-sm text-slate-500 mt-1">
                     Organize as localidades dentro das rotas de cada zona e ajuste a ordem de coleta.
                 </p>
