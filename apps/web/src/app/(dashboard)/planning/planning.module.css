@@ -1,0 +1,19 @@
+.create-survey-btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: #1976d2;
+    color: #fff;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+.create-survey-btn:hover {
+    background: #115293;
+}
+
+.text-error {
+    color: #d32f2f;
+}

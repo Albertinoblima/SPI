@@ -287,9 +287,7 @@ export const HELP_TOPICS: HelpTopic[] = [
             'Arredondar para cima mantém ou melhora a precisão estatística.',
         ],
     },
-    {
-        // Removido: Etapa 3 (Dimensionamento Amostral) não existe mais
-    },
+    // Removido: Etapa 3 (Dimensionamento Amostral) não existe mais
     {
         id: 'p-proportion',
         title: 'Estimativa de Proporcao (p)',

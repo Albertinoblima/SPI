@@ -20,3 +20,5 @@ export {
     calcInterviews,
     localityIsInfinite,
 } from './sampling-utils';
+
+export * from './planning';

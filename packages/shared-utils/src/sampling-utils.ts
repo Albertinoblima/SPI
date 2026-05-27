@@ -4,9 +4,10 @@
  * Retorna a mensagem metodológica para o tipo de pesquisa.
  */
 export function getMethodologyHint(surveyType: string): string {
-    if (shouldUseStatisticalSampling && shouldUseStatisticalSampling(surveyType)) {
-        return 'Pesquisa quantitativa amostral: utilize margem de erro e intervalo de confiança para dimensionar entrevistas.';
-    }
+    // ATENÇÃO: shouldUseStatisticalSampling deve ser injetada pelo app principal.
+    // if (shouldUseStatisticalSampling && shouldUseStatisticalSampling(surveyType)) {
+    //     return 'Pesquisa quantitativa amostral: utilize margem de erro e intervalo de confiança para dimensionar entrevistas.';
+    // }
     if (surveyType === 'censo') {
         return 'Levantamento censitário: cobertura total do universo. A quantidade por localidade deve ser definida manualmente.';
     }
