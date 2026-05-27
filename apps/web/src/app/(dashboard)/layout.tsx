@@ -27,15 +27,19 @@ interface DashboardLayoutProps {
     children: ReactNode;
 }
 
+];
+
+import { ClipboardList } from 'lucide-react';
+
 const navItems = [
     { label: 'Início', href: '/dashboard', icon: BarChart3 },
     { label: 'Pesquisas', href: '/surveys', icon: FileText },
+    { label: 'Planejamento de Pesquisa', href: '/planning', icon: ClipboardList },
     { label: 'Base Geográfica', href: '/municipios', icon: Globe2 },
     { label: 'Equipe', href: '/team', icon: Users },
     { label: 'Suporte', href: '/support', icon: LifeBuoy },
     { label: 'Ajuda', href: '/help', icon: CircleHelp },
     { label: 'Configurações', href: '/settings', icon: Settings },
-];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
