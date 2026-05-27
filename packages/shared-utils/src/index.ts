@@ -13,3 +13,10 @@ export {
     formatNumber,
     generateLocalId,
 } from './format-utils';
+
+export {
+    getMethodologyHint,
+    getZ,
+    calcInterviews,
+    localityIsInfinite,
+} from './sampling-utils';

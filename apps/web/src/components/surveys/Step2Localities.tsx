@@ -529,7 +529,7 @@ export function Step2Localities({
             <div>
                 <h2 className="text-lg font-bold text-slate-900 mb-1">Etapa 2 &mdash; Abrangência e Localidades</h2>
                 <p className="text-sm text-slate-500">
-                    Defina o territorio da pesquisa e cadastre as localidades de coleta. Dados populacionais e amostragem sao configurados na <strong>Etapa 3</strong>.
+                    Defina o território da pesquisa e cadastre as localidades de coleta. Dados populacionais são configurados nesta etapa.
                 </p>
                 {decision.scopeHint && (
                     <p className="mt-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">{decision.scopeHint}</p>
@@ -925,7 +925,7 @@ export function Step2Localities({
                         </button>
 
                         <p className="mt-2 text-xs text-slate-400">
-                            Dados de população e dimensionamento amostral são configurados na <strong>Etapa 3</strong>.
+                            Dados de população são configurados nesta etapa.
                         </p>
                     </>
                 )}

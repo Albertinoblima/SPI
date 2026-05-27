@@ -6,7 +6,6 @@ import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw, Rocket } from 'luci
 import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
 import { getEffectiveLocalities, checkLocalitiesCompatibility } from '@/lib/survey-decisions';
 import { Step2Localities, type Locality } from './Step2Localities';
-import { Step3SampleSize } from './Step3SampleSize';
 import { Step3Premises, type Premise } from './Step3Premises';
 import { Step4Questions } from './Step4Questions';
 import { Step5QuestionnaireOutput } from './Step5QuestionnaireOutput';
@@ -18,13 +17,12 @@ import type { Question } from '@political-research/shared-types';
 const STEPS = [
     { id: 1, label: 'Dados Técnicos', description: 'Identificação da pesquisa' },
     { id: 2, label: 'Localidades', description: 'Abrangência e territórios' },
-    { id: 3, label: 'Dimensionamento', description: 'Revisão do cálculo amostral' },
-    { id: 4, label: 'Premissas', description: 'Perfil e cotas do entrevistado' },
-    { id: 5, label: 'Questionário', description: 'Perguntas da pesquisa' },
-    { id: 6, label: 'Visualização', description: 'Preview e download' },
-    { id: 7, label: 'Equipe', description: 'Membros da pesquisa' },
-    { id: 8, label: 'Rotas', description: 'Distribuição por zona' },
-    { id: 9, label: 'Distribuição', description: 'Cotas e publicação' },
+    { id: 3, label: 'Premissas', description: 'Perfil e cotas do entrevistado' },
+    { id: 4, label: 'Questionário', description: 'Perguntas da pesquisa' },
+    { id: 5, label: 'Visualização', description: 'Preview e download' },
+    { id: 6, label: 'Equipe', description: 'Membros da pesquisa' },
+    { id: 7, label: 'Rotas', description: 'Distribuição por zona' },
+    { id: 8, label: 'Distribuição', description: 'Cotas e publicação' },
 ];
 
 export interface WizardData {
@@ -727,18 +725,17 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             />
                         )}
                         {currentStep === 3 && (
-                            <Step3SampleSize
-                                localities={data.localities}
-                                tech={data.tech}
-                                onTechChange={updateSampleMode}
-                                onLocalitiesChange={updateLocalities}
-                            />
-                        )}
-                        {currentStep === 4 && (
                             <Step3Premises
                                 premises={data.premises}
                                 onChange={updatePremises}
                                 localities={data.localities}
+                            />
+                        )}
+                        {currentStep === 4 && (
+                            <Step4Questions
+                                questions={data.questions}
+                                onChange={updateQuestions}
+                                surveyTitle={data.tech.title}
                             />
                         )}
                         {currentStep === 5 && (

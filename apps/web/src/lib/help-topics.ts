@@ -281,24 +281,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: 'Total de Entrevistas',
         short: 'Quantidade total de entrevistados necessarios para atingir a precisao estatistica declarada.',
         content: [
-            'No modo automatico, e calculado pela formula padrao de amostragem.',
-            'Pode ser ajustado manualmente para adequar ao orcamento ou capacidade de campo.',
-            'A distribuicao por localidade e revisada na Etapa 3 (Dimensionamento Amostral).',
-            'Arredondar para cima mantem ou melhora a precisao estatistica.',
+            'No modo automático, é calculado pela fórmula padrão de amostragem.',
+            'Pode ser ajustado manualmente para adequar ao orçamento ou capacidade de campo.',
+            'A distribuição por localidade pode ser revisada antes do questionário.',
+            'Arredondar para cima mantém ou melhora a precisão estatística.',
         ],
     },
     {
-        id: 'sample-size-review',
-        title: 'Dimensionamento Amostral',
-        short: 'Revisao do calculo do tamanho da amostra antes de elaborar o questionario.',
-        content: [
-            'Confira o total de entrevistas calculado com base na populacao base de cada localidade.',
-            'Os parametros estatisticos (margem de erro, intervalo de confianca, Deff) vem da Etapa 1.',
-            'Quando a abrangencia e nacional, o metodo usa populacao infinita (sem correcao finita por N).',
-            'As populacoes base por localidade foram definidas na Etapa 2.',
-            'Volte as etapas anteriores para ajustar qualquer parametro antes de prosseguir.',
-            'Esta etapa e somente de revisao; nenhum dado e alterado aqui.',
-        ],
+        // Removido: Etapa 3 (Dimensionamento Amostral) não existe mais
     },
     {
         id: 'p-proportion',
