@@ -16,6 +16,11 @@ export async function GET(request: NextRequest) {
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
         const offset = (page - 1) * limit;
 
+        // Filtro obrigatório para evitar consultas pesadas sem filtro
+        if (!q && !uf) {
+            return apiError('É obrigatório informar pelo menos um filtro: UF ou busca por nome (q)', 400);
+        }
+
         let query = auth.supabase
             .from('vw_municipio_resumo')
             .select('*', { count: 'estimated' });
