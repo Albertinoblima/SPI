@@ -796,7 +796,7 @@ export function Step2Localities({
                                             placeholder={loadingLocalities || loadingGlobalLocalities ? 'Carregando sugestões...' : !localityPickerEnabled ? 'Selecione a cidade primeiro' : 'Digite ou selecione a localidade...'}
                                             autoComplete="off"
                                             role="combobox"
-                                            aria-expanded={isLocalityDropdownOpen}
+                                            aria-expanded={!!isLocalityDropdownOpen} // Garantia de booleano explícito para acessibilidade
                                             aria-autocomplete="list"
                                             aria-controls="locality-suggestions-listbox"
                                             aria-activedescendant={activeLocalityIndex >= 0 ? `locality-option-${activeLocalityIndex}` : undefined}
@@ -816,7 +816,7 @@ export function Step2Localities({
                                                         id={`locality-option-${index}`}
                                                         type="button"
                                                         role="option"
-                                                        aria-selected={index === activeLocalityIndex}
+                                                        aria-selected={!!(index === activeLocalityIndex)} // Garantia de booleano explícito para acessibilidade
                                                         onMouseDown={(event) => {
                                                             event.preventDefault();
                                                             handleLocalitySelect(suggestion.name);
