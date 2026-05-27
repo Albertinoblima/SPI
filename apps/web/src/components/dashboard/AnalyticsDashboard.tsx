@@ -1,3 +1,38 @@
+// Utilitário para barra de largura dinâmica (Tailwind + style encapsulado)
+// eslint-disable-next-line react/no-inline-styles
+function BarraDinamica({ percent, className = '', ...props }) {
+    return (
+        <div
+            className={`bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500 ${className}`}
+            style={{ width: percent + '%' }}
+            {...props}
+        />
+    );
+}
+
+// Utilitário para barra de altura dinâmica (Timeline)
+// eslint-disable-next-line react/no-inline-styles
+function BarraAltura({ percent, className = '', ...props }) {
+    return (
+        <div
+            className={`w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all cursor-pointer group relative ${className}`}
+            style={{ height: percent + '%' }}
+            {...props}
+        />
+    );
+}
+
+// Utilitário para ponto animado com delay
+// eslint-disable-next-line react/no-inline-styles
+function PontoAnimado({ delayMs, className = '', ...props }) {
+    return (
+        <div
+            className={`w-3 h-3 bg-red-500 rounded-full animate-pulse ${className}`}
+            style={{ animationDelay: `${delayMs}ms` }}
+            {...props}
+        />
+    );
+}
 import React, { useState, useEffect } from 'react';
 import { MapPin, Users, FileText, TrendingUp, Download, Filter } from 'lucide-react';
 
@@ -115,6 +150,7 @@ const AnalyticsDashboard = () => {
                                     )
                                 }
                                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none"
+                                aria-label="Pesquisa"
                             >
                                 {MOCK_DATA.surveys.map((survey) => (
                                     <option key={survey.id} value={survey.id}>
@@ -132,6 +168,7 @@ const AnalyticsDashboard = () => {
                                 value={dateRange}
                                 onChange={(e) => setDateRange(e.target.value)}
                                 className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none"
+                                aria-label="Período"
                             >
                                 <option value="24h">Últimas 24h</option>
                                 <option value="7d">Últimos 7 dias</option>
@@ -196,8 +233,8 @@ const AnalyticsDashboard = () => {
                                 <button
                                     onClick={() => setMapView('markers')}
                                     className={`px-4 py-2 rounded-lg transition ${mapView === 'markers'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                         }`}
                                 >
                                     📍 Marcadores
@@ -205,8 +242,8 @@ const AnalyticsDashboard = () => {
                                 <button
                                     onClick={() => setMapView('heatmap')}
                                     className={`px-4 py-2 rounded-lg transition ${mapView === 'heatmap'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                         }`}
                                 >
                                     🔥 Mapa de Calor
@@ -229,13 +266,7 @@ const AnalyticsDashboard = () => {
                                         </div>
                                         <div className="mt-4 flex justify-center gap-2">
                                             {MOCK_DATA.responses.map((r, i) => (
-                                                <div
-                                                    key={r.id}
-                                                    className="w-3 h-3 bg-red-500 rounded-full animate-pulse"
-                                                    style={{
-                                                        animationDelay: `${i * 200}ms`,
-                                                    }}
-                                                />
+                                                <PontoAnimado key={r.id} delayMs={i * 200} aria-label={`Ponto ${i + 1}`} />
                                             ))}
                                         </div>
                                     </div>
@@ -312,10 +343,7 @@ const AnalyticsDashboard = () => {
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                        <div
-                                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500"
-                                            style={{ width: `${region.percentage}%` }}
-                                        />
+                                        <BarraDinamica percent={region.percentage} aria-label={`Cobertura ${region.percentage}%`} />
                                     </div>
                                     <div className="text-xs text-gray-500 mt-1">
                                         {region.percentage}%
@@ -351,14 +379,11 @@ const AnalyticsDashboard = () => {
                             return (
                                 <div key={index} className="flex-1 flex flex-col items-center">
                                     <div className="w-full flex-1 flex items-end">
-                                        <div
-                                            className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all cursor-pointer group relative"
-                                            style={{ height: `${heightPercent}%` }}
-                                        >
+                                        <BarraAltura percent={heightPercent} aria-label={`Dia ${index + 1}: ${day.responses} respostas`}>
                                             <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-2 py-1 rounded text-xs font-semibold opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
                                                 {day.responses} respostas
                                             </div>
-                                        </div>
+                                        </BarraAltura>
                                     </div>
                                     <div className="text-xs text-gray-600 mt-2 text-center">
                                         {new Date(day.date).toLocaleDateString('pt-BR', {

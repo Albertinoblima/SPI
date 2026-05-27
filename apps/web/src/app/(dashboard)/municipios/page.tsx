@@ -242,9 +242,17 @@ export default function MunicipiosPage() {
                                 aria-label="Filtrar por UF"
                                 className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                             >
-                                <option value="">Todas</option>
-                                {ALL_UFS.map((u) => <option key={u} value={u}>{u}</option>)}
-                            </select>
+                                <label htmlFor="uf-select" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">UF</label>
+                                <select
+                                    id="uf-select"
+                                    value={uf}
+                                    onChange={(e) => applyFilter(() => { setUf(e.target.value); setRegiao(''); })}
+                                    aria-label="Filtrar por UF"
+                                    className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">Todas</option>
+                                    {ALL_UFS.map((u) => <option key={u} value={u}>{u}</option>)}
+                                </select>
                         </div>
                         <div className="w-40">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Região</label>
@@ -254,9 +262,17 @@ export default function MunicipiosPage() {
                                 aria-label="Filtrar por região"
                                 className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                             >
-                                <option value="">Todas</option>
-                                {REGIOES.map((r) => <option key={r} value={r}>{r}</option>)}
-                            </select>
+                                <label htmlFor="regiao-select" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Região</label>
+                                <select
+                                    id="regiao-select"
+                                    value={regiao}
+                                    onChange={(e) => applyFilter(() => { setRegiao(e.target.value); setUf(''); })}
+                                    aria-label="Filtrar por região"
+                                    className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">Todas</option>
+                                    {REGIOES.map((r) => <option key={r} value={r}>{r}</option>)}
+                                </select>
                         </div>
                         <button
                             onClick={fetchMunicipios}
@@ -386,8 +402,8 @@ export default function MunicipiosPage() {
                                                     <td className="px-3 py-3 text-center">
                                                         {m.percentual_eleitores != null ? (
                                                             <span className={`text-xs font-medium tabular-nums ${m.percentual_eleitores > 80 ? 'text-green-700 dark:text-green-400' :
-                                                                    m.percentual_eleitores > 60 ? 'text-blue-700 dark:text-blue-400' :
-                                                                        'text-slate-600 dark:text-slate-400'
+                                                                m.percentual_eleitores > 60 ? 'text-blue-700 dark:text-blue-400' :
+                                                                    'text-slate-600 dark:text-slate-400'
                                                                 }`}>
                                                                 {m.percentual_eleitores.toFixed(1)}%
                                                             </span>
@@ -403,6 +419,7 @@ export default function MunicipiosPage() {
                                                                     <div
                                                                         className="h-full bg-indigo-400 rounded-full"
                                                                         style={{ width: `${pctUrb}%` }}
+                                                                        aria-label={`Urbanização: ${pctUrb}%`}
                                                                     />
                                                                 </div>
                                                                 <span className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">{pctUrb}%</span>
