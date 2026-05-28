@@ -1,13 +1,16 @@
 /**
- * DocxReportGenerator
+ * DocxReportGenerator - Advanced Professional Report Generator
  * 
- * Serviço responsável pela geração do relatório .docx avançado.
+ * Suporta os requisitos do usuário:
+ * - Três tipos de relatório (Sintético, Analítico, Consolidado)
+ * - Uso de metadados do Planejamento (5 passos)
+ * - Estrutura preparada para modelos de capa + papel timbrado (usando company_assets)
+ * - Sumário, tipografia hierárquica e paginação
  * 
- * Decisões tomadas:
- * - Usar biblioteca `docx` (já presente no projeto).
- * - Receber uma ReportConfiguration + dados agregados.
- * - Suportar os 3 tipos de relatório (synthetic, analytical, consolidated).
- * - Futuramente: integração com templates de capa e papel timbrado.
+ * Decisões de arquitetura:
+ * - Gerar documento completo em memória usando `docx`
+ * - Manter o gerador agnóstico de UI (configuração vem de fora)
+ * - Futuro: Suporte a upload de imagens para capa (mapa, cidade, etc.)
  */
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, AlignmentType, PageBreak } from 'docx';
