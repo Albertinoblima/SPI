@@ -164,6 +164,14 @@ export default function PublicDynamicReportPage() {
             <p className="text-sm text-slate-500">
               Aqui serão exibidos gráficos e tabelas de cruzamentos reais carregados via o endpoint seguro após a autenticação.
             </p>
+            {reportData && (
+              <button 
+                onClick={() => alert('Funcionalidade de carregamento de cruzamento específico será implementada aqui (usando o ReportAggregationService).')}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+              >
+                Carregar Cruzamento de Exemplo
+              </button>
+            )}
           </div>
         </div>
       </div>
