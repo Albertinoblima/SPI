@@ -61,27 +61,6 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      # ============================================================
-      # TEMPORARY ONE-TIME FIX
-      # ============================================================
-      # The remote database already had tables created outside of the
-      # Supabase migration system (history table was out of sync).
-      #
-      # This step marks migration 20260522000001 (and all previous) as applied
-      # in the remote history table, so that db push only sees the new one.
-      # After this migration is successfully applied via GitHub,
-      # THIS ENTIRE STEP MUST BE COMMENTED OUT OR REMOVED.
-      #
-      # Do not leave repair steps active long-term.
-      # ============================================================
-      - name: TEMPORARY - Repair migration history (one-time only)
-        run: |
-          echo "Reparando histórico de migrations (one-time fix)..."
-          echo "Marcando 20260522000001 como aplicada (todas anteriores também)..."
-          supabase migration repair --status applied 20260522000001
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
       - name: Check pending migrations (dry run)
         continue-on-error: true
         run: |
@@ -94,19 +73,14 @@ jobs:
         id: push
         run: |
           echo "Aplicando migrations no projeto $SUPABASE_PROJECT_REF..."
-          # TEMPORARY: --include-all is required because the remote migration history
-          # is severely out of sync (many migrations were applied manually outside the CLI).
-          # This flag allows the CLI to consider local migrations not present in the remote history.
-          #
-          # IMPORTANT: Remove --include-all (and the repair step above) after this migration succeeds!
-          if supabase db push --yes --linked --include-all; then
+          if supabase db push --yes --linked; then
             echo "✅ Migrations aplicadas com sucesso."
           else
-            echo "::error::Falha ao aplicar migrations com 'supabase db push --yes --include-all'"
+            echo "::error::Falha ao aplicar migrations com 'supabase db push --yes --linked'"
             echo ""
             echo "Possíveis causas:"
             echo "  - O token não tem permissão de escrita no projeto"
-            echo "  - Conflito grave de histórico de migrations"
+            echo "  - Conflito de histórico de migrations"
             echo "  - Erro de sintaxe na migration"
             echo ""
             echo "Dica: rode localmente dentro da pasta 'political-research-platform':"
