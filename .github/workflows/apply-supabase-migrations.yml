@@ -13,8 +13,7 @@ permissions:
   contents: read
 
 env:
-  # Opt-in to Node.js 24 to avoid deprecation warnings (actions/checkout, supabase/setup-cli)
-  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  # Opt-in to Node.js 24 (future-proofing)
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -30,40 +29,57 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
+      - name: Install Supabase CLI (direct binary - avoids Node 20 deprecation)
+        run: |
+          echo "Instalando Supabase CLI..."
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz -C /usr/local/bin
+          supabase --version
+          echo "Supabase CLI instalado com sucesso."
 
       - name: Validate Supabase Access Token
         run: |
           echo "Validando credenciais do Supabase..."
           if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ]; then
             echo "::error::O secret SUPABASE_ACCESS_TOKEN não está configurado!"
-            echo "Crie o secret em: https://github.com/Albertinoblima/SPI/settings/secrets/actions"
-            echo "Instruções completas: https://github.com/Albertinoblima/SPI/blob/main/docs/deployment.md#migrações-de-banco-via-github-novo-fluxo"
+            echo ""
+            echo "→ Crie o secret em: https://github.com/Albertinoblima/SPI/settings/secrets/actions"
+            echo "→ Gere o token em: https://supabase.com/dashboard/account/tokens"
+            echo "→ Instruções: https://github.com/Albertinoblima/SPI/blob/main/docs/deployment.md#migrações-de-banco-via-github-novo-fluxo"
             exit 1
           fi
-          echo "Token presente (comprimento: $(echo -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | wc -c) caracteres)"
-          supabase --version
+          echo "✅ Token presente (comprimento: $(echo -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | wc -c) caracteres)"
 
       - name: Check pending migrations (dry run)
         continue-on-error: true
         run: |
           echo "=== Migrations pendentes no projeto icnclqtwtcbrmuxpujwb ==="
-          supabase migration list 2>&1 || echo "⚠️ Não foi possível listar migrations (pode ser problema de permissão do token)"
+          supabase migration list 2>&1 || echo "⚠️ Não foi possível listar (verifique permissões do token)"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Apply migrations to linked Supabase project
+        id: push
         run: |
-          echo "Aplicando migrations pendentes no projeto Supabase (icnclqtwtcbrmuxpujwb)..."
-          supabase db push --yes
+          echo "Aplicando migrations no projeto icnclqtwtcbrmuxpujwb..."
+          if supabase db push --yes; then
+            echo "✅ Migrations aplicadas com sucesso."
+          else
+            echo "::error::Falha ao aplicar migrations com 'supabase db push --yes'"
+            echo ""
+            echo "Possíveis causas:"
+            echo "  - Token sem permissão suficiente (precisa de acesso de escrita no projeto)"
+            echo "  - Conflito de schema / migration já aplicada manualmente"
+            echo "  - Erro de sintaxe na migration"
+            echo ""
+            echo "Dica: rode localmente 'supabase db push --dry-run' para ver o diff"
+            exit 1
+          fi
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Success notification
         if: success()
         run: |
-          echo "✅ Migrations aplicadas com sucesso!"
+          echo "✅ Workflow concluído com sucesso!"
           echo "Projeto: icnclqtwtcbrmuxpujwb"
