@@ -115,3 +115,95 @@ export async function GET(request: NextRequest) {
         });
     }
 }
+
+// POST /api/admin/tenants - Bulk actions (Fase 1 - Ações em Massa God Mode)
+export async function POST(request: NextRequest) {
+    const auth = await requireSystemAdmin(request);
+
+    if (!auth.isAuthorized) {
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+    }
+
+    try {
+        const body = await request.json();
+        const { action, tenantIds, status } = body as {
+            action?: string;
+            tenantIds?: string[];
+            status?: 'active' | 'suspended' | 'trial';
+        };
+
+        if (!action || !Array.isArray(tenantIds) || tenantIds.length === 0) {
+            return apiError('Parâmetros inválidos para ação em massa', 400);
+        }
+
+        // Limite de segurança
+        if (tenantIds.length > 100) {
+            return apiError('Máximo de 100 tenants por operação em massa', 400);
+        }
+
+        if (action === 'update_status') {
+            if (!status || !['active', 'suspended', 'trial'].includes(status)) {
+                return apiError('Status inválido. Use active, suspended ou trial.', 400);
+            }
+
+            // Buscar nomes atuais para auditoria rica
+            const { data: currentTenants } = await auth.supabase
+                .from('tenants')
+                .select('id, name, status')
+                .in('id', tenantIds);
+
+            const currentMap = new Map((currentTenants ?? []).map((t: any) => [t.id, t]));
+
+            // Executar update
+            const { error: updateError } = await auth.supabase
+                .from('tenants')
+                .update({ status, updated_at: new Date().toISOString() })
+                .in('id', tenantIds)
+                .is('deleted_at', null);
+
+            if (updateError) {
+                return trackedApiError(request, 'Falha ao aplicar status em massa', 500, {
+                    errorCode: 'DB_BULK_UPDATE_FAILED',
+                    userId: auth.user.id,
+                    metadata: { action, tenantCount: tenantIds.length, targetStatus: status },
+                });
+            }
+
+            // Auditoria individual por tenant (rastreabilidade máxima - padrão God Mode)
+            const auditEntries = tenantIds.map((tid) => {
+                const prev = currentMap.get(tid);
+                return {
+                    user_id: auth.user.id,
+                    action: 'bulk_update_tenant_status',
+                    entity_type: 'tenant',
+                    entity_id: tid,
+                    changes_description: `Status alterado de "${prev?.status ?? 'unknown'}" para "${status}" via ação em massa`,
+                    is_critical: status === 'suspended', // Suspensão é crítica
+                    metadata: {
+                        bulk_operation: true,
+                        previous_status: prev?.status ?? null,
+                        new_status: status,
+                        performed_by: auth.user.email ?? auth.user.id,
+                    },
+                };
+            });
+
+            await auth.supabase.from('audit_log').insert(auditEntries);
+
+            return apiSuccess({
+                success: true,
+                affected: tenantIds.length,
+                newStatus: status,
+                message: `${tenantIds.length} empresa(s) atualizada(s) para "${status}" com sucesso`,
+            });
+        }
+
+        return apiError(`Ação não suportada: ${action}`, 400);
+    } catch (error) {
+        return handleApiUnhandledError(request, error, {
+            errorCode: 'API_UNHANDLED_EXCEPTION',
+            userId: auth.user.id,
+            metadata: { route: '/api/admin/tenants', method: 'POST' },
+        });
+    }
+}

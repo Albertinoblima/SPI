@@ -4,10 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     Building2,
     Search,
-    Filter,
     MoreVertical,
     Loader,
     AlertTriangle,
+    CheckSquare,
+    Square,
+    Play,
+    Pause,
+    Users,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -66,10 +70,79 @@ export default function TenantsPage() {
         fetchTenants();
     }, [fetchTenants]);
 
+    // === Ações em Massa (Fase 1 God Mode) ===
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+
     const filteredTenants = tenants.filter((tenant) =>
         tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tenant.slug.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const allVisibleSelected = filteredTenants.length > 0 && filteredTenants.every((t) => selected.has(t.id));
+    const someVisibleSelected = filteredTenants.some((t) => selected.has(t.id));
+
+    const toggleSelectAllVisible = () => {
+        const newSelected = new Set(selected);
+        if (allVisibleSelected) {
+            filteredTenants.forEach((t) => newSelected.delete(t.id));
+        } else {
+            filteredTenants.forEach((t) => newSelected.add(t.id));
+        }
+        setSelected(newSelected);
+        setBulkMessage(null);
+    };
+
+    const toggleSelect = (id: string) => {
+        const newSelected = new Set(selected);
+        if (newSelected.has(id)) newSelected.delete(id);
+        else newSelected.add(id);
+        setSelected(newSelected);
+        setBulkMessage(null);
+    };
+
+    const clearSelection = () => {
+        setSelected(new Set());
+        setBulkMessage(null);
+    };
+
+    const executeBulkStatusUpdate = async (newStatus: 'active' | 'suspended' | 'trial') => {
+        if (selected.size === 0) return;
+
+        const confirmMsg = `Alterar status de ${selected.size} empresa(s) para "${newStatus}"?\n\nEsta ação é registrada em auditoria.`;
+        if (!confirm(confirmMsg)) return;
+
+        setBulkLoading(true);
+        setBulkMessage(null);
+
+        try {
+            const res = await fetch('/api/admin/tenants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'update_status',
+                    tenantIds: Array.from(selected),
+                    status: newStatus,
+                }),
+            });
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                throw new Error(json.error || 'Falha na operação em massa');
+            }
+
+            setBulkMessage(`${json.data?.message || 'Operação concluída'} • ${selected.size} afetada(s)`);
+            clearSelection();
+            await fetchTenants(); // refresh com dados atualizados
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+            setBulkMessage(`Erro: ${msg}`);
+        } finally {
+            setBulkLoading(false);
+        }
+    };
 
     const getStatusBadge = (status: string) => {
         const badges: Record<string, { bg: string; text: string; label: string }> = {
@@ -137,6 +210,59 @@ export default function TenantsPage() {
                 </select>
             </div>
 
+            {/* Bulk Actions Toolbar - Fase 1 Ações em Massa (God Mode) */}
+            {selected.size > 0 && (
+                <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-amber-950/40 border border-amber-800/60">
+                    <div className="flex items-center gap-2 text-amber-300 text-sm font-medium">
+                        <Users className="w-4 h-4" />
+                        {selected.size} empresa(s) selecionada(s)
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                            onClick={() => executeBulkStatusUpdate('active')}
+                            disabled={bulkLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-medium transition"
+                        >
+                            <Play className="w-3.5 h-3.5" /> Ativar
+                        </button>
+                        <button
+                            onClick={() => executeBulkStatusUpdate('trial')}
+                            disabled={bulkLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white text-xs font-medium transition"
+                        >
+                            Trial
+                        </button>
+                        <button
+                            onClick={() => executeBulkStatusUpdate('suspended')}
+                            disabled={bulkLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-medium transition"
+                        >
+                            <Pause className="w-3.5 h-3.5" /> Suspender
+                        </button>
+
+                        <div className="w-px h-5 bg-amber-800/70 mx-1" />
+
+                        <button
+                            onClick={clearSelection}
+                            disabled={bulkLoading}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-slate-300 transition disabled:opacity-50"
+                        >
+                            Limpar seleção
+                        </button>
+                    </div>
+
+                    {bulkLoading && <Loader className="w-4 h-4 animate-spin text-amber-400" />}
+                </div>
+            )}
+
+            {/* Feedback de bulk */}
+            {bulkMessage && (
+                <div className={`text-sm px-4 py-2 rounded-lg border ${bulkMessage.startsWith('Erro') ? 'bg-red-900/20 border-red-700/40 text-red-300' : 'bg-emerald-900/20 border-emerald-700/40 text-emerald-300'}`}>
+                    {bulkMessage}
+                </div>
+            )}
+
             {/* Error */}
             {error && (
                 <div className="p-4 rounded-lg bg-red-900/20 border border-red-700/30 text-red-200">
@@ -157,22 +283,37 @@ export default function TenantsPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-700 bg-slate-800/50">
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
+                                    <th className="px-3 py-4 w-10">
+                                        <button
+                                            onClick={toggleSelectAllVisible}
+                                            title={allVisibleSelected ? 'Desmarcar todos visíveis' : 'Selecionar todos visíveis'}
+                                            className="text-slate-400 hover:text-white transition"
+                                        >
+                                            {allVisibleSelected ? (
+                                                <CheckSquare className="w-4 h-4 text-amber-400" />
+                                            ) : someVisibleSelected ? (
+                                                <div className="w-4 h-4 border border-amber-400 rounded bg-amber-500/20" />
+                                            ) : (
+                                                <Square className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
                                         Empresa
                                     </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
                                         Status
                                     </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
                                         Usuários
                                     </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
                                         Pesquisas
                                     </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
                                         Respostas
                                     </th>
-                                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-300">
+                                    <th className="px-4 py-4 text-right text-sm font-semibold text-slate-300">
                                         Ações
                                     </th>
                                 </tr>
@@ -180,7 +321,7 @@ export default function TenantsPage() {
                             <tbody>
                                 {filteredTenants.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center">
+                                        <td colSpan={7} className="px-6 py-12 text-center">
                                             <Building2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
                                             <p className="text-slate-400">
                                                 Nenhuma empresa encontrada
@@ -193,7 +334,20 @@ export default function TenantsPage() {
                                             key={tenant.id}
                                             className="border-b border-slate-700 hover:bg-slate-800/30 transition"
                                         >
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 py-4">
+                                                <button
+                                                    onClick={() => toggleSelect(tenant.id)}
+                                                    className="text-slate-400 hover:text-amber-400 transition"
+                                                    title={selected.has(tenant.id) ? 'Remover seleção' : 'Selecionar'}
+                                                >
+                                                    {selected.has(tenant.id) ? (
+                                                        <CheckSquare className="w-4 h-4 text-amber-400" />
+                                                    ) : (
+                                                        <Square className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-4">
                                                 <Link
                                                     href={`/admin/tenants/${tenant.id}`}
                                                     className="font-medium text-white hover:text-blue-400"
@@ -258,8 +412,15 @@ export default function TenantsPage() {
                     </div>
 
                     {/* Summary */}
-                    <div className="text-sm text-slate-400">
-                        Mostrando {filteredTenants.length} de {tenants.length} empresas
+                    <div className="text-sm text-slate-400 flex items-center justify-between">
+                        <span>
+                            Mostrando {filteredTenants.length} de {tenants.length} empresas
+                        </span>
+                        {selected.size > 0 && (
+                            <span className="text-amber-400 font-medium">
+                                {selected.size} selecionada(s) • use a barra de ações acima
+                            </span>
+                        )}
                     </div>
                 </>
             )}
