@@ -15,6 +15,7 @@ interface Quota {
     uf?: string;
     population: number;
     interviews: number;
+    locked?: boolean;   // Novo: permite travar a cota
 }
 
 const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNext, onBack }) => {
@@ -41,11 +42,12 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                     uf: m.uf,
                     population: pop,
                     interviews: suggested,
+                    locked: false,
                 };
             });
         }
 
-        return [{ name: 'Geral', population: 0, interviews: sampleSize }];
+        return [{ name: 'Geral', population: 0, interviews: sampleSize, locked: false }];
     }, [municipalities, sampleSize, initialData?.distribution?.quotas]);
 
     const [quotas, setQuotas] = useState<Quota[]>(initialQuotas);
@@ -62,42 +64,83 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
     const geoMetadata = initialData?.geographicBase?.metadata || {};
 
     const updateQuota = (index: number, value: number) => {
+        if (quotas[index].locked) return; // Não permite editar cotas travadas
+
         const newQuotas = [...quotas];
         newQuotas[index] = { ...newQuotas[index], interviews: Math.max(0, Math.floor(value)) };
         setQuotas(newQuotas);
     };
 
-    // Sugere distribuição proporcional à população
-    const suggestProportionalDistribution = () => {
-        if (totalPopulation === 0 || sampleSize === 0 || quotas.length === 0) {
-            // Fallback: distribute evenly
-            const even = Math.floor(sampleSize / quotas.length);
-            let remainder = sampleSize % quotas.length;
+    const toggleLock = (index: number) => {
+        const newQuotas = [...quotas];
+        newQuotas[index] = { 
+            ...newQuotas[index], 
+            locked: !newQuotas[index].locked 
+        };
+        setQuotas(newQuotas);
+    };
 
-            const newQuotas = quotas.map((q, idx) => ({
-                ...q,
-                interviews: even + (idx < remainder ? 1 : 0),
-            }));
+    // Sugere distribuição proporcional à população (respeitando cotas travadas)
+    const suggestProportionalDistribution = () => {
+        const unlockedQuotas = quotas.filter(q => !q.locked);
+        const lockedTotal = quotas
+            .filter(q => q.locked)
+            .reduce((sum, q) => sum + q.interviews, 0);
+
+        const remainingSample = Math.max(0, sampleSize - lockedTotal);
+
+        if (unlockedQuotas.length === 0) {
+            // Tudo travado, não faz nada
+            return;
+        }
+
+        const unlockedTotalPop = unlockedQuotas.reduce((sum, q) => sum + (q.population || 0), 0);
+
+        if (unlockedTotalPop === 0 || remainingSample === 0) {
+            // Distribui igualmente entre as não travadas
+            const even = Math.floor(remainingSample / unlockedQuotas.length);
+            let remainder = remainingSample % unlockedQuotas.length;
+
+            const newQuotas = quotas.map(q => {
+                if (q.locked) return q;
+
+                const idx = unlockedQuotas.findIndex(uq => uq.name === q.name);
+                return {
+                    ...q,
+                    interviews: even + (idx < remainder ? 1 : 0),
+                };
+            });
+
             setQuotas(newQuotas);
             return;
         }
 
+        // Distribuição proporcional apenas entre as não travadas
         const newQuotas = quotas.map(q => {
-            const proportion = q.population / totalPopulation;
+            if (q.locked) return q;
+
+            const proportion = (q.population || 0) / unlockedTotalPop;
             return {
                 ...q,
-                interviews: Math.round(proportion * sampleSize),
+                interviews: Math.round(proportion * remainingSample),
             };
         });
 
-        // Ajuste para bater exatamente com o sampleSize
+        // Ajuste fino para bater o total
         let currentTotal = newQuotas.reduce((s, q) => s + q.interviews, 0);
         let diff = sampleSize - currentTotal;
 
-        // Distribute the difference
         let i = 0;
         while (diff !== 0 && newQuotas.length > 0) {
-            const idx = i % newQuotas.length;
+            const unlockedIndices = newQuotas
+                .map((q, idx) => ({ q, idx }))
+                .filter(item => !item.q.locked);
+
+            if (unlockedIndices.length === 0) break;
+
+            const target = unlockedIndices[i % unlockedIndices.length];
+            const idx = target.idx;
+
             if (diff > 0) {
                 newQuotas[idx].interviews += 1;
                 diff--;
@@ -108,7 +151,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 }
             }
             i++;
-            if (i > 100) break; // safety
+            if (i > 200) break;
         }
 
         setQuotas(newQuotas);
@@ -174,9 +217,26 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                 type="number"
                                 value={quota.interviews}
                                 onChange={(e) => updateQuota(index, parseInt(e.target.value) || 0)}
-                                className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-right text-sm focus:outline-none focus:border-blue-500"
+                                disabled={quota.locked}
+                                className={`w-24 bg-slate-950 border rounded-lg px-3 py-1.5 text-right text-sm focus:outline-none focus:border-blue-500 ${
+                                    quota.locked ? 'border-slate-600 text-slate-400' : 'border-slate-700'
+                                }`}
                             />
                             <span className="text-sm text-slate-400 w-20">entrevistas</span>
+
+                            {/* Botão de travar/destravar */}
+                            <button
+                                type="button"
+                                onClick={() => toggleLock(index)}
+                                className={`p-1.5 rounded transition-colors ${
+                                    quota.locked 
+                                        ? 'bg-amber-600 text-white hover:bg-amber-500' 
+                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                                title={quota.locked ? "Destravar cota" : "Travar cota (não será alterada na sugestão)"}
+                            >
+                                {quota.locked ? '🔒' : '🔓'}
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -192,6 +252,12 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 {difference !== 0 && (
                     <span className="ml-3 text-amber-400">
                         ({difference > 0 ? '+' : ''}{difference} entrevistas)
+                    </span>
+                )}
+
+                {quotas.some(q => q.locked) && (
+                    <span className="ml-4 text-xs text-amber-400">
+                        • Algumas cotas estão travadas
                     </span>
                 )}
             </div>
