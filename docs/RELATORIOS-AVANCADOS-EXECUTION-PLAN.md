@@ -177,5 +177,7 @@ Estou continuando a execução com as melhores decisões até o final.
 
 **Atualização mais recente (ritmo mantido):**
 - Criado endpoint seguro dedicado para o relatório dinâmico público.
+- Página protegida agora consome e exibe dados reais após autenticação.
+- Ritmo mantido: Progresso equilibrado e de qualidade.
 - Página protegida agora consome dados reais após autenticação do contratante.
 - Progresso equilibrado nos dois relatórios.
