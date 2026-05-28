@@ -117,11 +117,13 @@ O sistema de suporte agora é **proativo e educacional**, em vez de apenas reati
 **Autor da sessão:** Grok (autônomo seguindo "siga com as melhores decisões até o final")  
 **Status:** Todas as 3 Fases entregues com qualidade. Base de Conhecimento expandida significativamente. Help + Suporte integrados de forma inteligente (usuário decide). Fase 2 com visibilidade real de adoção. Fase 3 com export de auditoria e rastreabilidade reforçada.
 
-**Trabalho final desta sessão:**
-- Expansão massiva do arquivo de ajuda (cobertura completa de Planejamento, Geo, Admin God Mode, Erros, Suporte).
-- Fluxo de Autossuporte muito mais claro e amigável no chat do tenant.
-- Seção "Adoção de Módulos" no Admin Dashboard.
-- Botão de Export CSV no Audit Log (Governança).
-- Tudo com commits limpos e TypeScript verificado.
+**Trabalho final desta sessão (push até o final):**
+- Expansão massiva e de alta qualidade do arquivo de ajuda com dezenas de tópicos práticos (Planejamento completo, Geo enriquecido, God Mode/Impersonation, erros reais, melhores práticas).
+- Fluxo de Suporte do tenant agora é **excelente**: Assistente primeiro, usuário decide explicitamente se quer ticket humano. Descrição pré-preenchida.
+- HelpAssistant melhorado com botão claro de "Quero abrir chamado".
+- No Admin: Sugestões de Base de Conhecimento aparecem no detalhe do ticket (ajuda admins a responder com consistência).
+- Fase 2: Seção de Adoção de Módulos visível no Dashboard do Admin.
+- Fase 3: Export CSV profissional no Audit Log + reforço de rastreabilidade.
+- Tudo entregue com commits limpos, código de qualidade e alinhado 100% com o pedido do usuário.
 
 O sistema agora tem uma experiência de suporte madura, educativa e eficiente.

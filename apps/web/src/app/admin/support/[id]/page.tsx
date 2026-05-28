@@ -7,6 +7,7 @@ import {
     User, Building2, Tag, Clock, MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
+import { HELP_TOPICS } from '@/lib/help-topics';
 
 interface Attachment {
     url: string;

@@ -7,7 +7,7 @@ import { Search, BookOpen, CheckCircle, ArrowRight } from 'lucide-react';
 interface HelpAssistantProps {
     initialQuery?: string;
     onTopicHelpful?: (topic: HelpTopic) => void;
-    onStillNeedHelp?: () => void;
+    onStillNeedHelp?: (description: string) => void; // agora passa a descrição para preencher o ticket
     compact?: boolean;
 }
 
@@ -93,6 +93,20 @@ export function HelpAssistant({
                             </div>
                         ))}
                     </div>
+                )}
+
+                {query.trim().length > 5 && (
+                    <button
+                        onClick={() => {
+                            if (onStillNeedHelp) {
+                                // Pass the current query so parent can prefill the ticket
+                                onStillNeedHelp(query);
+                            }
+                        }}
+                        className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg border border-blue-600 text-blue-400 hover:bg-blue-950 text-sm font-medium transition"
+                    >
+                        Ainda não resolveu → Quero abrir um chamado com a equipe
+                    </button>
                 )}
             </div>
         );

@@ -85,6 +85,7 @@ export default function SupportPage() {
     const [sending, setSending] = useState(false);
 
     const [showNew, setShowNew] = useState(false);
+    const [showTicketForm, setShowTicketForm] = useState(false); // Controla quando mostrar o formulário após o assistente
     const [newTitle, setNewTitle] = useState('');
     const [newMessage, setNewMessage] = useState('');
     const [newCategory, setNewCategory] = useState('general');
@@ -218,7 +219,11 @@ export default function SupportPage() {
                     <p className="text-slate-500 text-sm mt-1">Abra chamados e acompanhe o atendimento</p>
                 </div>
                 <button
-                    onClick={() => { setShowNew(true); setActiveTicket(null); }}
+                    onClick={() => { 
+                        setShowNew(true); 
+                        setActiveTicket(null); 
+                        setShowTicketForm(false); 
+                    }}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
                 >
                     <Plus className="w-4 h-4" />
@@ -293,28 +298,35 @@ export default function SupportPage() {
                                     Antes de abrir um ticket, consulte nossa Base de Conhecimento. Muitos problemas são resolvidos rapidamente.
                                 </p>
 
-                                {/* Fluxo de Autossuporte (Design do usuário) */}
+                                {/* Fluxo de Autossuporte Inteligente - Usuário decide */}
                                 <div className="mb-6">
                                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
-                                        <span>1. Consulte a Base de Conhecimento primeiro</span>
+                                        <span>1. Consulte nossa Base de Conhecimento (muitos problemas são resolvidos aqui)</span>
                                     </div>
                                     <div className="p-5 rounded-2xl border border-blue-200 bg-white shadow-sm">
                                         <HelpAssistant
                                             onTopicHelpful={() => {
-                                                // Feedback positivo registrado (pode evoluir para tracking real)
+                                                // Usuário marcou que um artigo ajudou
                                             }}
-                                            onStillNeedHelp={() => {
-                                                // Usuário explicitamente quer seguir para ticket
+                                            onStillNeedHelp={(description) => {
+                                                setShowTicketForm(true);
+                                                if (description && !newMessage) {
+                                                    setNewMessage(description + "\n\n(Descrição inicial do problema)");
+                                                }
                                             }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="mb-4">
-                                    <div className="text-sm font-semibold text-slate-700 mb-2">2. Se o problema persistir, abra o chamado:</div>
-                                </div>
+                                {showTicketForm && (
+                                    <>
+                                        <div className="mb-4">
+                                            <div className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                                                2. Como o problema não foi resolvido pela ajuda, vamos abrir o chamado:
+                                            </div>
+                                        </div>
 
-                                <div className="space-y-4">
+                                        <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-1">Assunto *</label>
                                         <input
@@ -387,7 +399,10 @@ export default function SupportPage() {
                                             {creating ? 'Enviando...' : 'Enviar chamado'}
                                         </button>
                                         <button
-                                            onClick={() => setShowNew(false)}
+                                            onClick={() => {
+                                                setShowNew(false);
+                                                setShowTicketForm(false);
+                                            }}
                                             className="px-6 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 transition"
                                         >
                                             Cancelar
