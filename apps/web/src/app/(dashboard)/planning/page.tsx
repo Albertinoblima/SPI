@@ -105,27 +105,46 @@ const PlanningDashboardPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="mt-4 pt-4 border-t border-slate-800 flex flex-wrap gap-3">
+                                <div className="mt-4 pt-4 border-t border-slate-800 flex flex-wrap gap-3 text-sm">
                                     <Link
                                         href={`/planning/${plan.id}`}
-                                        className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-white font-medium"
+                                        className="text-slate-300 hover:text-white font-medium"
                                     >
                                         Ver detalhes
                                     </Link>
 
                                     <Link
                                         href={`/planning/new?editId=${plan.id}`}
-                                        className="inline-flex items-center gap-1 text-sm text-amber-400 hover:text-amber-300 font-medium"
+                                        className="text-amber-400 hover:text-amber-300 font-medium"
                                     >
                                         Editar
                                     </Link>
 
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm(`Duplicar o planejamento "${plan.name}"?`)) {
+                                                try {
+                                                    const { createResearchPlan } = await import('@/lib/supabase/researchPlans');
+                                                    const newPlan = await createResearchPlan({
+                                                        name: `${plan.name} (Cópia)`,
+                                                        planningData: plan.planning_data,
+                                                    });
+                                                    window.location.href = `/planning/new?editId=${newPlan.id}`;
+                                                } catch (e) {
+                                                    alert('Erro ao duplicar planejamento.');
+                                                }
+                                            }
+                                        }}
+                                        className="text-emerald-400 hover:text-emerald-300 font-medium"
+                                    >
+                                        Duplicar
+                                    </button>
+
                                     <Link
                                         href={`/surveys/new?planId=${plan.id}`}
-                                        className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 font-medium ml-auto"
+                                        className="text-blue-400 hover:text-blue-300 font-medium ml-auto flex items-center gap-1"
                                     >
-                                        Criar Pesquisa
-                                        <ArrowRight size={16} />
+                                        Criar Pesquisa <ArrowRight size={15} />
                                     </Link>
                                 </div>
                             </div>
