@@ -82,18 +82,49 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Enriquecer com estatísticas
+        // Enriquecer com estatísticas + Saúde (erros recentes)
+        const tenantIds = tenants.map((t: any) => t.id);
+
+        // Busca agregada de erros não resolvidos nas últimas 24h (1 query eficiente)
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentErrors } = await auth.supabase
+            .from('error_logs')
+            .select('tenant_id, severity')
+            .in('tenant_id', tenantIds)
+            .eq('resolved', false)
+            .gte('created_at', since24h);
+
+        // Agrega por tenant
+        const healthByTenant = new Map<string, { critical: number; high: number; medium: number; lastErrorAt: string | null }>();
+        (recentErrors ?? []).forEach((row: any) => {
+            if (!row.tenant_id) return;
+            const current = healthByTenant.get(row.tenant_id) || { critical: 0, high: 0, medium: 0, lastErrorAt: null };
+            if (row.severity === 'critical') current.critical += 1;
+            else if (row.severity === 'high') current.high += 1;
+            else if (row.severity === 'medium') current.medium += 1;
+            // lastErrorAt pode ser refinado depois se necessário
+            healthByTenant.set(row.tenant_id, current);
+        });
+
         const enrichedTenants = await Promise.all(
-            tenants.map(async (tenant) => {
+            tenants.map(async (tenant: any) => {
                 const { data: stats } = await auth.supabase
                     .from('vw_tenant_stats')
                     .select('*')
                     .eq('tenant_id', tenant.id)
                     .single();
 
+                const health = healthByTenant.get(tenant.id) || { critical: 0, high: 0, medium: 0, lastErrorAt: null };
+
                 return {
                     ...tenant,
                     stats: stats || {},
+                    health: {
+                        critical_24h: health.critical,
+                        high_24h: health.high,
+                        medium_24h: health.medium,
+                        has_recent_issues: health.critical > 0 || health.high > 0,
+                    },
                 };
             })
         );

@@ -30,6 +30,12 @@ interface Tenant {
         active_surveys: number;
         total_responses: number;
     };
+    health?: {
+        critical_24h: number;
+        high_24h: number;
+        medium_24h: number;
+        has_recent_issues: boolean;
+    };
 }
 
 export default function TenantsPage() {
@@ -162,6 +168,44 @@ export default function TenantsPage() {
                 className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
             >
                 {badge.label}
+            </span>
+        );
+    };
+
+    const getHealthBadge = (health?: Tenant['health']) => {
+        if (!health) {
+            return <span className="text-xs text-slate-500">—</span>;
+        }
+
+        if (health.critical_24h > 0) {
+            return (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30" title={`${health.critical_24h} crítico(s) + ${health.high_24h} alto(s) nas últimas 24h`}>
+                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                    {health.critical_24h} crítico{health.critical_24h > 1 ? 's' : ''}
+                </span>
+            );
+        }
+
+        if (health.high_24h > 0) {
+            return (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30" title={`${health.high_24h} erro(s) de alta severidade nas últimas 24h`}>
+                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
+                    {health.high_24h} alto
+                </span>
+            );
+        }
+
+        if (health.medium_24h > 0) {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" title={`${health.medium_24h} erro(s) médio(s) nas últimas 24h`}>
+                    {health.medium_24h} médio
+                </span>
+            );
+        }
+
+        return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" title="Sem incidentes críticos ou altos nas últimas 24h">
+                Limpo
             </span>
         );
     };
@@ -305,6 +349,9 @@ export default function TenantsPage() {
                                         Status
                                     </th>
                                     <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
+                                        Saúde 24h
+                                    </th>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
                                         Usuários
                                     </th>
                                     <th className="px-4 py-4 text-left text-sm font-semibold text-slate-300">
@@ -321,7 +368,7 @@ export default function TenantsPage() {
                             <tbody>
                                 {filteredTenants.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-12 text-center">
+                                        <td colSpan={8} className="px-6 py-12 text-center">
                                             <Building2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
                                             <p className="text-slate-400">
                                                 Nenhuma empresa encontrada
@@ -360,6 +407,9 @@ export default function TenantsPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 {getStatusBadge(tenant.status)}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                {getHealthBadge(tenant.health)}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-300">
                                                 {tenant.stats?.active_users} / {tenant.max_users}
