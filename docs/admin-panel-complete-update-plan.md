@@ -187,10 +187,11 @@ O Painel Administrativo funciona como **"God Mode"** da plataforma:
 **2026-05 (sessão atual):**
 - **Fase 2 (Saúde do Sistema)**: Status das Integrações Externas completamente refeito com detecção honesta de tokens, descrições de impacto operacional e UI rica (GitHub / Vercel / Supabase Interno). [apps/web/src/app/admin/system/health/*]
 - **Fase 1 (Ações em Massa)**: 
-  - Bulk status (active/trial/suspended) para tenants (API + checkboxes + toolbar âmbar + auditoria completa).
-  - Bulk "Marcar como Resolvido / Reabrir" para error_logs (adaptado ao design de cards existente, max 200, auditoria por erro).
-- Verificações: tsc --noEmit limpo em todas as alterações.
-- Commits: 3 commits focados (09735ec, 2f8616e, 6ca4b24).
+  - Bulk status (active/trial/suspended) para tenants.
+  - Bulk "Marcar como Resolvido / Reabrir" para error_logs.
+- **Fase 2 (Observabilidade)**: "Saúde 24h" indicators na listagem de tenants (badges críticos/altos/médios com contagem agregada eficiente das últimas 24h). Torna o bulk muito mais acionável.
+- Verificações: tsc --noEmit limpo.
+- Commits: 4 commits focados nesta sessão (09735ec → a1de30c).
 
 Próximos candidatos de alto valor (decisão autônoma futura):
 - Bulk "marcar erros resolvidos" na página de errors

@@ -409,7 +409,17 @@ export default function TenantsPage() {
                                                 {getStatusBadge(tenant.status)}
                                             </td>
                                             <td className="px-4 py-4">
-                                                {getHealthBadge(tenant.health)}
+                                                {tenant.health?.has_recent_issues ? (
+                                                    <Link
+                                                        href={`/admin/system/errors?tenant_id=${tenant.id}`}
+                                                        className="hover:opacity-80 transition"
+                                                        title="Ver erros desta empresa"
+                                                    >
+                                                        {getHealthBadge(tenant.health)}
+                                                    </Link>
+                                                ) : (
+                                                    getHealthBadge(tenant.health)
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-300">
                                                 {tenant.stats?.active_users} / {tenant.max_users}

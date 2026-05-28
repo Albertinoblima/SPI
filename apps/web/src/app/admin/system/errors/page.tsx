@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
     AlertTriangle,
     Search,
@@ -13,6 +15,8 @@ import {
     CheckCheck,
     RotateCcw,
     Users,
+    X,
+    Building2,
 } from 'lucide-react';
 import { getErrorCodeDefinition } from '@/lib/monitoring/error-codes';
 
@@ -37,6 +41,7 @@ interface ErrorApiResponse {
         summary: {
             openCount: number;
             criticalOpenCount: number;
+            filteredByTenant?: boolean;
         };
     };
 }
@@ -53,6 +58,12 @@ export default function ErrorsPage() {
     const [openCount, setOpenCount] = useState(0);
     const [criticalOpenCount, setCriticalOpenCount] = useState(0);
 
+    // Filtro por tenant (vindo da lista de empresas com badge de Saúde)
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const tenantFilter = searchParams.get('tenant_id');
+    const [tenantName, setTenantName] = useState<string | null>(null);
+
     const fetchErrors = useCallback(async () => {
         try {
             setLoading(true);
@@ -67,6 +78,10 @@ export default function ErrorsPage() {
 
             if (resolvedFilter !== 'all') {
                 params.append('resolved', resolvedFilter === 'resolved' ? 'true' : 'false');
+            }
+
+            if (tenantFilter) {
+                params.append('tenant_id', tenantFilter);
             }
 
             const response = await fetch(`/api/admin/system/errors?${params}`);
@@ -94,6 +109,26 @@ export default function ErrorsPage() {
         const interval = setInterval(fetchErrors, 10000);
         return () => clearInterval(interval);
     }, [fetchErrors]);
+
+    // Busca nome do tenant quando filtrando (UX amigável)
+    useEffect(() => {
+        const loadTenantName = async () => {
+            if (!tenantFilter) {
+                setTenantName(null);
+                return;
+            }
+            try {
+                const res = await fetch(`/api/admin/tenants/${tenantFilter}`);
+                if (res.ok) {
+                    const { data } = await res.json();
+                    setTenantName(data?.name || data?.tenant?.name || null);
+                }
+            } catch {
+                setTenantName(null);
+            }
+        };
+        loadTenantName();
+    }, [tenantFilter]);
 
     const handleResolveError = async (errorId: string, currentResolved: boolean) => {
         try {
@@ -259,6 +294,66 @@ export default function ErrorsPage() {
                     <p className="text-2xl font-bold text-red-200">{criticalOpenCount}</p>
                 </div>
             </div>
+
+            {/* Banner de filtro por Tenant (fechamento do loop Saúde → Erros) */}
+            {tenantFilter && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-700/50 bg-amber-950/30 p-4">
+                    <div className="flex items-center gap-3">
+                        <Building2 className="h-5 w-5 text-amber-400" />
+                        <div>
+                            <div className="text-sm font-medium text-amber-300">
+                                Filtrando erros de: <span className="text-white font-semibold">{tenantName || tenantFilter}</span>
+                            </div>
+                            <div className="text-xs text-amber-400/80">
+                                Apenas incidentes desta empresa estão sendo exibidos
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={`/admin/tenants/${tenantFilter}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-700/60 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-900/30 transition"
+                        >
+                            Ver empresa
+                        </Link>
+
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams(searchParams.toString());
+                                params.delete('tenant_id');
+                                router.push(`/admin/system/errors?${params.toString()}`);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition"
+                        >
+                            <X className="h-3.5 w-3.5" /> Limpar filtro
+                        </button>
+
+                        <button
+                            onClick={async () => {
+                                if (!confirm('Iniciar impersonation para esta empresa?')) return;
+                                try {
+                                    const res = await fetch('/api/admin/impersonate', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ action: 'start', tenantId: tenantFilter }),
+                                    });
+                                    if (res.ok) {
+                                        window.location.href = '/dashboard';
+                                    } else {
+                                        alert('Falha ao iniciar impersonation');
+                                    }
+                                } catch {
+                                    alert('Erro de conexão');
+                                }
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-400 transition"
+                        >
+                            Entrar como esta empresa
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="flex gap-4 flex-wrap">

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         const severity = searchParams.get('severity');
         const resolvedQuery = searchParams.get('resolved');
         const search = searchParams.get('search')?.trim();
+        const tenantId = searchParams.get('tenant_id');
         const page = parseInt(searchParams.get('page') || '1');
         const pageSize = 50;
         const offset = (page - 1) * pageSize;
@@ -42,6 +43,10 @@ export async function GET(request: NextRequest) {
             query = query.or(`error_code.ilike.%${search}%,error_message.ilike.%${search}%`);
         }
 
+        if (tenantId) {
+            query = query.eq('tenant_id', tenantId);
+        }
+
         const { data: errors, count, error: fetchError } = await query
             .range(offset, offset + pageSize - 1);
 
@@ -53,16 +58,26 @@ export async function GET(request: NextRequest) {
             });
         }
 
+        // Summary: se filtrando por tenant, mostra contagens daquele tenant; senão, globais
+        let openQuery = auth.supabase
+            .from('error_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('resolved', false);
+
+        let criticalQuery = auth.supabase
+            .from('error_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('resolved', false)
+            .eq('severity', 'critical');
+
+        if (tenantId) {
+            openQuery = openQuery.eq('tenant_id', tenantId);
+            criticalQuery = criticalQuery.eq('tenant_id', tenantId);
+        }
+
         const [{ count: openCount }, { count: criticalCount }] = await Promise.all([
-            auth.supabase
-                .from('error_logs')
-                .select('*', { count: 'exact', head: true })
-                .eq('resolved', false),
-            auth.supabase
-                .from('error_logs')
-                .select('*', { count: 'exact', head: true })
-                .eq('resolved', false)
-                .eq('severity', 'critical'),
+            openQuery,
+            criticalQuery,
         ]);
 
         return apiSuccess({
@@ -70,6 +85,7 @@ export async function GET(request: NextRequest) {
             summary: {
                 openCount: openCount ?? 0,
                 criticalOpenCount: criticalCount ?? 0,
+                filteredByTenant: !!tenantId,
             },
             pagination: {
                 page,
