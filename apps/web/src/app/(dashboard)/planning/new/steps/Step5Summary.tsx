@@ -95,19 +95,31 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                 <h3 className="text-lg font-medium mb-3">4. Distribuição e Cotas</h3>
                 <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm">
                     {quotas.length > 0 ? (
-                        <div className="space-y-1">
-                            {quotas.slice(0, 6).map((q: any, idx: number) => (
-                                <div key={idx} className="flex justify-between text-sm">
-                                    <span>{q.name} {q.uf ? `(${q.uf})` : ''}</span>
-                                    <span className="font-medium">{q.interviews?.toLocaleString('pt-BR') || 0}</span>
-                                </div>
-                            ))}
-                            {quotas.length > 6 && <div className="text-xs text-slate-500">+ {quotas.length - 6} outros...</div>}
-                            <div className="pt-2 mt-2 border-t border-slate-700 flex justify-between font-semibold">
-                                <span>Total</span>
-                                <span>{(dist.totalAssigned || 0).toLocaleString('pt-BR')} entrevistas</span>
+                        <>
+                            <div className="space-y-1">
+                                {quotas.slice(0, 6).map((q: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between text-sm">
+                                        <span>{q.name} {q.uf ? `(${q.uf})` : ''}</span>
+                                        <span className="font-medium">{q.interviews?.toLocaleString('pt-BR') || 0}</span>
+                                    </div>
+                                ))}
+                                {quotas.length > 6 && <div className="text-xs text-slate-500">+ {quotas.length - 6} outros...</div>}
                             </div>
-                        </div>
+
+                            <div className="pt-3 mt-3 border-t border-slate-700">
+                                <div className="flex justify-between font-semibold">
+                                    <span>Total</span>
+                                    <span>{(dist.totalAssigned || 0).toLocaleString('pt-BR')} entrevistas</span>
+                                </div>
+
+                                {/* Alerta de qualidade da distribuição */}
+                                {sampleSize > 0 && Math.abs((dist.totalAssigned || 0) - sampleSize) > sampleSize * 0.1 && (
+                                    <div className="mt-2 text-xs text-amber-400">
+                                        ⚠️ A distribuição atual tem mais de 10% de diferença em relação ao tamanho da amostra.
+                                    </div>
+                                )}
+                            </div>
+                        </>
                     ) : (
                         <p className="text-slate-400">Nenhuma distribuição definida.</p>
                     )}

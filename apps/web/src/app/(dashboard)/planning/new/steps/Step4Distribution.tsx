@@ -228,17 +228,22 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-3 w-64">
-                                {/* Barra de participação na amostra total */}
+                            <div className="flex items-center gap-3 w-72">
+                                {/* Barra de participação + comparação com proporcional */}
                                 <div className="flex-1">
-                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-0.5">
                                         <div 
                                             className={`h-full transition-all ${quota.locked ? 'bg-amber-500' : 'bg-blue-500'}`}
                                             style={{ width: `${sampleSize > 0 ? Math.min((quota.interviews / sampleSize) * 100, 100) : 0}%` }}
                                         />
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5 text-right">
-                                        {sampleSize > 0 ? ((quota.interviews / sampleSize) * 100).toFixed(0) : 0}%
+                                    <div className="flex justify-between text-[10px] text-slate-500">
+                                        <span>{sampleSize > 0 ? ((quota.interviews / sampleSize) * 100).toFixed(0) : 0}% da amostra</span>
+                                        {quota.population > 0 && totalPopulation > 0 && (
+                                            <span className="text-emerald-400">
+                                                Ideal: {Math.round((quota.population / totalPopulation) * sampleSize)}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -270,7 +275,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 })}
             </div>
 
-            <div className="mb-6 p-4 rounded-xl bg-slate-900 border border-slate-700 text-sm space-y-1">
+            <div className="mb-6 p-4 rounded-xl bg-slate-900 border border-slate-700 text-sm space-y-2">
                 <div className="flex justify-between">
                     <span className="text-slate-400">Total distribuído:</span>
                     <span className={`font-semibold text-lg ${difference === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -285,7 +290,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 )}
 
                 {totalPopulation > 0 && (
-                    <div className="flex justify-between pt-1 border-t border-slate-700">
+                    <div className="flex justify-between">
                         <span className="text-slate-400">Densidade média:</span>
                         <span className="font-medium text-white">
                             {((totalAssigned / totalPopulation) * 10000).toFixed(1)} entrevistas por 10 mil hab.
@@ -293,9 +298,25 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                     </div>
                 )}
 
+                {/* Qualidade da Distribuição */}
+                {totalPopulation > 0 && (
+                    <div className="pt-2 border-t border-slate-700">
+                        <div className="flex justify-between text-xs">
+                            <span className="text-slate-400">Qualidade da distribuição:</span>
+                            <span className={`font-medium ${
+                                Math.abs(difference) < sampleSize * 0.05 ? 'text-emerald-400' : 
+                                Math.abs(difference) < sampleSize * 0.15 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                                {Math.abs(difference) < sampleSize * 0.05 ? 'Excelente' : 
+                                 Math.abs(difference) < sampleSize * 0.15 ? 'Boa' : 'Requer atenção'}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {quotas.some(q => q.locked) && (
                     <div className="text-amber-400 text-xs pt-1">
-                        • Algumas cotas estão travadas (não serão alteradas pela sugestão)
+                        • Algumas cotas estão travadas
                     </div>
                 )}
             </div>
