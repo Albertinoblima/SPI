@@ -87,6 +87,17 @@ export class DocxReportGenerator {
       );
     }
 
+    // Metodologia (vinda do planejamento)
+    if (config.includeMethodology && surveyData.planning?.methodology) {
+      children.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun('Metodologia')],
+        }),
+        new Paragraph({ children: [new TextRun(surveyData.planning.methodology)] }),
+      );
+    }
+
     children.push(new Paragraph({ children: [new PageBreak()] }));
 
     // === CONTEÚDO POR TIPO DE RELATÓRIO ===
@@ -228,6 +239,76 @@ export class DocxReportGenerator {
       consolidated: 'Consolidado',
     };
     return labels[type] || type;
+  }
+
+  /**
+   * Helper para gerar conteúdo específico por tipo de relatório.
+   * Esta é a área principal de evolução para entregar os três tipos de forma completa.
+   */
+  private async buildContentByType(config: ReportConfiguration, surveyData: any): Promise<any[]> {
+    const children: any[] = [];
+    const totals = await reportAggregationService.getBasicTotals(config.surveyId);
+
+    if (config.reportType === 'synthetic' || config.reportType === 'consolidated') {
+      children.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun('Estatísticas Gerais (Sintético)')],
+        }),
+        new Paragraph({ children: [new TextRun(`Total de entrevistas realizadas: ${totals.totalResponses}`)] }),
+        new Paragraph({ children: [new TextRun('Resumo executivo com os principais indicadores da pesquisa.')] }),
+      );
+    }
+
+    if (config.reportType === 'analytical' || config.reportType === 'consolidated') {
+      children.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun('Análise por Cruzamentos (Selecionados pelo Pesquisador)')],
+        })
+      );
+
+      if (config.selectedCrossings && config.selectedCrossings.length > 0) {
+        for (const crossing of config.selectedCrossings) {
+          const crossData = await reportAggregationService.getCrossTab(
+            config.surveyId, 
+            crossing.variables[0], 
+            crossing.variables[1]
+          );
+
+          children.push(
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              children: [new TextRun(crossing.title || `Cruzamento: ${crossing.variables.join(' × ')}`)],
+            }),
+            new Paragraph({ children: [new TextRun(`Total de respostas válidas: ${crossData.total}`)] }),
+          );
+
+          if (crossData.rows.length > 0) {
+            const tableRows = [
+              new TableRow({
+                children: ['Variável 1', 'Variável 2', 'Qtd', '%'].map(h => 
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, size: 18 })] })] })
+                ),
+              }),
+              ...crossData.rows.slice(0, 8).map((row: any) => 
+                new TableRow({
+                  children: Object.values(row).map((val: any) => 
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(val), size: 18 })] })] })
+                  ),
+                })
+              ),
+            ];
+
+            children.push(new Table({ rows: tableRows }));
+          }
+        }
+      } else {
+        children.push(new Paragraph({ children: [new TextRun('Nenhum cruzamento foi selecionado para análise.')] }));
+      }
+    }
+
+    return children;
   }
 }
 
