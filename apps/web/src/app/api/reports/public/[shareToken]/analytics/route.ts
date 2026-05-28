@@ -18,7 +18,7 @@ export async function GET(
     const email = searchParams.get('email') || undefined;
     const password = searchParams.get('password') || undefined;
 
-    // Valida acesso (token + credenciais quando necessário)
+    // Valida acesso (token + credenciais quando o share é protected)
     const access = await publicReportAccessService.validateAccess(
       params.shareToken,
       email,
@@ -31,14 +31,37 @@ export async function GET(
 
     const surveyId = access.share.survey_id;
 
-    // Busca dados reais de analytics
+    const cross1 = searchParams.get('cross1');
+    const cross2 = searchParams.get('cross2');
+
+    // Se pediram cruzamento explícito, entregue o cross real
+    if (cross1 && cross2) {
+      const crossTab = await reportAggregationService.getCrossTab(surveyId, cross1, cross2);
+      return apiSuccess({
+        type: 'crossTab',
+        variables: [cross1, cross2],
+        data: crossTab,
+        message: 'Cruzamento gerado com sucesso.',
+      });
+    }
+
+    // Busca dados reais de analytics (visão geral + lista de cruzáveis)
     const totals = await reportAggregationService.getBasicTotals(surveyId);
-    const availableCrossings = await reportAggregationService.getCrossableQuestions(surveyId);
+    const crossable = await reportAggregationService.getCrossableQuestions(surveyId);
 
     return apiSuccess({
       surveyId,
       totalResponses: totals.totalResponses,
-      availableCrossings: availableCrossings.map(q => [q.id, q.question_text]), // simplificado para o frontend
+      lastUpdated: totals.lastUpdated,
+      availableCrossings: crossable.map((q: any) => ({
+        id: q.id,
+        text: q.question_text,
+        type: q.question_type,
+      })),
+      shareInfo: {
+        accessType: access.share.access_type,
+        contractorEmail: access.share.contractor_email || null,
+      },
       message: 'Dados do relatório dinâmico carregados com sucesso.',
     });
   } catch (error) {

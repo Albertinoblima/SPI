@@ -20,6 +20,7 @@ import {
     ShieldAlert,
     Building2,
     MessageSquare,
+    BookOpen,
 } from 'lucide-react';
 
 interface VercelDeployment {
@@ -442,6 +443,29 @@ export default function SystemHealthPage() {
                     </div>
                 </div>
             )}
+
+            {/* Métricas de Adoção da Base de Conhecimento (Passo 2 - Evolução do Suporte) */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-emerald-400" />
+                            Adoção da Base de Conhecimento
+                        </h3>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Eventos HELP_TOPIC_MARKED_HELPFUL (especialmente categoria "Fluxo Ponta a Ponta")</p>
+                    </div>
+                    <a 
+                        href="/admin/system/errors?code=HELP_TOPIC_MARKED_HELPFUL" 
+                        className="text-[11px] px-3 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 rounded border border-emerald-700 flex items-center gap-1"
+                    >
+                        Ver eventos completos <ExternalLink className="w-3 h-3" />
+                    </a>
+                </div>
+                <div className="text-xs text-gray-400">
+                    Cada vez que um usuário clica "Isso resolveu meu problema" nos artigos (incluindo os 6 novos do fluxo ponta a ponta), um evento de baixa severidade é registrado no sistema de monitoramento central.
+                    Use o filtro por <span className="font-mono text-emerald-400">HELP_TOPIC_MARKED_HELPFUL</span> + metadados (category, context, isPontaAPonta) para medir adoção real dos guias.
+                </div>
+            </div>
 
             {/* Status das Integrações Externas - Fase 2 (detecção honesta e acionável) */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">

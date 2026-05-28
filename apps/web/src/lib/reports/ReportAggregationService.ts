@@ -133,7 +133,7 @@ export class ReportAggregationService {
       total++;
     });
 
-    // Transformar em array para frontend
+    // Transformar em array para frontend (usando IDs como chaves por enquanto; labels são resolvidos no caller quando possível)
     const rows = Object.entries(matrix).flatMap(([val1, val2Obj]) =>
       Object.entries(val2Obj).map(([val2, count]) => ({
         [questionId1]: val1,
@@ -147,6 +147,7 @@ export class ReportAggregationService {
       variables: [questionId1, questionId2],
       rows,
       total,
+      // Nota: labels amigáveis das perguntas são resolvidos no frontend ou no caller (Docx / Dashboard)
     };
   }
 

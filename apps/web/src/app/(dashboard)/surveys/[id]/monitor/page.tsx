@@ -12,7 +12,10 @@ import {
     TrendingUp,
     Bell,
     Settings2,
+    HelpCircle,
 } from 'lucide-react';
+import { HelpAssistant } from '@/components/help/HelpAssistant';
+import { reportClientError } from '@/lib/monitoring/reportClientError';
 
 const COMING_SOON_FEATURES = [
     {
@@ -83,6 +86,27 @@ export default function SurveyMonitorPage() {
                         <Construction className="w-4 h-4" />
                         Módulo em desenvolvimento
                     </div>
+                </div>
+
+                {/* Evolução do Suporte: Ajuda contextual sobre o fluxo de cotas (ponta a ponta) */}
+                <div className="max-w-3xl mx-auto mb-10 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-emerald-700">
+                        <HelpCircle className="w-4 h-4" />
+                        Entenda como as cotas por entrevistador funcionam aqui
+                    </div>
+                    <HelpAssistant 
+                        context="mobile-collection" 
+                        compact 
+                        onStillNeedHelp={() => {}} 
+                        onTrackHelpful={(topic) => {
+                            reportClientError({
+                                errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
+                                errorMessage: `Artigo útil (mobile/collection): ${topic.title}`,
+                                severity: 'low',
+                                metadata: { topicId: topic.id, category: topic.category, context: 'mobile-collection' }
+                            });
+                        }}
+                    />
                 </div>
 
                 {/* Título */}

@@ -39,7 +39,38 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const { data: quotas, error } = await query;
         if (error) return apiError(`Falha ao carregar cotas: ${error.message}`, 500);
 
-        return apiSuccess({ role: member.role, quotas: quotas ?? [] });
+        // === POLISH 100%: Real collected counts (same logic as main bundle) ===
+        let quotasWithCounts = (quotas ?? []) as any[];
+
+        if (quotasWithCounts.length > 0) {
+            const interviewFilter = member.role === 'interviewer' ? { interviewer_id: ctx.userId } : {};
+            const { data: interviews } = await admin
+                .from('interviews')
+                .select('locality_id, status')
+                .eq('survey_id', params.id)
+                .eq('tenant_id', ctx.tenantId)
+                .match(interviewFilter)
+                .in('status', ['completed', 'synced']);
+
+            const collectedByLocality: Record<string, number> = {};
+            (interviews ?? []).forEach((iv: any) => {
+                if (iv.locality_id) {
+                    collectedByLocality[iv.locality_id] = (collectedByLocality[iv.locality_id] || 0) + 1;
+                }
+            });
+
+            quotasWithCounts = quotasWithCounts.map((q: any) => {
+                const locId = q.locality_id;
+                const collected = locId ? (collectedByLocality[locId] || 0) : 0;
+                return {
+                    ...q,
+                    collected_count: collected,
+                    remaining: Math.max(0, (q.quota_total || 0) - collected),
+                };
+            });
+        }
+
+        return apiSuccess({ role: member.role, quotas: quotasWithCounts });
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

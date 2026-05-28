@@ -32,7 +32,7 @@ function mapRole(raw: string): SelectedMember['role'] {
     return 'interviewer';
 }
 
-export function Step6Team({ surveyId }: Props) {
+export function Step6Team({ surveyId, initialTeamUserIds }: Props & { initialTeamUserIds?: string[] }) {
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [selected, setSelected] = useState<Record<string, SelectedMember['role']>>({});
     const [loading, setLoading] = useState(false);
@@ -40,7 +40,13 @@ export function Step6Team({ surveyId }: Props) {
     const [message, setMessage] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!surveyId) return;
+        if (!surveyId) {
+            // Stronger handoff from planning: show preview of suggested team even before first save
+            if (initialTeamUserIds && initialTeamUserIds.length > 0) {
+                // We can't know full member objects without /api/team, but we can show a hint banner below
+            }
+            return;
+        }
 
         const load = async () => {
             setLoading(true);
@@ -74,7 +80,7 @@ export function Step6Team({ surveyId }: Props) {
         };
 
         load();
-    }, [surveyId]);
+    }, [surveyId, initialTeamUserIds]);
 
     const selectedCount = useMemo(() => Object.keys(selected).length, [selected]);
     const interviewerCount = useMemo(
@@ -142,7 +148,12 @@ export function Step6Team({ surveyId }: Props) {
                 </p>
             </div>
 
-            {!surveyId && (
+            {!surveyId && initialTeamUserIds && initialTeamUserIds.length > 0 && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    <strong>Equipe sugerida pelo Planejamento 5 passos:</strong> {initialTeamUserIds.length} entrevistador(es) serão adicionados automaticamente ao salvar ou publicar esta pesquisa (cotas por entrevistador também serão aplicadas).
+                </div>
+            )}
+            {!surveyId && (!initialTeamUserIds || initialTeamUserIds.length === 0) && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     Salve o rascunho para vincular equipe a esta pesquisa.
                 </div>

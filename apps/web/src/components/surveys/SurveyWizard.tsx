@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw, Rocket } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, RefreshCw, Rocket, HelpCircle } from 'lucide-react';
 import { Step1TechnicalData, type SurveyTechData, shouldUseStatisticalSampling } from './Step1TechnicalData';
 import { getEffectiveLocalities, checkLocalitiesCompatibility } from '@/lib/survey-decisions';
 import { Step2Localities, type Locality } from './Step2Localities';
@@ -12,6 +12,8 @@ import { Step5QuestionnaireOutput } from './Step5QuestionnaireOutput';
 import { Step6Team } from './Step6Team';
 import { Step7Routes } from './Step7Routes';
 import { Step8Distribution } from './Step8Distribution';
+import { HelpAssistant } from '@/components/help/HelpAssistant';
+import { reportClientError } from '@/lib/monitoring/reportClientError';
 import type { Question } from '@political-research/shared-types';
 
 const STEPS = [
@@ -30,6 +32,10 @@ export interface WizardData {
     localities: Locality[];
     premises: Premise[];
     questions: Question[];
+    // When coming from a rich research plan (5-step planning) - handoff metadata
+    sourcePlanId?: string;
+    interviewerDistribution?: any[];
+    preselectedTeamUserIds?: string[];   // for stronger pre-fill in Step 6
 }
 
 const initialWizardData: WizardData = {
@@ -169,7 +175,7 @@ function computeAutoTotalInterviews(tech: SurveyTechData, localities: Locality[]
     return Math.ceil(nWithPop * deff);
 }
 
-export function SurveyWizard({ draftId }: { draftId?: string }) {
+export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: string }) {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [data, setData] = useState<WizardData>(initialWizardData);
@@ -180,6 +186,7 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
     const [surveyId, setSurveyId] = useState<string | undefined>(draftId);
     const [isPublished, setIsPublished] = useState(false);
     const [localitiesConflict, setLocalitiesConflict] = useState<string | null>(null);
+    const [showContextHelp, setShowContextHelp] = useState(false);
     const autosaveTimerRef = useRef<number | null>(null);
     const autosaveInitializedRef = useRef(false);
     const lastAutosavedSignatureRef = useRef('');
@@ -266,6 +273,75 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             .catch(() => setAlert({ type: 'error', message: 'Não foi possível carregar o rascunho.' }))
             .finally(() => setLoadingDraft(false));
     }, [draftId]);
+
+    // Load rich data from 5-step Research Plan when planId is provided
+    useEffect(() => {
+        if (!planId) return;
+
+        const loadRichPlan = async () => {
+            try {
+                // Try the dedicated research plans endpoint first
+                let planData: any = null;
+
+                const planRes = await fetch(`/api/research-plans/${planId}`);
+                if (planRes.ok) {
+                    const json = await planRes.json();
+                    planData = json.data?.planning_data || json.data || json;
+                } else {
+                    // Fallback to the planning detail route used in the 5-step flow
+                    const fallbackRes = await fetch(`/api/planning/${planId}`);
+                    if (fallbackRes.ok) {
+                        const fbJson = await fallbackRes.json();
+                        planData = fbJson.data?.plan?.planning_data || fbJson;
+                    }
+                }
+
+                if (!planData) return;
+
+                const geo = planData.geographicBase || {};
+                const dist = planData.distribution || {};
+
+                const prefilledLocalities: any[] = (geo.municipalities || []).map((m: any) => ({
+                    id: m.id || m.name,
+                    name: m.name,
+                    zone: m.zone || 'mixed',
+                    population: m.population || m.enriched?.population_census || m.enriched?.recommended_population || 0,
+                    interviews_required: m.interviews || (dist.quotas || []).find((q: any) => q.name === m.name)?.interviews || 0,
+                }));
+
+                // Extract unique interviewers from distribution for pre-selection in team step (stronger handoff)
+                const distAssignments = dist.interviewerAssignments || planData.interviewerDistribution || [];
+                const preselectedTeam = Array.from(new Set(
+                    (distAssignments as any[]).map((a: any) => a.interviewerId || a.userId).filter(Boolean)
+                )) as string[];
+
+                setData(prev => ({
+                    ...prev,
+                    tech: {
+                        ...prev.tech,
+                        title: planData.name || prev.tech.title,
+                        objective: planData.objective || prev.tech.objective,
+                        methodology: planData.methodology || prev.tech.methodology,
+                        total_interviews: dist.sampleSize || planData.sampleSize || prev.tech.total_interviews,
+                    },
+                    localities: prefilledLocalities.length > 0 ? prefilledLocalities : prev.localities,
+                    // Handoff from rich 5-step planning (ponta a ponta 100%)
+                    sourcePlanId: planId,
+                    interviewerDistribution: distAssignments,
+                    preselectedTeamUserIds: preselectedTeam.length > 0 ? preselectedTeam : undefined,
+                }));
+
+                // If we have strong data from the plan, jump to a relevant step
+                if (prefilledLocalities.length > 0) {
+                    setCurrentStep(Math.max(currentStep, 2));
+                }
+            } catch (e) {
+                console.warn('Failed to load rich research plan', e);
+            }
+        };
+
+        loadRichPlan();
+    }, [planId]);
 
     useEffect(() => {
         if (loadingDraft) return;
@@ -519,6 +595,47 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
         }
     }, []);
 
+    /** NEW: Seed per-interviewer quotas from a rich research plan */
+    const seedInterviewerDistributionFromPlan = useCallback(async (surveyId: string, distribution: any[]) => {
+        if (!distribution || distribution.length === 0) return;
+
+        try {
+            const payload = {
+                interviewer_quotas: distribution.map((item: any) => ({
+                    interviewer_id: item.interviewerId,
+                    locality: item.localityKey,
+                    quota: item.interviews,
+                })),
+            };
+
+            await fetch(`/api/surveys/${surveyId}/distribution`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+        } catch (e) {
+            console.warn('Failed to seed interviewer distribution from plan', e);
+        }
+    }, []);
+
+    /** NEW: Seed team members (interviewers) from plan distribution */
+    const seedTeamFromPlan = useCallback(async (surveyId: string, distribution: any[]) => {
+        if (!distribution || distribution.length === 0) return;
+
+        try {
+            const uniqueInterviewers = [...new Set(distribution.map((item: any) => item.interviewerId))];
+            for (const userId of uniqueInterviewers) {
+                await fetch(`/api/surveys/${surveyId}/team`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, role: 'interviewer' }),
+                }).catch(() => {}); // ignore duplicates
+            }
+        } catch (e) {
+            console.warn('Failed to seed team from plan', e);
+        }
+    }, []);
+
     const handleSaveDraft = async () => {
         if (isPublished) {
             setAlert({ type: 'error', message: 'Pesquisa publicada esta em coleta e esta em modo somente leitura.' });
@@ -544,6 +661,13 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 setAlert({ type: 'error', message: result.error });
                 return;
             }
+
+            // Seed team + distribution if this survey came from a rich plan
+            if (result.id && data.sourcePlanId && data.interviewerDistribution?.length) {
+                await seedTeamFromPlan(result.id, data.interviewerDistribution);
+                await seedInterviewerDistributionFromPlan(result.id, data.interviewerDistribution);
+            }
+
             setAlert({ type: 'success', message: 'Pesquisa salva como rascunho!' });
             setTimeout(() => router.push('/dashboard'), 1500);
         } finally {
@@ -591,6 +715,12 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
             if (!effectiveSurveyId) {
                 setAlert({ type: 'error', message: 'Nao foi possivel identificar a pesquisa para publicacao.' });
                 return;
+            }
+
+            // Seed team + distribution from plan before publishing (critical for ponta a ponta)
+            if (data.sourcePlanId && data.interviewerDistribution?.length) {
+                await seedTeamFromPlan(effectiveSurveyId, data.interviewerDistribution);
+                await seedInterviewerDistributionFromPlan(effectiveSurveyId, data.interviewerDistribution);
             }
 
             const publishRes = await fetch(`/api/surveys/${effectiveSurveyId}/publish`, {
@@ -647,10 +777,43 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                 <>
                     {/* Cabeçalho */}
                     <div className="mb-8">
-                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-                            {surveyId ? 'Editar Rascunho' : 'Nova Pesquisa'}
-                        </h1>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                                {surveyId ? 'Editar Rascunho' : 'Nova Pesquisa'}
+                            </h1>
+                            {data.sourcePlanId && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    Importado do Planejamento 5 passos (cotas por entrevistador aplicadas ao salvar)
+                                </span>
+                            )}
+                            <button
+                                onClick={() => setShowContextHelp(!showContextHelp)}
+                                className="ml-auto flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-600"
+                                type="button"
+                            >
+                                <HelpCircle className="w-3.5 h-3.5" />
+                                Ajuda deste fluxo
+                            </button>
+                        </div>
                         <p className="text-slate-500 mt-1">Preencha as informações nas etapas abaixo</p>
+
+                        {showContextHelp && (
+                            <div className="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-xl">
+                                <HelpAssistant 
+                                    context={data.sourcePlanId ? "planning" : "general"} 
+                                    compact 
+                                    onStillNeedHelp={() => { /* could open support ticket prefilled */ }}
+                                    onTrackHelpful={(topic, ctx) => {
+                                        reportClientError({
+                                            errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
+                                            errorMessage: `Artigo útil no wizard: ${topic.title}`,
+                                            severity: 'low',
+                                            metadata: { topicId: topic.id, category: topic.category, context: ctx || 'planning' }
+                                        });
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Stepper */}
@@ -754,7 +917,10 @@ export function SurveyWizard({ draftId }: { draftId?: string }) {
                             />
                         )}
                         {currentStep === 7 && (
-                            <Step6Team surveyId={surveyId} />
+                            <Step6Team 
+                                surveyId={surveyId} 
+                                initialTeamUserIds={data.preselectedTeamUserIds}
+                            />
                         )}
                         {currentStep === 8 && (
                             <Step7Routes

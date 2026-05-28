@@ -6,6 +6,7 @@ import {
     CheckCircle2, AlertCircle, Clock, Inbox,
 } from 'lucide-react';
 import { HelpAssistant } from '@/components/help/HelpAssistant';
+import { reportClientError } from '@/lib/monitoring/reportClientError';
 
 interface Message {
     id: string;
@@ -305,8 +306,22 @@ export default function SupportPage() {
                                     </div>
                                     <div className="p-5 rounded-2xl border border-blue-200 bg-white shadow-sm">
                                         <HelpAssistant
+                                            context="general"
                                             onTopicHelpful={() => {
                                                 // Usuário marcou que um artigo ajudou
+                                            }}
+                                            onTrackHelpful={(topic, ctx) => {
+                                                reportClientError({
+                                                    errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
+                                                    errorMessage: `Artigo de ajuda marcado como útil: ${topic.title}`,
+                                                    severity: 'low',
+                                                    metadata: { 
+                                                        topicId: topic.id, 
+                                                        category: topic.category, 
+                                                        context: ctx,
+                                                        isPontaAPonta: topic.category === 'Fluxo Ponta a Ponta'
+                                                    }
+                                                });
                                             }}
                                             onStillNeedHelp={(description) => {
                                                 setShowTicketForm(true);

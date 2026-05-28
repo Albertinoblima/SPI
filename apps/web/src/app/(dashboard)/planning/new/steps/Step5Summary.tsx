@@ -132,6 +132,34 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                 </div>
             </div>
 
+            {/* Nova seção: Distribuição por Entrevistador (Planejamento Ponta a Ponta) */}
+            {dist.interviewerAssignments && dist.interviewerAssignments.length > 0 && (
+                <div className="mb-6">
+                    <h3 className="text-lg font-medium mb-3">5. Distribuição por Entrevistador</h3>
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm">
+                        <div className="text-emerald-400 text-xs mb-2">Cotas atribuídas individualmente • Visível no app do entrevistador</div>
+
+                        {/* Simple grouped view by interviewer */}
+                        {(() => {
+                            const byInterviewer: Record<string, number> = {};
+                            dist.interviewerAssignments.forEach((a: any) => {
+                                byInterviewer[a.interviewerId] = (byInterviewer[a.interviewerId] || 0) + (a.interviews || 0);
+                            });
+                            return Object.entries(byInterviewer).slice(0, 6).map(([interviewer, total]) => (
+                                <div key={interviewer} className="flex justify-between py-0.5">
+                                    <span className="text-slate-300">{interviewer}</span>
+                                    <span className="font-semibold">{total} entrevistas</span>
+                                </div>
+                            ));
+                        })()}
+
+                        <div className="pt-2 mt-2 border-t border-slate-700 text-[10px] text-emerald-400">
+                            Total distribuído para equipe: {dist.interviewerAssignments.reduce((s: number, a: any) => s + (a.interviews || 0), 0)}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {saveSuccess && (
                 <div className="mb-6 p-4 bg-emerald-900/30 border border-emerald-700 text-emerald-400 rounded-xl">
                     <p className="font-medium">Planejamento salvo com sucesso!</p>
@@ -144,10 +172,92 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                         </a>
                         <a
                             href={`/surveys/new?planId=${planningData.id || ''}`}
-                            className="text-sm px-4 py-1.5 border border-emerald-600 hover:bg-emerald-900/50 rounded-lg inline-block"
+                            className="text-sm px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg inline-block font-medium"
                         >
-                            Criar Pesquisa a partir deste plano
+                            Criar Pesquisa com esta Distribuição por Entrevistador →
                         </a>
+                        <p className="text-[10px] text-emerald-500 mt-1">
+                            As cotas por entrevistador serão aplicadas automaticamente ao publicar a pesquisa.
+                        </p>
+
+                        {/* Direct powerful action - best UX decision for closing the loop */}
+                        <button
+                            onClick={async () => {
+                                if (!confirm('Criar a pesquisa agora com as cotas por entrevistador definidas?')) return;
+
+                                // Simple local loading state
+                                try {
+                                    const dist = planningData.distribution || {};
+                                    const geo = planningData.geographicBase || {};
+
+                                    const createRes = await fetch('/api/surveys', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            title: planningData.name || 'Pesquisa sem título',
+                                            description: planningData.objective || '',
+                                            total_interviews: dist.sampleSize || 0,
+                                            planning_data_id: planningData.id,
+                                            localities: (geo.municipalities || []).map((m: any) => ({
+                                                name: m.name,
+                                                zone: m.zone || 'mixed',
+                                                population: m.population || m.enriched?.population_census || 0,
+                                            })),
+                                        }),
+                                    });
+
+                                    const createJson = await createRes.json();
+                                    if (!createRes.ok) {
+                                        alert('Erro ao criar pesquisa: ' + (createJson.error || 'Desconhecido'));
+                                        return;
+                                    }
+
+                                    const newSurveyId = createJson.data?.survey?.id;
+                                    if (!newSurveyId) {
+                                        alert('Pesquisa criada, mas não foi possível obter o ID.');
+                                        return;
+                                    }
+
+                                    // 1. Add interviewers to the team
+                                    if (dist.interviewerAssignments && dist.interviewerAssignments.length > 0) {
+                                        const uniqueInterviewers = [...new Set(dist.interviewerAssignments.map((a: any) => a.interviewerId))];
+                                        for (const interviewerId of uniqueInterviewers) {
+                                            await fetch(`/api/surveys/${newSurveyId}/team`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    user_id: interviewerId,
+                                                    role: 'interviewer',
+                                                }),
+                                            }).catch(() => {});
+                                        }
+                                    }
+
+                                    // 2. Seed the interviewer distribution (core of ponta a ponta)
+                                    if (dist.interviewerAssignments && dist.interviewerAssignments.length > 0) {
+                                        await fetch(`/api/surveys/${newSurveyId}/distribution`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                interviewer_quotas: dist.interviewerAssignments.map((a: any) => ({
+                                                    interviewer_id: a.interviewerId,
+                                                    locality: a.localityKey,
+                                                    quota: a.interviews,
+                                                })),
+                                            }),
+                                        });
+                                    }
+
+                                    alert('Pesquisa criada com sucesso! Equipe + cotas por entrevistador aplicadas automaticamente (loop ponta a ponta completo). Redirecionando...');
+                                    window.location.href = `/surveys/${newSurveyId}`;
+                                } catch (e: any) {
+                                    alert('Erro: ' + (e.message || e));
+                                }
+                            }}
+                            className="mt-3 w-full text-sm px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold"
+                        >
+                            Criar Pesquisa AGORA + Aplicar Cotas por Entrevistador
+                        </button>
                     </div>
                 </div>
             )}

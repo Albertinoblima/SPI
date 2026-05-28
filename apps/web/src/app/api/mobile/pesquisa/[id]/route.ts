@@ -58,11 +58,48 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         const { data: quotas } = await quotasQuery;
 
+        // === POLISH 100%: Real collected counts from interviews table (ponta a ponta) ===
+        let quotasWithCounts = (quotas ?? []) as any[];
+
+        if (quotasWithCounts.length > 0) {
+            // Fetch completed/synced interviews for this survey + current user (interviewer scoped)
+            const interviewFilter = teamMembership.role === 'interviewer'
+                ? { interviewer_id: ctx.userId }
+                : {};
+
+            const { data: interviews } = await admin
+                .from('interviews')
+                .select('locality_id, status')
+                .eq('survey_id', params.id)
+                .eq('tenant_id', ctx.tenantId)
+                .match(interviewFilter)
+                .in('status', ['completed', 'synced']);
+
+            // Aggregate collected per locality_id (sum across any strata)
+            const collectedByLocality: Record<string, number> = {};
+            (interviews ?? []).forEach((iv: any) => {
+                if (iv.locality_id) {
+                    collectedByLocality[iv.locality_id] = (collectedByLocality[iv.locality_id] || 0) + 1;
+                }
+            });
+
+            // Attach collected_count + remaining to each quota row (for mobile UI)
+            quotasWithCounts = quotasWithCounts.map((q: any) => {
+                const locId = q.locality_id;
+                const collected = locId ? (collectedByLocality[locId] || 0) : 0;
+                return {
+                    ...q,
+                    collected_count: collected,
+                    remaining: Math.max(0, (q.quota_total || 0) - collected),
+                };
+            });
+        }
+
         return apiSuccess({
             survey,
             role: teamMembership.role,
             routes: routes ?? [],
-            quotas: quotas ?? [],
+            quotas: quotasWithCounts,
         });
     } catch (error) {
         return handleApiUnhandledError(request, error, {

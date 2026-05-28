@@ -49,9 +49,10 @@ export async function POST(
     // Get basic analytics
     const totals = await reportAggregationService.getBasicTotals(params.surveyId);
 
-    // Prepare data for the generator
+    // Prepare data for the generator (inclui tenantId para buscar logo real)
     const reportData = {
       title: survey.title,
+      tenantId: ctx.tenantId,
       planning: survey.planning_data?.[0] || null,
       premises: survey.survey_premises || [],
       totals,

@@ -8,6 +8,9 @@ import {
     computeTseStratifiedSuggestion,
     computeCnefeDensity,
 } from '@/lib/planning/tse-stratification';
+import { InterviewerQuotaAssignment, type Interviewer, type GeographicQuota } from '@/components/planning/InterviewerQuotaAssignment';
+import { HelpAssistant } from '@/components/help/HelpAssistant';
+import { reportClientError } from '@/lib/monitoring/reportClientError';
 
 interface Step4DistributionProps {
     initialData?: any;
@@ -280,17 +283,86 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
     // ==================== Fim Fase 2 ====================
 
     const handleNext = () => {
+        const hasInterviewerAssignments = interviewerAssignments.length > 0;
+
+        // Soft guidance (melhor decisão: não bloquear, mas orientar)
+        if (!hasInterviewerAssignments && activeInterviewers.length > 0) {
+            const proceed = confirm(
+                'Você ainda não distribuiu as cotas entre os entrevistadores.\n\n' +
+                'Recomendamos fortemente fazer isso agora para que cada pessoa no mobile receba sua missão correta.\n\n' +
+                'Deseja continuar mesmo assim?'
+            );
+            if (!proceed) return;
+        }
+
         onNext({
             distribution: {
                 quotas,
                 totalAssigned,
                 sampleSize,
                 totalPopulation,
+                // Nova: atribuições por entrevistador (fecha o loop ponta a ponta)
+                interviewerAssignments: hasInterviewerAssignments ? interviewerAssignments : undefined,
             },
         });
     };
 
     const difference = totalAssigned - sampleSize;
+
+    // === INTEGRAÇÃO: Atribuição por Entrevistador (novo - Fase Ponta a Ponta) ===
+    const [showInterviewerAssignment, setShowInterviewerAssignment] = useState(false);
+    const [interviewerAssignments, setInterviewerAssignments] = useState<any[]>([]);
+    const [realInterviewers, setRealInterviewers] = useState<Interviewer[] | null>(null);
+    const [loadingTeam, setLoadingTeam] = useState(false);
+
+    // Carrega equipe real do tenant (melhor decisão: reutilizar API existente)
+    const loadRealTeam = async () => {
+        setLoadingTeam(true);
+        try {
+            const res = await fetch('/api/team');
+            const json = await res.json();
+            const members = json.data?.members || [];
+            const interviewers = members
+                .filter((m: any) => m.role === 'interviewer' || m.role?.includes('entrevistador'))
+                .map((m: any) => ({
+                    userId: m.id || m.user_id,
+                    fullName: m.full_name || m.name || 'Entrevistador',
+                    email: m.email,
+                }));
+
+            if (interviewers.length > 0) {
+                setRealInterviewers(interviewers);
+            } else {
+                // Fallback para todos os membros se não houver papel explícito
+                setRealInterviewers(members.map((m: any) => ({
+                    userId: m.id || m.user_id,
+                    fullName: m.full_name || m.name || 'Membro da equipe',
+                    email: m.email,
+                })));
+            }
+        } catch (e) {
+            console.warn('Não foi possível carregar equipe real, usando demo');
+            setRealInterviewers(null);
+        } finally {
+            setLoadingTeam(false);
+        }
+    };
+
+    const activeInterviewers: Interviewer[] = realInterviewers || [
+        { userId: 'demo-int1', fullName: 'Entrevistador 1 (João Silva)', email: 'joao@exemplo.com' },
+        { userId: 'demo-int2', fullName: 'Entrevistador 2 (Maria Souza)', email: 'maria@exemplo.com' },
+    ];
+
+    const geoQuotasForAssignment: GeographicQuota[] = quotas.map(q => ({
+        name: q.name,
+        totalInterviews: q.interviews,
+    }));
+
+    const handleInterviewerAssignmentChange = (newAssignments: any[]) => {
+        setInterviewerAssignments(newAssignments);
+        // Futuro: salvar no planningData.distribution.interviewerAssignments
+    };
+    // === Fim da seção de integração ===
 
     return (
         <div className="max-w-4xl">
@@ -559,7 +631,76 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 )}
             </div>
 
-            <div className="flex justify-between">
+            {/* ===================================================== */}
+            {/* SEÇÃO CRÍTICA: ATRIBUIÇÃO POR ENTREVISTADOR (Ponta a Ponta) */}
+            {/* Fecha o fluxo: Planejamento → Mobile (coleta controlada)    */}
+            {/* ===================================================== */}
+            <div className="mt-8 pt-6 border-t border-slate-700">
+                <div className="flex items-center justify-between mb-2">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg font-semibold">Atribuição por Entrevistador</span>
+                            <span className="text-[10px] px-2 py-0.5 bg-emerald-900/70 text-emerald-400 rounded-full font-normal tracking-wide">FECHA O LOOP</span>
+                        </div>
+                        <p className="text-sm text-slate-400 mt-0.5">
+                            Distribua as cotas acima entre os membros da equipe. O mobile mostrará apenas a missão de cada entrevistador.
+                        </p>
+                        {/* Evolução do suporte: HelpAssistant contextual dentro do fluxo de distribuição */}
+                        <div className="mt-2">
+                            <HelpAssistant 
+                                context="distribution" 
+                                compact 
+                                onStillNeedHelp={() => {}} 
+                                onTrackHelpful={(topic) => {
+                                    reportClientError({
+                                        errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
+                                        errorMessage: `Artigo útil: ${topic.title}`,
+                                        severity: 'low',
+                                        metadata: { topicId: topic.id, category: topic.category, context: 'distribution' }
+                                    });
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowInterviewerAssignment(!showInterviewerAssignment)}
+                        className="text-sm px-3 py-1.5 border border-slate-600 hover:bg-slate-800 rounded-lg"
+                    >
+                        {showInterviewerAssignment ? 'Ocultar' : 'Abrir'}
+                    </button>
+                </div>
+
+                {showInterviewerAssignment && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-2xl p-5">
+                        <div className="mb-3 flex justify-end">
+                            <button
+                                onClick={loadRealTeam}
+                                disabled={loadingTeam}
+                                className="text-xs px-3 py-1.5 border border-slate-600 hover:bg-slate-800 rounded-lg flex items-center gap-1 disabled:opacity-50"
+                            >
+                                {loadingTeam ? 'Carregando...' : 'Carregar Equipe Real do Tenant'}
+                            </button>
+                        </div>
+
+                        <InterviewerQuotaAssignment
+                            interviewers={activeInterviewers}
+                            geographicQuotas={geoQuotasForAssignment}
+                            initialAssignments={interviewerAssignments}
+                            onChange={handleInterviewerAssignmentChange}
+                            onSave={async (assignments) => {
+                                // A persistência real acontece no salvamento do planejamento (Step5)
+                                console.log('[Planejamento] Atribuições por entrevistador prontas para salvar:', assignments);
+                                alert('Distribuição registrada. Ao salvar o planejamento no próximo passo, isso será persistido em planning_data.');
+                            }}
+                        />
+                        <div className="mt-3 text-[10px] text-slate-500">
+                            Próximos incrementos: carregar entrevistadores reais da equipe da pesquisa + persistência automática + integração com mobile.
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex justify-between mt-8">
                 <button
                     onClick={onBack}
                     className="px-5 py-2.5 rounded-lg border border-slate-600 hover:bg-slate-800 transition-colors"

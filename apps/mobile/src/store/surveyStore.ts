@@ -29,7 +29,16 @@ export const useSurveyStore = create<SurveyState>((set) => ({
 
     fetchSurveyById: async (id) => {
         const bundle = await fetchSurveyBundle(id);
-        set({ currentSurvey: bundle.survey ?? null });
+        // Merge quotas, routes e role vindos do planejamento (fecha o loop ponta a ponta)
+        const enriched = bundle.survey 
+            ? { 
+                ...bundle.survey, 
+                quotas: bundle.quotas, 
+                routes: bundle.routes,
+                myRole: bundle.role 
+              } 
+            : null;
+        set({ currentSurvey: enriched });
     },
 
     setCurrentSurvey: (survey) => set({ currentSurvey: survey }),

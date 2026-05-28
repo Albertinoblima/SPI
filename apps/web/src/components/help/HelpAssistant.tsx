@@ -9,22 +9,27 @@ interface HelpAssistantProps {
     onTopicHelpful?: (topic: HelpTopic) => void;
     onStillNeedHelp?: (description: string) => void; // agora passa a descrição para preencher o ticket
     compact?: boolean;
+    // NOVO: contexto para guias conversacionais por perfil/fluxo (evolução do suporte)
+    context?: 'planning' | 'distribution' | 'mobile-collection' | 'reports' | 'admin' | 'general';
+    // NOVO (Passo 2): callback para registrar adoção/métrica
+    onTrackHelpful?: (topic: HelpTopic, context?: string) => void;
 }
 
 export function HelpAssistant({ 
     initialQuery = '', 
     onTopicHelpful, 
     onStillNeedHelp,
-    compact = false 
+    compact = false,
+    context = 'general',
+    onTrackHelpful
 }: HelpAssistantProps) {
     const [query, setQuery] = useState(initialQuery);
     const [selectedTopics, setSelectedTopics] = useState<HelpTopic[]>([]);
     const [helpfulMarked, setHelpfulMarked] = useState<Set<string>>(new Set());
 
     const searchResults = React.useMemo(() => {
-        if (!query.trim()) return [];
-        
         const normalized = query.toLowerCase().trim();
+        
         const scored = HELP_TOPICS.map(topic => {
             let score = 0;
             const haystack = [
@@ -34,28 +39,49 @@ export function HelpAssistant({
                 ...(topic.keywords || [])
             ].join(' ').toLowerCase();
 
-            if (haystack.includes(normalized)) score += 3;
-            normalized.split(' ').forEach(word => {
-                if (word.length > 2 && haystack.includes(word)) score += 1;
-            });
-            
-            if (topic.relatedErrors?.some(err => err.toLowerCase().includes(normalized))) {
+            if (normalized) {
+                if (haystack.includes(normalized)) score += 3;
+                normalized.split(' ').forEach(word => {
+                    if (word.length > 2 && haystack.includes(word)) score += 1;
+                });
+                
+                if (topic.relatedErrors?.some(err => err.toLowerCase().includes(normalized))) {
+                    score += 2;
+                }
+            }
+
+            // === EVOLUÇÃO: Boost contexto-aware para Fluxo Ponta a Ponta ===
+            const isPontaAPonta = topic.category === 'Fluxo Ponta a Ponta';
+            if (isPontaAPonta) {
+                if (context === 'planning' || context === 'distribution') score += 4;
+                if (context === 'mobile-collection') score += 3;
+                if (context === 'reports') score += 3;
+                // Priorizar os artigos mais relevantes por sub-contexto
+                if (context === 'distribution' && topic.id.includes('interviewer-quota')) score += 3;
+                if (context === 'mobile-collection' && (topic.id.includes('mobile') || topic.id.includes('quota-real'))) score += 3;
+                if (context === 'reports' && topic.id.includes('contractor')) score += 3;
+            }
+            // Sempre dar um pequeno boost para a categoria nova quando contexto é planning/distribution
+            if (isPontaAPonta && (context === 'planning' || context === 'distribution')) {
                 score += 2;
             }
 
             return { topic, score };
         });
 
-        return scored
-            .filter(s => s.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 5)
-            .map(s => s.topic);
-    }, [query]);
+        const sorted = scored
+            .filter(s => !normalized || s.score > 0)
+            .sort((a, b) => b.score - a.score);
+
+        // Quando temos contexto forte, mostrar até 6 resultados (priorizando Ponta a Ponta)
+        const limit = (context !== 'general' && !normalized) ? 6 : 5;
+        return sorted.slice(0, limit).map(s => s.topic);
+    }, [query, context]);
 
     const handleMarkHelpful = (topic: HelpTopic) => {
         setHelpfulMarked(prev => new Set(prev).add(topic.id));
         onTopicHelpful?.(topic);
+        onTrackHelpful?.(topic, context);
     };
 
     const handleStillNeedHelp = () => {
@@ -134,6 +160,20 @@ export function HelpAssistant({
                     />
                 </div>
             </div>
+
+            {/* EVOLUÇÃO: Guias conversacionais por contexto/perfil (aparece quando não há busca ainda) */}
+            {context !== 'general' && !query.trim() && (
+                <div className="rounded-lg border border-emerald-700/50 bg-emerald-950/30 p-3 text-xs">
+                    <div className="font-medium text-emerald-400 mb-1.5">Guias recomendados para este fluxo:</div>
+                    <div className="text-emerald-300/90">
+                        {context === 'planning' && 'Use "Visão Completa do Fluxo Ponta a Ponta" + "Handoff do Planejamento" para entender o ciclo inteiro.'}
+                        {context === 'distribution' && 'Leia "Como Distribuir Cotas Proporcionalmente" e "O que o Entrevistador Vê no Mobile".'}
+                        {context === 'mobile-collection' && 'Consulte "O que o Entrevistador Vê no App" e "Contagem Real de Respostas por Cota".'}
+                        {context === 'reports' && 'Veja "Link Protegido para o Contratante" e os 3 tipos de relatório .docx.'}
+                        {(context === 'admin' || context === 'general') && 'Explore a categoria Fluxo Ponta a Ponta para guias completos do ciclo planejamento → coleta → relatório.'}
+                    </div>
+                </div>
+            )}
 
             {searchResults.length > 0 && (
                 <div>
