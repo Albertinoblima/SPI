@@ -94,15 +94,20 @@ jobs:
         id: push
         run: |
           echo "Aplicando migrations no projeto $SUPABASE_PROJECT_REF..."
-          if supabase db push --yes --linked; then
+          # TEMPORARY: --include-all is required because the remote migration history
+          # is severely out of sync (many migrations were applied manually outside the CLI).
+          # This flag allows the CLI to consider local migrations not present in the remote history.
+          #
+          # IMPORTANT: Remove --include-all (and the repair step above) after this migration succeeds!
+          if supabase db push --yes --linked --include-all; then
             echo "✅ Migrations aplicadas com sucesso."
           else
-            echo "::error::Falha ao aplicar migrations com 'supabase db push --yes'"
+            echo "::error::Falha ao aplicar migrations com 'supabase db push --yes --include-all'"
             echo ""
             echo "Possíveis causas:"
             echo "  - O token não tem permissão de escrita no projeto"
-            echo "  - Alguma migration já foi aplicada manualmente (conflito de histórico)"
-            echo "  - Erro de sintaxe ou dependência na migration"
+            echo "  - Conflito grave de histórico de migrations"
+            echo "  - Erro de sintaxe na migration"
             echo ""
             echo "Dica: rode localmente dentro da pasta 'political-research-platform':"
             echo "  npx supabase login"
