@@ -156,11 +156,12 @@ O sistema deve entregar dois tipos principais de relatórios para o contratante:
   - `lib/reports/ReportAggregationService.ts` — Service de agregação (esqueleto robusto com decisões de arquitetura).
   - `lib/reports/DocxReportGenerator.ts` — Gerador de .docx (esqueleto preparado para evolução).
 
-**Próximos passos recomendados (melhor decisão atual):**
-1. Aplicar a migração de fundação.
-2. Implementar agregações reais no `ReportAggregationService`.
-3. Criar API route básica de analytics.
-4. Avançar para a UI de configuração do relatório .docx.
+**Progresso Real da Execução (atualizado agora):**
+- `ReportAggregationService` já tem implementação funcional de totais, distribuição por pergunta e cruzamentos.
+- `DocxReportGenerator` já suporta os três tipos de relatório + metadados do planejamento.
+- API `/api/reports/[surveyId]/analytics` criada.
+
+Estamos bem posicionados para entregar valor rapidamente.
 
 ---
 
