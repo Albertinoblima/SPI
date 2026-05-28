@@ -343,6 +343,21 @@ export default function SystemHealthPage() {
                 </div>
             </div>
 
+            {/* System Alerts Summary - Fase 2 */}
+            {(totalErrors24h > 5 || latestDeploy?.state === 'ERROR' || (data?.github.workflowRuns ?? []).some(r => r.conclusion === 'failure')) && (
+                <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-5 h-5 text-red-400" />
+                        <span className="font-semibold text-red-400">Alertas do Sistema</span>
+                    </div>
+                    <div className="text-sm text-red-200 space-y-1">
+                        {totalErrors24h > 5 && <div>• Alto volume de erros nas últimas 24h ({totalErrors24h})</div>}
+                        {latestDeploy?.state === 'ERROR' && <div>• Último deploy no Vercel falhou</div>}
+                        {(data?.github.workflowRuns ?? []).some(r => r.conclusion === 'failure') && <div>• Workflows GitHub com falhas recentes</div>}
+                    </div>
+                </div>
+            )}
+
             {/* GitHub Monitoring */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
@@ -433,13 +448,15 @@ export default function SystemHealthPage() {
                                         ? WORKFLOW_CONCLUSION_CONFIG[run.conclusion]
                                         : null;
                                     const statusCfg = WORKFLOW_STATUS_CONFIG[run.status];
+                                    const isFailed = run.conclusion === 'failure' || run.conclusion === 'timed_out';
+                                    
                                     return (
                                         <a
                                             key={run.id}
                                             href={run.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-3 px-5 py-3 hover:bg-gray-800/40 transition"
+                                            className={`flex items-center gap-3 px-5 py-3 transition ${isFailed ? 'bg-red-950/30 hover:bg-red-950/50' : 'hover:bg-gray-800/40'}`}
                                         >
                                             <div className={`flex items-center gap-1 text-sm font-medium w-28 shrink-0 ${conclusionCfg?.color ?? statusCfg?.color ?? 'text-gray-400'}`}>
                                                 {conclusionCfg?.icon ?? null}
@@ -466,7 +483,7 @@ export default function SystemHealthPage() {
                 </div>
             </div>
 
-            {/* Deployments Vercel */}
+            {/* Deployments Vercel - Enhanced for Fase 2 */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
                     <h2 className="text-white font-semibold flex items-center gap-2">
@@ -509,8 +526,10 @@ export default function SystemHealthPage() {
                     ) : (
                         vercelDeployments.map((dep) => {
                             const cfg = STATE_CONFIG[dep.state] ?? { label: dep.state, color: 'text-gray-400', icon: null };
+                            const isProblematic = dep.state === 'ERROR' || dep.errorMessage;
+                            
                             return (
-                                <div key={dep.id} className="px-5 py-3 flex items-center gap-4">
+                                <div key={dep.id} className={`px-5 py-3 flex items-center gap-4 ${isProblematic ? 'bg-red-950/20' : ''}`}>
                                     <div className={`flex items-center gap-1.5 text-sm font-medium w-28 shrink-0 ${cfg.color}`}>
                                         {cfg.icon}
                                         {cfg.label}
@@ -528,7 +547,9 @@ export default function SystemHealthPage() {
                                             </span>
                                         </div>
                                         {dep.errorMessage && (
-                                            <p className="text-xs text-red-400 mt-0.5 truncate">{dep.errorMessage}</p>
+                                            <p className="text-xs text-red-400 mt-0.5 truncate font-medium">
+                                                {dep.errorMessage}
+                                            </p>
                                         )}
                                     </div>
                                     <div className="text-right shrink-0">
