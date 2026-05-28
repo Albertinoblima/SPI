@@ -17,6 +17,7 @@ import {
     Github,
     GitBranch,
     GitPullRequest,
+    ShieldAlert,
 } from 'lucide-react';
 
 interface VercelDeployment {
@@ -95,6 +96,7 @@ interface HealthData {
         errorCounts24h: Record<string, number>;
         recentErrors: ErrorLog[];
         analytics: AnalyticsRow[];
+        activeImpersonations?: any[];
     };
 }
 
@@ -541,6 +543,30 @@ export default function SystemHealthPage() {
                     )}
                 </div>
             </div>
+
+            {/* Active Impersonations - Fase 2 Operational Value */}
+            {data?.supabase?.activeImpersonations && data.supabase.activeImpersonations.length > 0 && (
+                <div className="bg-amber-900/20 border border-amber-700/50 rounded-xl p-4">
+                    <h3 className="text-amber-400 font-semibold flex items-center gap-2 mb-3">
+                        <ShieldAlert className="w-5 h-5" />
+                        Sessões de Impersonation Ativas
+                    </h3>
+                    <div className="space-y-2">
+                        {data.supabase.activeImpersonations.map((imp: any) => (
+                            <div key={imp.id} className="flex justify-between items-center bg-slate-800/60 p-3 rounded text-sm">
+                                <div>
+                                    <span className="font-medium text-white">{imp.users?.full_name || imp.users?.email}</span>
+                                    <span className="text-slate-400"> → </span>
+                                    <span className="text-amber-300 font-medium">{imp.tenants?.name}</span>
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                    Desde {new Date(imp.started_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Erros Recentes Supabase */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl">

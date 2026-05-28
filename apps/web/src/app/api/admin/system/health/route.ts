@@ -157,6 +157,7 @@ export async function GET(request: NextRequest) {
             errorsRes,
             analyticsRes,
             statsRes,
+            impersonationsRes,
         ] = await Promise.all([
             fetchVercelDeployments(),
             fetchGitHubData(),
@@ -171,11 +172,25 @@ export async function GET(request: NextRequest) {
                 .order('date_recorded', { ascending: false })
                 .limit(7),
             auth.supabase.from('vw_system_stats').select('*').single(),
+            // Active impersonations (very useful for admins to see who's in what tenant)
+            auth.supabase
+                .from('admin_impersonation_sessions')
+                .select(`
+                    id,
+                    started_at,
+                    admin_user_id,
+                    target_tenant_id,
+                    users:admin_user_id (full_name, email),
+                    tenants:target_tenant_id (name, slug)
+                `)
+                .eq('is_active', true)
+                .order('started_at', { ascending: false }),
         ]);
 
         const recentErrors = errorsRes?.data ?? [];
         const analytics = analyticsRes?.data ?? [];
         const systemStats = statsRes?.data ?? null;
+        const activeImpersonations = impersonationsRes?.data ?? [];
 
         // Contagem de erros por severidade (últimas 24h)
         const { data: errorCounts } = await auth.supabase
@@ -216,6 +231,7 @@ export async function GET(request: NextRequest) {
                 errorCounts24h: severityCount,
                 recentErrors: recentErrors ?? [],
                 analytics: analytics ?? [],
+                activeImpersonations: activeImpersonations ?? [],
             },
         });
     } catch (error) {
