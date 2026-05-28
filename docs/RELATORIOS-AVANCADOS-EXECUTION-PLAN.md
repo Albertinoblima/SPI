@@ -165,8 +165,9 @@ Estamos bem posicionados para entregar valor rapidamente.
 
 ---
 
-**Próximo passo sugerido para você:**
+**Status mais recente (autônomo):**
 
-Diga "continue" ou escolha o próximo bloco específico que quer que eu execute agora (ex: "implemente o ReportAggregationService" ou "crie a UI de configuração do .docx").
+- Forte avanço tanto no gerador .docx quanto na infraestrutura do relatório dinâmico protegido.
+- Decisão de prioridade: Continuar executando de forma equilibrada até termos versões **usáveis** dos dois relatórios.
 
-Estou pronto para executar até o final com as melhores decisões.
+Estou continuando a execução com as melhores decisões.
