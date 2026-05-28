@@ -61,6 +61,26 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # ============================================================
+      # TEMPORARY ONE-TIME FIX
+      # ============================================================
+      # The remote database already had tables created outside of the
+      # Supabase migration system (history table was out of sync).
+      #
+      # This step marks the last migration before 20260527000001 as applied.
+      # After this migration is successfully applied via GitHub,
+      # THIS ENTIRE STEP MUST BE COMMENTED OUT OR REMOVED.
+      #
+      # Do not leave repair steps active long-term.
+      # ============================================================
+      - name: TEMPORARY - Repair migration history (one-time only)
+        run: |
+          echo "Reparando histórico de migrations (one-time fix)..."
+          echo "Marcando 20260522000001_company_assets_and_nome_fantasia como aplicada..."
+          supabase migration repair --status applied 20260522000001_company_assets_and_nome_fantasia
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       - name: Check pending migrations (dry run)
         continue-on-error: true
         run: |
