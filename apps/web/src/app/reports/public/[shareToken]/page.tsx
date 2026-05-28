@@ -33,8 +33,24 @@ export default function PublicDynamicReportPage() {
 
     if (res.ok) {
       setAuthenticated(true);
+      // Após login bem-sucedido, podemos buscar dados do relatório
+      fetchReportData();
     } else {
       setError('Credenciais inválidas ou link expirado');
+    }
+  };
+
+  const [reportData, setReportData] = useState<any>(null);
+
+  const fetchReportData = async () => {
+    try {
+      const res = await fetch(`/api/reports/public/${params.shareToken}/data`);
+      if (res.ok) {
+        const data = await res.json();
+        setReportData(data);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar dados do relatório dinâmico');
     }
   };
 
@@ -103,17 +119,25 @@ export default function PublicDynamicReportPage() {
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white p-6 rounded-xl border">
             <h3 className="font-semibold mb-3">Visão Geral</h3>
-            <p className="text-2xl font-bold text-emerald-600">Dashboard dinâmico carregado com sucesso.</p>
+            <p className="text-2xl font-bold text-emerald-600">
+              {reportData ? `${reportData.totalResponses || 0} respostas` : 'Carregando dados...'}
+            </p>
             <p className="text-slate-600 mt-2">
-              Aqui serão exibidos todos os cruzamentos possíveis, gráficos adaptados ao tipo de pergunta, e filtros avançados.
+              Dashboard dinâmico com todos os cruzamentos da pesquisa.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl border">
             <h3 className="font-semibold mb-3">Cruzamentos Disponíveis</h3>
-            <p className="text-sm text-slate-500">
-              O sistema carregará automaticamente todos os cruzamentos possíveis entre as perguntas da pesquisa.
-            </p>
+            {reportData?.availableCrossings ? (
+              <div className="text-sm">
+                {reportData.availableCrossings.length} cruzamentos possíveis carregados.
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                O sistema carregará automaticamente todos os cruzamentos possíveis entre as perguntas da pesquisa.
+              </p>
+            )}
           </div>
         </div>
       </div>

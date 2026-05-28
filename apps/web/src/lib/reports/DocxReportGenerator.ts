@@ -30,44 +30,50 @@ export class DocxReportGenerator {
   async generate(config: ReportConfiguration, surveyData: any): Promise<Buffer> {
     const children: any[] = [];
 
-    // === CAPA (Estrutura preparada para modelos avançados) ===
+    // === CAPA PROFISSIONAL ===
     children.push(
-      new Paragraph({ spacing: { after: 200 }, children: [] }),
+      new Paragraph({ spacing: { after: 150 }, children: [] }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: surveyData.title || 'Relatório de Pesquisa', bold: true, size: 52 })],
+        children: [new TextRun({ text: surveyData.title || 'Relatório de Pesquisa', bold: true, size: 56 })],
       }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { before: 100 },
-        children: [new TextRun({ text: this.getReportTypeLabel(config.reportType), size: 26, italics: true })],
+        spacing: { before: 80 },
+        children: [new TextRun({ text: this.getReportTypeLabel(config.reportType), size: 28, italics: true })],
       }),
-      new Paragraph({ spacing: { after: 300 }, children: [] }),
+      new Paragraph({ spacing: { after: 250 }, children: [] }),
     );
 
-    // Placeholder para papel timbrado / logo da empresa (usando company_assets no futuro)
+    // Letterhead / Logo da empresa (preparado para usar company_assets)
     if (surveyData.tenant?.logo_url) {
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          children: [new TextRun({ text: '[Logo da Empresa - Papel Timbrado]', size: 18, color: '888888' })],
+          spacing: { after: 200 },
+          children: [new TextRun({ text: '[Logo da Empresa]', size: 20, color: '666666' })],
+        })
+      );
+    } else {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 150 },
+          children: [new TextRun({ text: '[Espaço para Logo / Papel Timbrado]', size: 18, color: '999999', italics: true })],
         })
       );
     }
 
-    // === METADADOS DO PLANEJAMENTO ===
+    // === METADADOS DO PLANEJAMENTO (vindos do wizard de 5 passos) ===
     if (config.includePlanningMetadata && surveyData.planning) {
       children.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_1,
-          children: [new TextRun('Dados do Planejamento')],
+          children: [new TextRun('1. Dados do Planejamento')],
         }),
-        new Paragraph({
-          children: [new TextRun(`Objetivo: ${surveyData.planning.objective || 'Não informado'}`)],
-        }),
-        new Paragraph({
-          children: [new TextRun(`Amostra: ${surveyData.planning.sample_size || 'N/A'} entrevistas`)],
-        }),
+        new Paragraph({ children: [new TextRun(`Objetivo: ${surveyData.planning.objective || 'Não informado'}`)] }),
+        new Paragraph({ children: [new TextRun(`Amostra: ${surveyData.planning.sample_size || 'N/A'} entrevistas`)] }),
+        new Paragraph({ children: [new TextRun(`Tipo de pesquisa: ${surveyData.planning.survey_type || 'N/A'}`)] }),
       );
     }
 
