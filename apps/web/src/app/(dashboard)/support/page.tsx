@@ -5,6 +5,7 @@ import {
     MessageSquare, Plus, Send, ChevronLeft, Loader,
     CheckCircle2, AlertCircle, Clock, Inbox,
 } from 'lucide-react';
+import { HelpAssistant } from '@/components/help/HelpAssistant';
 
 interface Message {
     id: string;
@@ -283,11 +284,28 @@ export default function SupportPage() {
                 {/* Área principal */}
                 <div className="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
-                    {/* Novo ticket */}
+                    {/* Novo ticket - Com Assistente de Ajuda (requisito do usuário) */}
                     {showNew && (
                         <div className="flex-1 overflow-y-auto p-6">
-                            <div className="max-w-xl">
-                                <h2 className="text-lg font-semibold text-slate-800 mb-4">Abrir novo chamado</h2>
+                            <div className="max-w-2xl">
+                                <h2 className="text-lg font-semibold text-slate-800 mb-1">Abrir novo chamado</h2>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Antes de abrir um ticket, consulte nossa Base de Conhecimento. Muitos problemas são resolvidos rapidamente.
+                                </p>
+
+                                {/* Assistente de Ajuda Inteligente */}
+                                <div className="mb-6 p-5 rounded-2xl border border-blue-100 bg-blue-50">
+                                    <HelpAssistant
+                                        onTopicHelpful={() => {
+                                            // Usuário marcou que um artigo ajudou
+                                        }}
+                                        onStillNeedHelp={() => {
+                                            // Usuário decidiu que precisa de ticket humano mesmo assim
+                                        }}
+                                    />
+                                </div>
+
+                                <h3 className="font-medium text-slate-700 mb-3">Se ainda precisar de atendimento humano:</h3>
 
                                 <div className="space-y-4">
                                     <div>

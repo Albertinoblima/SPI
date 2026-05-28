@@ -1,21 +1,155 @@
 export interface HelpTopic {
     id: string;
+    category: string;
     title: string;
     short: string;
     content: string[];
+    relatedErrors?: string[];
+    keywords?: string[];
 }
 
 export const HELP_TOPICS: HelpTopic[] = [
+    // ==================== VISÃO GERAL ====================
+    {
+        id: 'system-overview',
+        category: 'Visão Geral',
+        title: 'Visão Geral do iDialog SPI',
+        short: 'Entenda a estrutura do sistema, os principais módulos e o fluxo de trabalho recomendado.',
+        content: [
+            'O iDialog SPI é uma plataforma completa para planejamento, execução e análise de pesquisas de campo multi-tenant.',
+            'Principais módulos: Planejamento de Pesquisa (5 passos), Coleta de Dados, Dados Geográficos Enriquecidos, Relatórios e o Painel Administrativo (para gestores da plataforma).',
+            'Fluxo recomendado: 1) Criar tenant → 2) Planejar pesquisa (Base Geográfica + Cotas) → 3) Configurar questionário → 4) Coletar em campo → 5) Analisar e gerar relatórios.',
+            'Todo tenant tem isolamento total de dados via RLS. System Admins podem usar impersonation para suporte.',
+        ],
+        keywords: ['visão geral', 'fluxo', 'módulos', 'como começar'],
+    },
+    {
+        id: 'workflow-main',
+        category: 'Visão Geral',
+        title: 'Fluxo de Trabalho Recomendado',
+        short: 'Siga esta sequência para obter os melhores resultados em suas pesquisas.',
+        content: [
+            'Etapa 1: Planejamento - Use o assistente de 5 passos para definir base geográfica, cotas e estratificação.',
+            'Etapa 2: Questionário - Monte seu formulário com as perguntas necessárias.',
+            'Etapa 3: Coleta - Monitore o app de campo em tempo real.',
+            'Etapa 4: Análise - Acesse relatórios automáticos e dados exportáveis.',
+            'Dica de ouro: Sempre valide a base geográfica com os dados enriquecidos (Censo + TSE + CNEFE) antes de liberar para campo.',
+        ],
+        keywords: ['fluxo', 'passo a passo', 'como usar', 'melhor prática'],
+    },
+
+    // ==================== PLANEJAMENTO DE PESQUISA ====================
     {
         id: 'survey-title',
-        title: 'Titulo da Pesquisa',
-        short: 'Use um titulo objetivo e unico para identificar a pesquisa em relatorios e dashboards.',
+        category: 'Planejamento de Pesquisa',
+        title: 'Título da Pesquisa',
+        short: 'Use um título objetivo e único para identificar a pesquisa em relatórios e dashboards.',
         content: [
-            'Evite titulos genericos como "Pesquisa 01".',
-            'Inclua tema, local e periodo quando possivel.',
-            'Padrao sugerido: Tema - Local - Mes/Ano.',
+            'Evite títulos genéricos como "Pesquisa 01".',
+            'Inclua tema, local e período quando possível.',
+            'Padrão sugerido: Tema - Local - Mês/Ano.',
         ],
+        keywords: ['título', 'nome da pesquisa'],
     },
+    {
+        id: 'geographic-base',
+        category: 'Planejamento de Pesquisa',
+        title: 'Base Geográfica (Passo 2)',
+        short: 'A base geográfica é o coração do planejamento. Escolha municípios e localidades com dados enriquecidos.',
+        content: [
+            'Use o seletor profissional de localidades com filtros por zona (Urbana/Rural) e busca.',
+            'Prefira sempre dados enriquecidos (badges Censo/TSE/CNEFE) para melhor qualidade das cotas.',
+            'Você pode travar cotas por localidade. O sistema redistribui proporcionalmente as demais.',
+            'Densidade (entrevistas por 10 mil habitantes) e presença de CNEFE são indicadores importantes de viabilidade.',
+        ],
+        relatedErrors: ['PLANNING_GEO_INVALID', 'PLANNING_QUOTA_NEGATIVE'],
+        keywords: ['base geográfica', 'localidades', 'municípios', 'cotas', 'passo 2'],
+    },
+    {
+        id: 'quotas-distribution',
+        category: 'Planejamento de Pesquisa',
+        title: 'Distribuição de Cotas (Passo 4)',
+        short: 'Defina como as entrevistas serão distribuídas entre localidades e estratos.',
+        content: [
+            'Você pode travar (lock) a cota de uma localidade. O sistema recalcula as outras proporcionalmente.',
+            'Use a sugestão automática baseada em TSE + densidade CNEFE para pesquisas eleitorais.',
+            'Sempre revise o total após travar várias localidades para evitar distorções.',
+        ],
+        keywords: ['cotas', 'distribuição', 'travamento', 'lock', 'passo 4'],
+    },
+
+    // ==================== ERROS COMUNS ====================
+    {
+        id: 'error-geo-no-data',
+        category: 'Erros Comuns e Soluções',
+        title: 'Sem dados geográficos para o município',
+        short: 'O sistema não encontrou dados enriquecidos para um ou mais municípios selecionados.',
+        content: [
+            'Verifique se o município tem dados do Censo 2022 ou TSE carregados.',
+            'Use o botão "Sugerir população" para buscar no IBGE quando possível.',
+            'Para municípios muito pequenos, considere usar dados de municípios vizinhos como proxy (com justificativa).',
+            'Se o problema persistir, abra um ticket com o código do município.',
+        ],
+        relatedErrors: ['GEO_NO_DATA', 'PLANNING_GEO_INVALID'],
+        keywords: ['erro geográfico', 'sem dados', 'município', 'IBGE'],
+    },
+    {
+        id: 'error-quota-exceeded',
+        category: 'Erros Comuns e Soluções',
+        title: 'Cotas excedem o limite de entrevistas',
+        short: 'A soma das cotas por localidade está maior que o tamanho de amostra definido.',
+        content: [
+            'Revise as cotas travadas manualmente.',
+            'Use o botão "Redistribuir proporcionalmente" após travar as localidades mais importantes.',
+            'Em pesquisas qualitativas, é normal ter metas operacionais maiores que o cálculo estatístico.',
+        ],
+        keywords: ['cota excedida', 'limite de entrevistas', 'amostra'],
+    },
+
+    // ==================== DADOS GEOGRÁFICOS ====================
+    {
+        id: 'geo-enrichment',
+        category: 'Dados Geográficos',
+        title: 'Dados Enriquecidos (Censo + TSE + CNEFE)',
+        short: 'O sistema combina múltiplas fontes oficiais para dar a você a melhor base possível para planejamento.',
+        content: [
+            'Censo IBGE: População, domicílios, sexo e faixa etária.',
+            'TSE: Eleitores por sexo e faixa etária (atualizado mensalmente).',
+            'CNEFE: Cadastro Nacional de Endereços para Fins Estatísticos (presença de residências).',
+            'Use os badges de qualidade na seleção de localidades para priorizar municípios com dados mais completos.',
+        ],
+        keywords: ['geo', 'enriquecido', 'censo', 'tse', 'cnefe', 'dados'],
+    },
+
+    // ==================== SUPORTE E TICKETS ====================
+    {
+        id: 'support-how-to-open',
+        category: 'Suporte',
+        title: 'Como abrir um chamado de suporte',
+        short: 'Antes de abrir um ticket, consulte a Base de Conhecimento. Muitos problemas têm solução rápida.',
+        content: [
+            'Descreva o problema com o máximo de detalhes (print, passos, horário).',
+            'O Assistente de Ajuda vai sugerir artigos relevantes automaticamente.',
+            'Leia os artigos sugeridos. Se o problema for resolvido, marque "Problema resolvido".',
+            'Se ainda precisar de ajuda humana, confirme que deseja abrir o ticket.',
+            'Tickets de "Sugestão de Melhoria" são sempre encaminhados para a equipe de produto.',
+        ],
+        keywords: ['suporte', 'ticket', 'chamado', 'ajuda', 'como abrir'],
+    },
+    {
+        id: 'support-priority',
+        category: 'Suporte',
+        title: 'Níveis de Prioridade dos Tickets',
+        short: 'Entenda quando usar cada nível para receber o atendimento adequado.',
+        content: [
+            'Urgente: Sistema fora do ar, perda de dados, problema que paralisa toda a operação.',
+            'Alta: Funcionalidade crítica quebrada para vários usuários ou um tenant grande.',
+            'Média: Problema que atrapalha o trabalho mas existe alternativa.',
+            'Baixa: Dúvidas, sugestões de melhoria ou problemas cosméticos.',
+        ],
+        keywords: ['prioridade', 'urgente', 'alta', 'média'],
+    },
+];
     {
         id: 'survey-type',
         title: 'Tipo de Pesquisa',

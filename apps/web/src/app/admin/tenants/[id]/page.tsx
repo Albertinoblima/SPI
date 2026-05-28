@@ -470,6 +470,22 @@ export default function TenantDetailsPage() {
                 </div>
             </div>
 
+            {/* Módulos em Uso (Fase 2 - Visibilidade de Adoção) */}
+            <div className="p-5 rounded-xl border border-emerald-700/40 bg-emerald-950/20">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-emerald-300 text-sm">Módulos em Uso por esta empresa</h3>
+                    <Link href="/admin/system/stats" className="text-xs text-emerald-400 hover:underline">Ver visão geral →</Link>
+                </div>
+                <div className="flex flex-wrap gap-2 text-sm">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Planejamento de Pesquisa</span>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Coleta de Campo</span>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Relatórios e Exportação</span>
+                    {data.health?.has_recent_issues && (
+                        <span className="px-3 py-1 rounded-full bg-red-500/15 text-red-300 border border-red-500/30">Com incidentes recentes</span>
+                    )}
+                </div>
+            </div>
+
             {/* Recent Errors - Fortalecido (Fase 2) */}
             {data.recentErrors.length > 0 && (
                 <div className="p-6 rounded-xl border border-red-700/50 bg-red-950/20">
