@@ -15,26 +15,72 @@ const Step1Definition: React.FC<Step1DefinitionProps> = ({ initialData, onNext }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onNext({ name, objective, researchType, targetAudience });
+        if (!name.trim()) return;
+        onNext({ name: name.trim(), objective, researchType, targetAudience });
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <h2>Definição Inicial</h2>
-            <label>Nome do planejamento
-                <input value={name} onChange={e => setName(e.target.value)} required />
-            </label>
-            <label>Objetivo
-                <input value={objective} onChange={e => setObjective(e.target.value)} required />
-            </label>
-            <label>Tipo de pesquisa
-                <input value={researchType} onChange={e => setResearchType(e.target.value)} required />
-            </label>
-            <label>Público-alvo
-                <input value={targetAudience} onChange={e => setTargetAudience(e.target.value)} required />
-            </label>
-            <button type="submit">Próximo</button>
-        </form>
+        <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold mb-1">Definição Inicial</h2>
+            <p className="text-slate-400 mb-6">Preencha as informações básicas do seu planejamento.</p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                    <label className="block text-sm font-medium mb-1.5">Nome do Planejamento *</label>
+                    <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
+                        placeholder="Ex: Pesquisa Eleitoral 2026 - Capital"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-1.5">Objetivo da Pesquisa *</label>
+                    <textarea
+                        value={objective}
+                        onChange={(e) => setObjective(e.target.value)}
+                        required
+                        rows={3}
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none resize-y"
+                        placeholder="Descreva o principal objetivo deste planejamento..."
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label className="block text-sm font-medium mb-1.5">Tipo de Pesquisa *</label>
+                        <input
+                            value={researchType}
+                            onChange={(e) => setResearchType(e.target.value)}
+                            required
+                            className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
+                            placeholder="Ex: Eleitoral, Opinião Pública..."
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1.5">Público-alvo *</label>
+                        <input
+                            value={targetAudience}
+                            onChange={(e) => setTargetAudience(e.target.value)}
+                            required
+                            className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
+                            placeholder="Ex: Eleitores de 18 a 35 anos..."
+                        />
+                    </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                    <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Próximo passo
+                    </button>
+                </div>
+            </form>
+        </div>
     );
 };
 

@@ -1,12 +1,12 @@
 
-"use client";
+'use client';
 // Página inicial do módulo Planejamento de Pesquisa
 // Exibe lista de planejamentos salvos e botão para novo planejamento
 
-
 import React, { useEffect } from 'react';
+import Link from 'next/link';
 import { useResearchPlans } from '@/hooks/useResearchPlans';
-import styles from './planning.module.css';
+import { Plus, FileText, ArrowRight } from 'lucide-react';
 
 const PlanningDashboardPage = () => {
     const { plans, fetchPlans, loading, error } = useResearchPlans();
@@ -17,33 +17,81 @@ const PlanningDashboardPage = () => {
     }, []);
 
     return (
-        <main>
-            <h1>Planejamento de Pesquisa</h1>
-            <p>Consulte planejamentos salvos ou inicie um novo planejamento auxiliar para sua próxima pesquisa.</p>
-            <a href="/planning/new">Novo Planejamento</a>
-            <hr />
-            <h2>Planejamentos Salvos</h2>
-            {loading && <p>Carregando...</p>}
-            {error && <p className={styles['text-error']}>Erro: {error.message || String(error)}</p>}
-            {plans.length === 0 && !loading && <p>Nenhum planejamento salvo.</p>}
-            <ul>
-                {plans.map((plan: any) => (
-                    <li key={plan.id}>
-                        <strong>{plan.name}</strong> <br />
-                        <small>Criado em: {new Date(plan.created_at).toLocaleString()}</small>
-                        <br />
-                        <a
-                            href={`/surveys/new?planId=${plan.id}`}
-                            className={styles['create-survey-btn']}
-                            title="Criar Pesquisa a partir deste Planejamento"
-                        >
-                            Criar Pesquisa a partir deste Planejamento
-                        </a>
-                        {/* Link para detalhes/edição futura */}
-                    </li>
-                ))}
-            </ul>
-        </main>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-semibold tracking-tight">Planejamento de Pesquisa</h1>
+                    <p className="text-slate-400 mt-1">
+                        Consulte planejamentos salvos ou inicie um novo planejamento auxiliar para sua próxima pesquisa.
+                    </p>
+                </div>
+
+                <Link
+                    href="/planning/new"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                >
+                    <Plus size={18} />
+                    Novo Planejamento
+                </Link>
+            </div>
+
+            <div>
+                <h2 className="text-xl font-medium mb-3">Planejamentos Salvos</h2>
+
+                {loading && (
+                    <div className="text-slate-400">Carregando planejamentos...</div>
+                )}
+
+                {error && (
+                    <div className="p-4 bg-red-900/30 border border-red-700 text-red-400 rounded-xl mb-4">
+                        Erro ao carregar planejamentos: {error.message || 'Ocorreu um erro inesperado.'}
+                        <div className="text-xs opacity-75 mt-1">O incidente foi registrado automaticamente para análise.</div>
+                    </div>
+                )}
+
+                {!loading && plans.length === 0 && !error && (
+                    <div className="border border-slate-700 rounded-2xl p-8 text-center text-slate-400">
+                        Nenhum planejamento salvo ainda.
+                        <div className="mt-3">
+                            <Link href="/planning/new" className="text-blue-400 hover:underline">
+                                Criar o primeiro planejamento
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
+                {plans.length > 0 && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {plans.map((plan: any) => (
+                            <div
+                                key={plan.id}
+                                className="border border-slate-700 bg-slate-900/60 rounded-2xl p-5 hover:border-slate-600 transition-colors"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <FileText className="mt-1 text-slate-400" size={20} />
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-medium truncate">{plan.name}</h3>
+                                        <p className="text-sm text-slate-500 mt-0.5">
+                                            Criado em {new Date(plan.created_at).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-slate-800">
+                                    <Link
+                                        href={`/surveys/new?planId=${plan.id}`}
+                                        className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 font-medium"
+                                    >
+                                        Criar Pesquisa a partir deste Planejamento
+                                        <ArrowRight size={16} />
+                                    </Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 

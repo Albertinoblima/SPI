@@ -200,6 +200,58 @@ export const ERROR_CODE_CATALOG: Record<string, ErrorCodeDefinition> = {
         ],
         notifyImmediately: false,
     },
+
+    // === PLANNING MODULE ===
+    PLANNING_LOAD_FAILED: {
+        code: 'PLANNING_LOAD_FAILED',
+        title: 'Falha ao carregar planejamentos',
+        domain: 'user',
+        severity: 'medium',
+        userMessage: 'Nao foi possivel carregar seus planejamentos.',
+        resolutionSteps: [
+            'Verificar permissao de acesso (RLS) do tenant.',
+            'Confirmar se a tabela research_plans existe e tem dados.',
+            'Checar logs de erro correlacionados.',
+        ],
+        notifyImmediately: false,
+    },
+    PLANNING_SAVE_FAILED: {
+        code: 'PLANNING_SAVE_FAILED',
+        title: 'Falha ao salvar planejamento',
+        domain: 'user',
+        severity: 'high',
+        userMessage: 'Nao foi possivel salvar o planejamento.',
+        resolutionSteps: [
+            'Validar estrutura do planning_data (JSONB).',
+            'Verificar constraints e RLS na tabela research_plans.',
+            'Revisar payload enviado do wizard.',
+        ],
+        notifyImmediately: true,
+    },
+    PLANNING_VALIDATION_ERROR: {
+        code: 'PLANNING_VALIDATION_ERROR',
+        title: 'Erro de validacao no planejamento',
+        domain: 'validation',
+        severity: 'medium',
+        userMessage: 'Os dados do planejamento estao invalidos.',
+        resolutionSteps: [
+            'Revisar regras de negocio aplicadas no wizard.',
+            'Verificar preenchimento obrigatorio dos passos.',
+        ],
+        notifyImmediately: false,
+    },
+    PLANNING_WIZARD_ERROR: {
+        code: 'PLANNING_WIZARD_ERROR',
+        title: 'Erro no fluxo do assistente de planejamento',
+        domain: 'user',
+        severity: 'medium',
+        userMessage: 'Ocorreu um erro durante o preenchimento do planejamento.',
+        resolutionSteps: [
+            'Capturar passo atual e dados parciais.',
+            'Verificar integridade do estado do wizard.',
+        ],
+        notifyImmediately: false,
+    },
     UNKNOWN_ERROR: {
         code: 'UNKNOWN_ERROR',
         title: 'Erro desconhecido',

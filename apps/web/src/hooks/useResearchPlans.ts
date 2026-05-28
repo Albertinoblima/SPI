@@ -5,6 +5,7 @@ import {
     updateResearchPlan,
     deleteResearchPlan,
 } from '@/lib/supabase/researchPlans';
+import { reportClientError } from '@/lib/monitoring/reportClientError';
 
 export function useResearchPlans() {
     const [plans, setPlans] = useState<any[]>([]);
@@ -17,8 +18,14 @@ export function useResearchPlans() {
         try {
             const data = await listResearchPlans();
             setPlans(data);
-        } catch (err) {
+        } catch (err: any) {
             setError(err);
+            await reportClientError({
+                errorCode: 'PLANNING_LOAD_FAILED',
+                errorMessage: err?.message || 'Falha ao carregar planejamentos',
+                severity: 'medium',
+                metadata: { operation: 'fetchPlans' },
+            });
         } finally {
             setLoading(false);
         }
@@ -31,8 +38,14 @@ export function useResearchPlans() {
             const data = await createResearchPlan(args);
             setPlans((prev) => [data, ...prev]);
             return data;
-        } catch (err) {
+        } catch (err: any) {
             setError(err);
+            await reportClientError({
+                errorCode: 'PLANNING_SAVE_FAILED',
+                errorMessage: err?.message || 'Falha ao salvar planejamento',
+                severity: 'high',
+                metadata: { operation: 'createPlan', name: args?.name },
+            });
             throw err;
         } finally {
             setLoading(false);
@@ -46,8 +59,14 @@ export function useResearchPlans() {
             const data = await updateResearchPlan(id, updates);
             setPlans((prev) => prev.map((p) => (p.id === id ? data : p)));
             return data;
-        } catch (err) {
+        } catch (err: any) {
             setError(err);
+            await reportClientError({
+                errorCode: 'PLANNING_SAVE_FAILED',
+                errorMessage: err?.message || 'Falha ao atualizar planejamento',
+                severity: 'high',
+                metadata: { operation: 'updatePlan', id },
+            });
             throw err;
         } finally {
             setLoading(false);
@@ -60,8 +79,14 @@ export function useResearchPlans() {
         try {
             await deleteResearchPlan(id);
             setPlans((prev) => prev.filter((p) => p.id !== id));
-        } catch (err) {
+        } catch (err: any) {
             setError(err);
+            await reportClientError({
+                errorCode: 'PLANNING_SAVE_FAILED',
+                errorMessage: err?.message || 'Falha ao excluir planejamento',
+                severity: 'high',
+                metadata: { operation: 'deletePlan', id },
+            });
             throw err;
         } finally {
             setLoading(false);
@@ -78,3 +103,4 @@ export function useResearchPlans() {
         deletePlan,
     };
 }
+
