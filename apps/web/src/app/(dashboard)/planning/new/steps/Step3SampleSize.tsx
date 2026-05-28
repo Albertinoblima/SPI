@@ -28,26 +28,76 @@ const Step3SampleSize: React.FC<Step3SampleSizeProps> = ({ initialData, onNext, 
     };
 
     return (
-        <div>
-            <h2>Dimensionamento Amostral</h2>
-            <label>População-alvo
-                <input type="number" value={population} onChange={e => setPopulation(e.target.value)} />
-            </label>
-            <label>Margem de erro (%)
-                <input type="number" value={margin} onChange={e => setMargin(e.target.value)} />
-            </label>
-            <label>Nível de confiança (%)
-                <input type="number" value={confidence} onChange={e => setConfidence(e.target.value)} />
-            </label>
-            <button onClick={handleCalculate}>Calcular</button>
-            {sampleSize !== null && (
+        <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold mb-1">Dimensionamento Amostral</h2>
+            <p className="text-slate-400 mb-6">
+                Calcule o tamanho da amostra com base na população-alvo.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                 <div>
-                    <p><strong>Tamanho da amostra sugerido:</strong> {sampleSize}</p>
-                    <p>{hint}</p>
+                    <label className="block text-sm font-medium mb-1.5">População-alvo *</label>
+                    <input
+                        type="number"
+                        value={population}
+                        onChange={(e) => setPopulation(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
+                        placeholder="Ex: 1500000"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1.5">Margem de erro (%)</label>
+                    <input
+                        type="number"
+                        value={margin}
+                        onChange={(e) => setMargin(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1.5">Nível de confiança (%)</label>
+                    <input
+                        type="number"
+                        value={confidence}
+                        onChange={(e) => setConfidence(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
+                    />
+                </div>
+            </div>
+
+            <div className="mb-6">
+                <button
+                    onClick={handleCalculate}
+                    className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                >
+                    Calcular Tamanho da Amostra
+                </button>
+            </div>
+
+            {sampleSize !== null && (
+                <div className="mb-6 p-4 bg-slate-900 border border-slate-700 rounded-xl">
+                    <p className="text-lg">
+                        <strong>Tamanho da amostra sugerido:</strong>{' '}
+                        <span className="text-emerald-400 font-semibold text-xl">{sampleSize}</span>
+                    </p>
+                    {hint && <p className="text-sm text-slate-400 mt-2">{hint}</p>}
                 </div>
             )}
-            <button onClick={onBack}>Voltar</button>
-            <button onClick={() => onNext({ population, margin, confidence, sampleSize })}>Próximo</button>
+
+            <div className="flex justify-between">
+                <button
+                    onClick={onBack}
+                    className="px-5 py-2.5 rounded-lg border border-slate-600 hover:bg-slate-800 transition-colors"
+                >
+                    Voltar
+                </button>
+                <button
+                    onClick={() => onNext({ population, margin, confidence, sampleSize })}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                >
+                    Próximo passo
+                </button>
+            </div>
         </div>
     );
 };
