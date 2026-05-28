@@ -197,68 +197,94 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             </p>
 
             <div className="space-y-3 mb-6">
-                {quotas.map((quota, index) => (
-                    <div
-                        key={index}
-                        className="flex items-center gap-4 border border-slate-700 bg-slate-900/60 rounded-xl px-4 py-3"
-                    >
-                        <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{quota.name}</div>
-                            {quota.uf && <div className="text-xs text-slate-500">{quota.uf}</div>}
-                            {quota.population > 0 && (
-                                <div className="text-xs text-slate-400 mt-0.5">
-                                    População: {quota.population.toLocaleString('pt-BR')}
+                {quotas.map((quota, index) => {
+                    const density = quota.population > 0 
+                        ? ((quota.interviews / quota.population) * 10000).toFixed(1) 
+                        : null;
+
+                    return (
+                        <div
+                            key={index}
+                            className={`flex items-center gap-4 border rounded-xl px-4 py-3 transition-colors ${
+                                quota.locked 
+                                    ? 'border-amber-600 bg-amber-900/10' 
+                                    : 'border-slate-700 bg-slate-900/60'
+                            }`}
+                        >
+                            <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate flex items-center gap-2">
+                                    {quota.name}
+                                    {quota.uf && <span className="text-xs text-slate-500">({quota.uf})</span>}
                                 </div>
-                            )}
-                        </div>
+                                {quota.population > 0 && (
+                                    <div className="text-xs text-slate-400 mt-0.5">
+                                        População: {quota.population.toLocaleString('pt-BR')}
+                                        {density && (
+                                            <span className="ml-3 text-emerald-400">
+                                                {density} entrevistas / 10 mil hab.
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={quota.interviews}
-                                onChange={(e) => updateQuota(index, parseInt(e.target.value) || 0)}
-                                disabled={quota.locked}
-                                className={`w-24 bg-slate-950 border rounded-lg px-3 py-1.5 text-right text-sm focus:outline-none focus:border-blue-500 ${
-                                    quota.locked ? 'border-slate-600 text-slate-400' : 'border-slate-700'
-                                }`}
-                            />
-                            <span className="text-sm text-slate-400 w-20">entrevistas</span>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    value={quota.interviews}
+                                    onChange={(e) => updateQuota(index, parseInt(e.target.value) || 0)}
+                                    disabled={quota.locked}
+                                    className={`w-24 bg-slate-950 border rounded-lg px-3 py-1.5 text-right text-sm focus:outline-none focus:border-blue-500 ${
+                                        quota.locked ? 'border-amber-600 text-slate-400' : 'border-slate-700'
+                                    }`}
+                                />
+                                <span className="text-sm text-slate-400 w-20">entrevistas</span>
 
-                            {/* Botão de travar/destravar */}
-                            <button
-                                type="button"
-                                onClick={() => toggleLock(index)}
-                                className={`p-1.5 rounded transition-colors ${
-                                    quota.locked 
-                                        ? 'bg-amber-600 text-white hover:bg-amber-500' 
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                                }`}
-                                title={quota.locked ? "Destravar cota" : "Travar cota (não será alterada na sugestão)"}
-                            >
-                                {quota.locked ? '🔒' : '🔓'}
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleLock(index)}
+                                    className={`p-1.5 rounded transition-colors ${
+                                        quota.locked 
+                                            ? 'bg-amber-600 text-white hover:bg-amber-500' 
+                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                    }`}
+                                    title={quota.locked ? "Destravar cota" : "Travar cota"}
+                                >
+                                    {quota.locked ? '🔒' : '🔓'}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            <div className="mb-6 p-3 rounded-lg bg-slate-900 border border-slate-700 text-sm">
-                <span className="text-slate-400">Total distribuído: </span>
-                <span className={`font-semibold text-lg ${difference === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {totalAssigned}
-                </span>
-                <span className="text-slate-400"> / {sampleSize}</span>
+            <div className="mb-6 p-4 rounded-xl bg-slate-900 border border-slate-700 text-sm space-y-1">
+                <div className="flex justify-between">
+                    <span className="text-slate-400">Total distribuído:</span>
+                    <span className={`font-semibold text-lg ${difference === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {totalAssigned} / {sampleSize}
+                    </span>
+                </div>
 
                 {difference !== 0 && (
-                    <span className="ml-3 text-amber-400">
-                        ({difference > 0 ? '+' : ''}{difference} entrevistas)
-                    </span>
+                    <div className="text-amber-400 text-xs">
+                        Diferença de {Math.abs(difference)} entrevistas em relação à amostra.
+                    </div>
+                )}
+
+                {totalPopulation > 0 && (
+                    <div className="flex justify-between pt-1 border-t border-slate-700">
+                        <span className="text-slate-400">Densidade média:</span>
+                        <span className="font-medium text-white">
+                            {((totalAssigned / totalPopulation) * 10000).toFixed(1)} entrevistas por 10 mil hab.
+                        </span>
+                    </div>
                 )}
 
                 {quotas.some(q => q.locked) && (
-                    <span className="ml-4 text-xs text-amber-400">
-                        • Algumas cotas estão travadas
-                    </span>
+                    <div className="text-amber-400 text-xs pt-1">
+                        • Algumas cotas estão travadas (não serão alteradas pela sugestão)
+                    </div>
                 )}
             </div>
 
