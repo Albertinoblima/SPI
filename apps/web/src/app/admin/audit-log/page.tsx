@@ -107,14 +107,37 @@ export default function AuditLogPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-white mb-2">
-                    Log de Auditoria
-                </h1>
-                <p className="text-slate-400">
-                    Histórico de todas as ações críticas do sistema
-                </p>
+            {/* Header - Fase 3 Governança */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Log de Auditoria
+                    </h1>
+                    <p className="text-slate-400">
+                        Histórico de todas as ações críticas do sistema (melhor rastreabilidade)
+                    </p>
+                </div>
+                <button
+                    onClick={() => {
+                        if (logs.length === 0) return;
+                        const csv = [
+                            'Data,Usuário,Ação,Entidade,Descrição,Crítico',
+                            ...logs.map(log => 
+                                `"${new Date(log.created_at).toISOString()}","${log.user?.email || 'Sistema'}","${log.action}","${log.entity_type}:${log.entity_id}","${(log.changes_description || '').replace(/"/g,'""')}","${log.is_critical ? 'Sim' : 'Não'}"`
+                            )
+                        ].join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `audit-${new Date().toISOString().slice(0,10)}.csv`;
+                        a.click();
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                    disabled={logs.length === 0}
+                >
+                    Exportar CSV
+                </button>
             </div>
 
             {/* Filters */}

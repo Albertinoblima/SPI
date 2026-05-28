@@ -293,19 +293,26 @@ export default function SupportPage() {
                                     Antes de abrir um ticket, consulte nossa Base de Conhecimento. Muitos problemas são resolvidos rapidamente.
                                 </p>
 
-                                {/* Assistente de Ajuda Inteligente */}
-                                <div className="mb-6 p-5 rounded-2xl border border-blue-100 bg-blue-50">
-                                    <HelpAssistant
-                                        onTopicHelpful={() => {
-                                            // Usuário marcou que um artigo ajudou
-                                        }}
-                                        onStillNeedHelp={() => {
-                                            // Usuário decidiu que precisa de ticket humano mesmo assim
-                                        }}
-                                    />
+                                {/* Fluxo de Autossuporte (Design do usuário) */}
+                                <div className="mb-6">
+                                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
+                                        <span>1. Consulte a Base de Conhecimento primeiro</span>
+                                    </div>
+                                    <div className="p-5 rounded-2xl border border-blue-200 bg-white shadow-sm">
+                                        <HelpAssistant
+                                            onTopicHelpful={() => {
+                                                // Feedback positivo registrado (pode evoluir para tracking real)
+                                            }}
+                                            onStillNeedHelp={() => {
+                                                // Usuário explicitamente quer seguir para ticket
+                                            }}
+                                        />
+                                    </div>
                                 </div>
 
-                                <h3 className="font-medium text-slate-700 mb-3">Se ainda precisar de atendimento humano:</h3>
+                                <div className="mb-4">
+                                    <div className="text-sm font-semibold text-slate-700 mb-2">2. Se o problema persistir, abra o chamado:</div>
+                                </div>
 
                                 <div className="space-y-4">
                                     <div>

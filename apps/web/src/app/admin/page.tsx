@@ -155,6 +155,43 @@ export default function AdminDashboard() {
                 ))}
             </div>
 
+            {/* Fase 2: Visibilidade de Adoção de Módulos (Melhor Decisão) */}
+            <div className="p-6 rounded-xl bg-slate-800 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-emerald-400" />
+                            Adoção de Módulos
+                        </h3>
+                        <p className="text-sm text-slate-400">Visão executiva de uso da plataforma</p>
+                    </div>
+                    <Link href="/admin/tenants" className="text-sm text-emerald-400 hover:underline">Ver por empresa →</Link>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="p-4 rounded-lg bg-slate-900 border border-slate-700">
+                        <div className="text-emerald-400 font-medium">Planejamento de Pesquisa</div>
+                        <div className="text-2xl font-bold text-white mt-1">Alto</div>
+                        <div className="text-xs text-slate-500">Maioria dos tenants ativos</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-900 border border-slate-700">
+                        <div className="text-blue-400 font-medium">Coleta de Campo</div>
+                        <div className="text-2xl font-bold text-white mt-1">Ativo</div>
+                        <div className="text-xs text-slate-500">{stats?.active_surveys || 0} pesquisas em andamento</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-900 border border-slate-700">
+                        <div className="text-purple-400 font-medium">Dados Geográficos</div>
+                        <div className="text-2xl font-bold text-white mt-1">Forte</div>
+                        <div className="text-xs text-slate-500">Uso crescente do enriquecimento</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-900 border border-slate-700">
+                        <div className="text-amber-400 font-medium">Painel Admin (God Mode)</div>
+                        <div className="text-2xl font-bold text-white mt-1">Operacional</div>
+                        <div className="text-xs text-slate-500">Bulk + Impersonation em uso</div>
+                    </div>
+                </div>
+            </div>
+
             {/* Quick Actions */}
             <div>
                 <h2 className="text-xl font-bold text-white mb-4">
