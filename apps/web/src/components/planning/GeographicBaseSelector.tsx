@@ -8,6 +8,12 @@ export interface SelectedMunicipality {
   name: string;
   uf: string;
   population?: number;
+  localities?: Array<{
+    id: string | number;
+    name: string;
+    population: number;
+    zone?: string;
+  }>;
 }
 
 interface Props {

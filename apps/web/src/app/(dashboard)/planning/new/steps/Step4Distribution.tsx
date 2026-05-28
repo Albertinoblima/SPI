@@ -1,8 +1,8 @@
 // Passo 4: Distribuição e Cotas
-// Define quantas entrevistas por município/localidade com base na amostra
+// Define quantas entrevistas por município com sugestão automática proporcional à população
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 
 interface Step4DistributionProps {
     initialData?: any;
@@ -13,34 +13,77 @@ interface Step4DistributionProps {
 interface Quota {
     name: string;
     uf?: string;
+    population: number;
     interviews: number;
 }
 
 const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNext, onBack }) => {
-    const sampleSize = initialData?.sampleSize || 0;
+    const sampleSize: number = initialData?.sampleSize || 0;
     const municipalities = initialData?.geographicBase?.municipalities || [];
 
-    const [quotas, setQuotas] = useState<Quota[]>(() => {
+    // Converte municípios selecionados em quotas iniciais
+    const initialQuotas: Quota[] = useMemo(() => {
         if (initialData?.distribution?.quotas?.length) {
             return initialData.distribution.quotas;
         }
-        // Sugestão inicial proporcional simples
-        if (municipalities.length > 0 && sampleSize > 0) {
-            const perMunicipio = Math.round(sampleSize / municipalities.length);
-            return municipalities.map((m: any) => ({
-                name: m.name,
-                uf: m.uf,
-                interviews: perMunicipio,
-            }));
-        }
-        return [{ name: 'Geral', interviews: sampleSize }];
-    });
 
-    const totalAssigned = quotas.reduce((sum, q) => sum + q.interviews, 0);
+        if (municipalities.length > 0) {
+            const totalPop = municipalities.reduce((sum: number, m: any) => sum + (m.population || 0), 0);
+
+            return municipalities.map((m: any) => {
+                const pop = m.population || 0;
+                const suggested = totalPop > 0 
+                    ? Math.round((pop / totalPop) * sampleSize) 
+                    : Math.round(sampleSize / municipalities.length);
+
+                return {
+                    name: m.name,
+                    uf: m.uf,
+                    population: pop,
+                    interviews: suggested,
+                };
+            });
+        }
+
+        return [{ name: 'Geral', population: 0, interviews: sampleSize }];
+    }, [municipalities, sampleSize, initialData?.distribution?.quotas]);
+
+    const [quotas, setQuotas] = useState<Quota[]>(initialQuotas);
+
+    const totalAssigned = useMemo(() => 
+        quotas.reduce((sum, q) => sum + q.interviews, 0), 
+    [quotas]);
+
+    const totalPopulation = useMemo(() =>
+        quotas.reduce((sum, q) => sum + (q.population || 0), 0),
+    [quotas]);
 
     const updateQuota = (index: number, value: number) => {
         const newQuotas = [...quotas];
-        newQuotas[index].interviews = Math.max(0, value);
+        newQuotas[index] = { ...newQuotas[index], interviews: Math.max(0, Math.floor(value)) };
+        setQuotas(newQuotas);
+    };
+
+    // Sugere distribuição proporcional à população
+    const suggestProportionalDistribution = () => {
+        if (totalPopulation === 0 || sampleSize === 0) return;
+
+        const newQuotas = quotas.map(q => {
+            const proportion = q.population / totalPopulation;
+            return {
+                ...q,
+                interviews: Math.round(proportion * sampleSize),
+            };
+        });
+
+        // Ajuste para bater exatamente com o sampleSize
+        const currentTotal = newQuotas.reduce((s, q) => s + q.interviews, 0);
+        const diff = sampleSize - currentTotal;
+
+        if (diff !== 0 && newQuotas.length > 0) {
+            newQuotas[0].interviews += diff;
+        }
+
         setQuotas(newQuotas);
     };
 
@@ -50,18 +93,34 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 quotas,
                 totalAssigned,
                 sampleSize,
+                totalPopulation,
             },
         });
     };
 
+    const difference = totalAssigned - sampleSize;
+
     return (
-        <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold mb-1">Distribuição e Cotas</h2>
-            <p className="text-slate-400 mb-2">
-                Defina quantas entrevistas serão realizadas em cada município/localidade.
+        <div className="max-w-4xl">
+            <div className="flex items-center justify-between mb-2">
+                <h2 className="text-2xl font-semibold">Distribuição e Cotas</h2>
+                <button
+                    onClick={suggestProportionalDistribution}
+                    disabled={totalPopulation === 0}
+                    className="text-sm px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 rounded-lg transition-colors"
+                >
+                    Sugerir distribuição proporcional à população
+                </button>
+            </div>
+
+            <p className="text-slate-400 mb-1">
+                Defina quantas entrevistas em cada município da base geográfica.
             </p>
-            <p className="text-sm text-emerald-400 mb-6">
-                Tamanho total da amostra: <strong>{sampleSize}</strong> entrevistas
+            <p className="text-sm mb-6">
+                Tamanho da amostra: <strong className="text-white">{sampleSize}</strong> entrevistas
+                {totalPopulation > 0 && (
+                    <> • População total da base: <strong>{totalPopulation.toLocaleString('pt-BR')}</strong></>
+                )}
             </p>
 
             <div className="space-y-3 mb-6">
@@ -70,31 +129,40 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                         key={index}
                         className="flex items-center gap-4 border border-slate-700 bg-slate-900/60 rounded-xl px-4 py-3"
                     >
-                        <div className="flex-1">
-                            <div className="font-medium">{quota.name}</div>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{quota.name}</div>
                             {quota.uf && <div className="text-xs text-slate-500">{quota.uf}</div>}
+                            {quota.population > 0 && (
+                                <div className="text-xs text-slate-400 mt-0.5">
+                                    População: {quota.population.toLocaleString('pt-BR')}
+                                </div>
+                            )}
                         </div>
+
                         <div className="flex items-center gap-2">
                             <input
                                 type="number"
                                 value={quota.interviews}
                                 onChange={(e) => updateQuota(index, parseInt(e.target.value) || 0)}
-                                className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-right text-sm"
+                                className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-right text-sm focus:outline-none focus:border-blue-500"
                             />
-                            <span className="text-sm text-slate-400">entrevistas</span>
+                            <span className="text-sm text-slate-400 w-20">entrevistas</span>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="mb-6 text-sm">
+            <div className="mb-6 p-3 rounded-lg bg-slate-900 border border-slate-700 text-sm">
                 <span className="text-slate-400">Total distribuído: </span>
-                <span className={`font-semibold ${totalAssigned === sampleSize ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`font-semibold text-lg ${difference === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {totalAssigned}
                 </span>
                 <span className="text-slate-400"> / {sampleSize}</span>
-                {totalAssigned !== sampleSize && (
-                    <span className="ml-2 text-amber-400 text-xs">(Diferença de {Math.abs(totalAssigned - sampleSize)})</span>
+
+                {difference !== 0 && (
+                    <span className="ml-3 text-amber-400">
+                        ({difference > 0 ? '+' : ''}{difference} entrevistas)
+                    </span>
                 )}
             </div>
 
