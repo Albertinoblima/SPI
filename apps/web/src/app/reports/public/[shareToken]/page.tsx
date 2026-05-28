@@ -91,7 +91,7 @@ export default function PublicDynamicReportPage() {
           </div>
 
           <p className="text-xs text-slate-500 mt-6">
-            Este acesso é exclusivo para o contratante da pesquisa.
+            Este acesso é exclusivo para o contratante da pesquisa. (Token: {params.shareToken})
           </p>
         </div>
       </div>
