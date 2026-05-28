@@ -157,6 +157,14 @@ export default function PublicDynamicReportPage() {
               </p>
             )}
           </div>
+
+          {/* Área para visualização de cruzamentos reais (em desenvolvimento) */}
+          <div className="bg-white p-6 rounded-xl border">
+            <h3 className="font-semibold mb-3">Exemplo de Cruzamento</h3>
+            <p className="text-sm text-slate-500">
+              Aqui serão exibidos gráficos e tabelas de cruzamentos reais carregados via o endpoint seguro após a autenticação.
+            </p>
+          </div>
         </div>
       </div>
     </div>
