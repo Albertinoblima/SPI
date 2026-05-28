@@ -51,13 +51,24 @@ const Step1Definition: React.FC<Step1DefinitionProps> = ({ initialData, onNext }
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                         <label className="block text-sm font-medium mb-1.5">Tipo de Pesquisa *</label>
-                        <input
+                        <select
                             value={researchType}
                             onChange={(e) => setResearchType(e.target.value)}
                             required
                             className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-lg px-4 py-2.5 text-sm outline-none"
-                            placeholder="Ex: Eleitoral, Opinião Pública..."
-                        />
+                        >
+                            <option value="">Selecione o tipo...</option>
+                            <option value="eleitoral">Eleitoral</option>
+                            <option value="opiniao_publica">Opinião Pública</option>
+                            <option value="satisfacao">Satisfação</option>
+                            <option value="avaliacao_servicos">Avaliação de Serviços</option>
+                            <option value="mercado_quantitativa">Pesquisa de Mercado</option>
+                            <option value="publico_alvo">Público-alvo / Segmentação</option>
+                            <option value="censo">Censo</option>
+                            <option value="qualitativa_grupo_focal">Qualitativa - Grupo Focal</option>
+                            <option value="qualitativa_profundidade">Qualitativa - Entrevista em Profundidade</option>
+                            <option value="outros">Outros</option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1.5">Público-alvo *</label>

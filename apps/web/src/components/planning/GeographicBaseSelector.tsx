@@ -20,6 +20,11 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
   const municipalities = value.municipalities || [];
   const localities = value.localities || [];
 
+  // Decisão baseada no tipo de pesquisa
+  const decision = researchType ? getSurveyDecision(researchType) : null;
+  const allowedScopes = decision ? [...decision.allowedScopes, 'mixed'] : ['national', 'state', 'city', 'specific_public', 'mixed'];
+  const scopeHint = decision?.scopeHint;
+
   // Busca de municípios via API existente
   useEffect(() => {
     const fetchMunicipios = async () => {
@@ -83,16 +88,14 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
           onChange={(e) => onChange({ ...value, scope: e.target.value as GeoScope | 'mixed' })}
           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"
         >
-          {getAllowedScopes(researchType).map((scope) => (
+          {allowedScopes.map((scope) => (
             <option key={scope} value={scope}>
               {SCOPE_LABELS[scope]}
             </option>
           ))}
         </select>
-        {researchType && (
-          <p className="text-xs text-slate-500 mt-1">
-            Recomendado para o tipo de pesquisa selecionado.
-          </p>
+        {scopeHint && (
+          <p className="text-xs text-blue-400 mt-1.5">{scopeHint}</p>
         )}
       </div>
 
@@ -162,6 +165,22 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
             </div>
           ))}
         </div>
+
+        {/* Resumo da Base */}
+        {municipalities.length > 0 && (
+          <div className="mt-3 p-3 bg-slate-950 border border-slate-700 rounded-lg text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Total de municípios:</span>
+              <span className="font-medium text-white">{municipalities.length}</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-slate-400">População estimada:</span>
+              <span className="font-medium text-emerald-400">
+                {municipalities.reduce((sum, m) => sum + (m.population || 0), 0).toLocaleString('pt-BR')} habitantes
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -177,20 +196,4 @@ const SCOPE_LABELS: Record<GeoScope | 'mixed', string> = {
   mixed: 'Mista',
 };
 
-function getAllowedScopes(researchType?: string): (GeoScope | 'mixed')[] {
-  const allScopes: (GeoScope | 'mixed')[] = ['national', 'state', 'city', 'specific_public', 'mixed'];
 
-  if (!researchType) return allScopes;
-
-  try {
-    const decision = getSurveyDecision(researchType);
-    // Se o tipo de pesquisa tem escopos específicos, priorizamos eles + mixed
-    if (decision.allowedScopes.length > 0) {
-      return [...decision.allowedScopes, 'mixed'];
-    }
-  } catch {
-    // fallback
-  }
-
-  return allScopes;
-}

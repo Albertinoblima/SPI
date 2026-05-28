@@ -26,6 +26,10 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
                 scope: geoData.scope,
                 municipalities: geoData.municipalities,
                 localities: geoData.localities,
+                metadata: {
+                    research_type: initialData?.researchType,
+                    total_population: geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0),
+                }
             }
         });
     };
