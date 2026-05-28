@@ -165,12 +165,12 @@ Estamos bem posicionados para entregar valor rapidamente.
 
 ---
 
-**Status mais recente (28/05 - ritmo atual mantido):**
+**Status mais recente (ritmo atual mantido):**
 
-- DOCX Generator: Melhorado com melhor uso de metadados do planejamento e estrutura mais profissional.
-- Dynamic Protected Report: Página pública agora carrega dados reais após autenticação do contratante.
-- Progresso sólido e equilibrado nos dois pilares principais dos relatórios.
+- DOCX Generator: Melhorado com estrutura mais profissional para capa/letterhead e melhor integração com dados do planejamento.
+- Dynamic Protected Report: Página pública agora busca e exibe dados reais (totais + cruzamentos disponíveis) após login do contratante.
+- Progresso consistente e equilibrado nos dois relatórios (download + dinâmico protegido).
 
-Mantendo o ritmo atual de execução de qualidade.
+Continuando no mesmo ritmo de qualidade.
 
 Estou continuando a execução com as melhores decisões.

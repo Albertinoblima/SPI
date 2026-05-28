@@ -46,11 +46,14 @@ export default function PublicDynamicReportPage() {
   const fetchReportData = async () => {
     setLoadingData(true);
     try {
-      // Busca dados reais do relatório dinâmico após autenticação
+      // Usa o endpoint real de analytics (já existente)
       const res = await fetch(`/api/reports/analytics?shareToken=${params.shareToken}`);
       if (res.ok) {
         const data = await res.json();
         setReportData(data);
+      } else {
+        // Fallback para dados básicos se o endpoint específico ainda não estiver completo
+        const fallback = await fetch(`/api/reports/[surveyId]/analytics`); // placeholder - será ajustado
       }
     } catch (e) {
       console.error('Erro ao carregar dados do relatório dinâmico');

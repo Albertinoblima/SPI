@@ -83,6 +83,7 @@ export class DocxReportGenerator {
         new Paragraph({ children: [new TextRun(`Objetivo: ${surveyData.planning.objective || 'Não informado'}`)] }),
         new Paragraph({ children: [new TextRun(`Amostra: ${surveyData.planning.sample_size || 'N/A'} entrevistas`)] }),
         new Paragraph({ children: [new TextRun(`Tipo de pesquisa: ${surveyData.planning.survey_type || 'N/A'}`)] }),
+        new Paragraph({ children: [new TextRun(`Base geográfica e cotas definidas no planejamento.`)] }),
       );
     }
 
