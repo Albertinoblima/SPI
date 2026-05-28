@@ -94,10 +94,36 @@ export class DocxReportGenerator {
               children: [new TextRun(crossing.title || `Cruzamento: ${q1} × ${q2}`)],
             }),
             new Paragraph({
-              children: [new TextRun(`Total de respostas no cruzamento: ${crossData.total}`)],
-            }),
-            // TODO: Adicionar tabela real com os dados do crossData.rows
+              children: [new TextRun(`Total de respostas: ${crossData.total}`)],
+            })
           );
+
+          // Tabela simples de cruzamento
+          if (crossData.rows.length > 0) {
+            const tableRows = crossData.rows.slice(0, 15).map((row: any) => 
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun(String(Object.values(row)[0] || '')) ] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun(String(Object.values(row)[1] || '')) ] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun(String(row.count)) ] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun(String(row.percentage) + '%') ] })] }),
+                ],
+              })
+            );
+
+            children.push(
+              new Table({
+                rows: [
+                  new TableRow({
+                    children: ['Variável 1', 'Variável 2', 'Quantidade', '%'].map(h => 
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })] })
+                    ),
+                  }),
+                  ...tableRows,
+                ],
+              })
+            );
+          }
         }
       } else {
         children.push(new Paragraph({
