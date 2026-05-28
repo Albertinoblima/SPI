@@ -67,7 +67,7 @@ export default function ImpersonationBanner() {
     if (!impersonation) return null;
 
     return (
-        <div className="bg-amber-600 text-white px-4 py-2 text-sm flex items-center justify-between shadow-md z-50">
+        <div className="sticky top-0 z-50 bg-amber-600 text-white px-4 py-2 text-sm flex items-center justify-between shadow-md">
             <div className="flex items-center gap-2 font-medium">
                 <ShieldAlert className="w-4 h-4" />
                 <span>
