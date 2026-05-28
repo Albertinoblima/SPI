@@ -228,24 +228,36 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 w-64">
+                                {/* Barra de participação na amostra total */}
+                                <div className="flex-1">
+                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full transition-all ${quota.locked ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                            style={{ width: `${sampleSize > 0 ? Math.min((quota.interviews / sampleSize) * 100, 100) : 0}%` }}
+                                        />
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 mt-0.5 text-right">
+                                        {sampleSize > 0 ? ((quota.interviews / sampleSize) * 100).toFixed(0) : 0}%
+                                    </div>
+                                </div>
+
                                 <input
                                     type="number"
                                     value={quota.interviews}
                                     onChange={(e) => updateQuota(index, parseInt(e.target.value) || 0)}
                                     disabled={quota.locked}
-                                    className={`w-24 bg-slate-950 border rounded-lg px-3 py-1.5 text-right text-sm focus:outline-none focus:border-blue-500 ${
+                                    className={`w-20 bg-slate-950 border rounded-lg px-2 py-1 text-right text-sm focus:outline-none focus:border-blue-500 ${
                                         quota.locked ? 'border-amber-600 text-slate-400' : 'border-slate-700'
                                     }`}
                                 />
-                                <span className="text-sm text-slate-400 w-20">entrevistas</span>
 
                                 <button
                                     type="button"
                                     onClick={() => toggleLock(index)}
-                                    className={`p-1.5 rounded transition-colors ${
+                                    className={`p-1 rounded transition-colors text-base ${
                                         quota.locked 
-                                            ? 'bg-amber-600 text-white hover:bg-amber-500' 
+                                            ? 'bg-amber-600 text-white' 
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                                     }`}
                                     title={quota.locked ? "Destravar cota" : "Travar cota"}

@@ -19,14 +19,99 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
     saveError = null,
     isSaving = false,
 }) => {
-    return (
-        <div className="max-w-2xl mx-auto p-6">
-            <h2 className="text-2xl font-semibold mb-4">Resumo do Planejamento</h2>
+    const geo = planningData.geographicBase || {};
+    const dist = planningData.distribution || {};
+    const sampleSize = planningData.sampleSize || dist.sampleSize || 0;
+    const totalPop = geo.metadata?.total_population || 0;
 
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 mb-6">
-                <pre className="text-sm text-slate-300 overflow-auto">
-                    {JSON.stringify(planningData, null, 2)}
-                </pre>
+    const municipalities = geo.municipalities || [];
+    const quotas = dist.quotas || [];
+
+    return (
+        <div className="max-w-3xl mx-auto p-6">
+            <h2 className="text-2xl font-semibold mb-1">Resumo do Planejamento</h2>
+            <p className="text-slate-400 mb-6">Revise os principais dados antes de salvar.</p>
+
+            {/* Definição */}
+            <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+                    <span>1. Definição Inicial</span>
+                </h3>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-2 text-sm">
+                    <div><span className="text-slate-400">Nome:</span> <span className="font-medium">{planningData.name || '—'}</span></div>
+                    <div><span className="text-slate-400">Objetivo:</span> {planningData.objective || '—'}</div>
+                    <div><span className="text-slate-400">Tipo de Pesquisa:</span> {planningData.researchType || '—'}</div>
+                    <div><span className="text-slate-400">Público-alvo:</span> {planningData.targetAudience || '—'}</div>
+                </div>
+            </div>
+
+            {/* Base Geográfica */}
+            <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">2. Base Geográfica</h3>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm">
+                    <div className="mb-2">
+                        <span className="text-slate-400">Abrangência:</span> <span className="font-medium">{geo.scope || '—'}</span>
+                    </div>
+                    <div className="mb-2">
+                        <span className="text-slate-400">Municípios selecionados:</span> <span className="font-medium">{municipalities.length}</span>
+                    </div>
+                    <div>
+                        <span className="text-slate-400">População total estimada:</span> <span className="font-semibold text-emerald-400">{totalPop.toLocaleString('pt-BR')}</span>
+                    </div>
+                    {municipalities.length > 0 && (
+                        <div className="mt-3 text-xs text-slate-400">
+                            {municipalities.slice(0, 5).map((m: any) => m.name).join(' • ')}
+                            {municipalities.length > 5 && ` +${municipalities.length - 5} mais`}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Dimensionamento */}
+            <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">3. Dimensionamento Amostral</h3>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <div className="text-slate-400 text-xs">População</div>
+                        <div className="font-semibold">{planningData.population?.toLocaleString('pt-BR') || '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-slate-400 text-xs">Margem de erro</div>
+                        <div className="font-semibold">{planningData.margin || '—'}%</div>
+                    </div>
+                    <div>
+                        <div className="text-slate-400 text-xs">Nível de confiança</div>
+                        <div className="font-semibold">{planningData.confidence || '—'}%</div>
+                    </div>
+                    <div>
+                        <div className="text-slate-400 text-xs">Tamanho da amostra</div>
+                        <div className="font-semibold text-emerald-400 text-lg">{sampleSize.toLocaleString('pt-BR')}</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Distribuição */}
+            <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">4. Distribuição e Cotas</h3>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm">
+                    {quotas.length > 0 ? (
+                        <div className="space-y-1">
+                            {quotas.slice(0, 6).map((q: any, idx: number) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                    <span>{q.name} {q.uf ? `(${q.uf})` : ''}</span>
+                                    <span className="font-medium">{q.interviews?.toLocaleString('pt-BR') || 0}</span>
+                                </div>
+                            ))}
+                            {quotas.length > 6 && <div className="text-xs text-slate-500">+ {quotas.length - 6} outros...</div>}
+                            <div className="pt-2 mt-2 border-t border-slate-700 flex justify-between font-semibold">
+                                <span>Total</span>
+                                <span>{(dist.totalAssigned || 0).toLocaleString('pt-BR')} entrevistas</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-slate-400">Nenhuma distribuição definida.</p>
+                    )}
+                </div>
             </div>
 
             {saveSuccess && (

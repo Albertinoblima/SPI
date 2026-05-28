@@ -54,13 +54,20 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
             </div>
 
             {geoData.municipalities.length > 0 && (
-                <div className="mb-6 p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300">
-                    <strong>Base selecionada:</strong> {geoData.municipalities.length} município(s) • 
-                    População aproximada: {
-                        geoData.municipalities
-                            .reduce((sum, m) => sum + (m.population || 0), 0)
-                            .toLocaleString('pt-BR')
-                    } habitantes
+                <div className="mb-6 p-4 bg-slate-900 border border-slate-600 rounded-2xl text-sm">
+                    <div className="font-semibold text-white mb-2">Resumo da Base Geográfica</div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-slate-400">Municípios:</div>
+                        <div className="font-medium text-right text-white">{geoData.municipalities.length}</div>
+                        
+                        <div className="text-slate-400">População total:</div>
+                        <div className="font-semibold text-right text-emerald-400">
+                            {geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0).toLocaleString('pt-BR')}
+                        </div>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-2">
+                        Esta base será usada para sugerir a distribuição de entrevistas no próximo passo.
+                    </div>
                 </div>
             )}
 
