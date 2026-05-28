@@ -180,4 +180,21 @@ O Painel Administrativo funciona como **"God Mode"** da plataforma:
 
 **Este documento representa a visão completa e priorizada para evolução do Painel Administrativo iDialog.**
 
+---
+
+## Progresso de Implementação (atualizado autonomamente)
+
+**2026-05 (sessão atual):**
+- **Fase 2 (Saúde do Sistema)**: Status das Integrações Externas completamente refeito com detecção honesta de tokens, descrições de impacto operacional e UI rica (GitHub / Vercel / Supabase Interno). [apps/web/src/app/admin/system/health/*]
+- **Fase 1 (Ações em Massa)**: Bulk update de status para múltiplos tenants implementado (API + UI com checkboxes, toolbar âmbar, auditoria por tenant, limite de segurança). Botão "Entrar como" (impersonation) já existia por linha. Agora o God Mode tem poder real de operação em lote.
+- Verificações: tsc --noEmit limpo em todas as alterações.
+- Commits: 2 commits focados e rastreáveis (09735ec + 2f8616e).
+
+Próximos candidatos de alto valor (decisão autônoma futura):
+- Bulk "marcar erros resolvidos" na página de errors
+- Indicadores de saúde por tenant no list + detail
+- Expansão de métricas no Health (latência, uso de módulos)
+
+Siga com as melhores decisões — sempre priorizando impacto operacional e segurança.
+
 Quer que eu comece a execução da **Fase 0** (Segurança e Fundação) agora, ou prefere ajustar prioridades antes de iniciar a implementação?

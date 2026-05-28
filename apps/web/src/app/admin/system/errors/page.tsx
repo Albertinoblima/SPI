@@ -8,6 +8,11 @@ import {
     Loader,
     ChevronDown,
     Siren,
+    CheckSquare,
+    Square,
+    CheckCheck,
+    RotateCcw,
+    Users,
 } from 'lucide-react';
 import { getErrorCodeDefinition } from '@/lib/monitoring/error-codes';
 
@@ -119,8 +124,84 @@ export default function ErrorsPage() {
                         : err
                 )
             );
+
+            // Remover da seleção se estava selecionado (mantém consistência)
+            setSelected((prev) => {
+                const next = new Set(prev);
+                next.delete(errorId);
+                return next;
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao atualizar');
+        }
+    };
+
+    // === Ações em Massa para Erros (Fase 1 God Mode) ===
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+
+    const allVisibleSelected = errors.length > 0 && errors.every((e) => selected.has(e.id));
+    const someVisibleSelected = errors.some((e) => selected.has(e.id));
+
+    const toggleSelectAllVisible = () => {
+        const newSelected = new Set(selected);
+        if (allVisibleSelected) {
+            errors.forEach((e) => newSelected.delete(e.id));
+        } else {
+            errors.forEach((e) => newSelected.add(e.id));
+        }
+        setSelected(newSelected);
+        setBulkMessage(null);
+    };
+
+    const toggleSelect = (id: string) => {
+        const newSelected = new Set(selected);
+        if (newSelected.has(id)) newSelected.delete(id);
+        else newSelected.add(id);
+        setSelected(newSelected);
+        setBulkMessage(null);
+    };
+
+    const clearSelection = () => {
+        setSelected(new Set());
+        setBulkMessage(null);
+    };
+
+    const executeBulkResolve = async (markAsResolved: boolean) => {
+        if (selected.size === 0) return;
+
+        const actionText = markAsResolved ? 'marcar como resolvido' : 'reabrir';
+        if (!confirm(`Deseja ${actionText} ${selected.size} erro(s)?\n\nAção será registrada em auditoria.`)) return;
+
+        setBulkLoading(true);
+        setBulkMessage(null);
+
+        try {
+            const res = await fetch('/api/admin/system/errors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'mark_resolved',
+                    errorIds: Array.from(selected),
+                    resolved: markAsResolved,
+                }),
+            });
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                throw new Error(json.error || 'Falha na operação em massa');
+            }
+
+            setBulkMessage(`${json.data?.message || 'Operação concluída'} • ${selected.size} afetado(s)`);
+            clearSelection();
+            await fetchErrors();
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+            setBulkMessage(`Erro: ${msg}`);
+        } finally {
+            setBulkLoading(false);
         }
     };
 
@@ -228,7 +309,63 @@ export default function ErrorsPage() {
                     <option value="unresolved">Não resolvidos</option>
                     <option value="resolved">Resolvidos</option>
                 </select>
+
+                {/* Selecionar todos visíveis */}
+                <button
+                    onClick={toggleSelectAllVisible}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 text-sm text-slate-300 transition"
+                    title="Selecionar / desmarcar todos os erros visíveis"
+                >
+                    {allVisibleSelected ? <CheckSquare className="w-4 h-4 text-amber-400" /> : <Square className="w-4 h-4" />}
+                    Selecionar visíveis
+                </button>
             </div>
+
+            {/* Bulk Actions Toolbar - Fase 1 Ações em Massa (God Mode) */}
+            {selected.size > 0 && (
+                <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-amber-950/40 border border-amber-800/60">
+                    <div className="flex items-center gap-2 text-amber-300 text-sm font-medium">
+                        <Users className="w-4 h-4" />
+                        {selected.size} erro(s) selecionado(s)
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                            onClick={() => executeBulkResolve(true)}
+                            disabled={bulkLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-medium transition"
+                        >
+                            <CheckCheck className="w-3.5 h-3.5" /> Marcar como Resolvido
+                        </button>
+                        <button
+                            onClick={() => executeBulkResolve(false)}
+                            disabled={bulkLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-700 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-medium transition"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> Reabrir
+                        </button>
+
+                        <div className="w-px h-5 bg-amber-800/70 mx-1" />
+
+                        <button
+                            onClick={clearSelection}
+                            disabled={bulkLoading}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-slate-300 transition disabled:opacity-50"
+                        >
+                            Limpar seleção
+                        </button>
+                    </div>
+
+                    {bulkLoading && <Loader className="w-4 h-4 animate-spin text-amber-400" />}
+                </div>
+            )}
+
+            {/* Feedback de bulk */}
+            {bulkMessage && (
+                <div className={`text-sm px-4 py-2 rounded-lg border ${bulkMessage.startsWith('Erro') ? 'bg-red-900/20 border-red-700/40 text-red-300' : 'bg-emerald-900/20 border-emerald-700/40 text-emerald-300'}`}>
+                    {bulkMessage}
+                </div>
+            )}
 
             {/* Error */}
             {error && (
@@ -274,6 +411,21 @@ export default function ErrorsPage() {
                                         >
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleSelect(err.id);
+                                                        }}
+                                                        className="text-slate-400 hover:text-amber-400 transition shrink-0"
+                                                        title={selected.has(err.id) ? 'Remover da seleção' : 'Selecionar erro'}
+                                                    >
+                                                        {selected.has(err.id) ? (
+                                                            <CheckSquare className="w-4 h-4 text-amber-400" />
+                                                        ) : (
+                                                            <Square className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+
                                                     <span
                                                         className={`text-xs px-3 py-1 rounded-full border font-medium ${getSeverityColor(err.severity)}`}
                                                     >
