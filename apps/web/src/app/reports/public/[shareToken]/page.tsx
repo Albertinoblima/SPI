@@ -94,7 +94,7 @@ export default function PublicDynamicReportPage() {
             Este acesso é exclusivo para o contratante da pesquisa. (Token: {params.shareToken})
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
-            Segurança: Acesso protegido por token + credenciais do contratante.
+            Segurança: Acesso protegido por token + credenciais do contratante. (Endpoint: /api/reports/public/[shareToken]/analytics)
           </p>
         </div>
       </div>
