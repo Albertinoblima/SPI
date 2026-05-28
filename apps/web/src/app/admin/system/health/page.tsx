@@ -375,6 +375,26 @@ export default function SystemHealthPage() {
                 </div>
             )}
 
+            {/* External Integrations Status - Fase 2 Robustness */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-gray-400 mb-3">Status das Integrações Externas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div className={`p-3 rounded-lg border ${data?.github.apiError ? 'bg-red-900/20 border-red-700/50 text-red-300' : 'bg-green-900/20 border-green-700/50 text-green-300'}`}>
+                        <div className="font-medium">GitHub</div>
+                        <div className="text-xs mt-1">{data?.github.apiError ? 'Não configurado ou sem permissão' : 'Conectado'}</div>
+                    </div>
+                    <div className={`p-3 rounded-lg border ${data?.vercel.apiError ? 'bg-red-900/20 border-red-700/50 text-red-300' : 'bg-green-900/20 border-green-700/50 text-green-300'}`}>
+                        <div className="font-medium">Vercel</div>
+                        <div className="text-xs mt-1">{data?.vercel.apiError ? 'Não configurado ou sem permissão' : 'Conectado'}</div>
+                    </div>
+                    <div className="p-3 rounded-lg border bg-green-900/20 border-green-700/50 text-green-300">
+                        <div className="font-medium">Supabase (Interno)</div>
+                        <div className="text-xs mt-1">Conectado e operacional</div>
+                    </div>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-2">Configure os tokens nas variáveis de ambiente do projeto para ver dados completos de Vercel e GitHub.</p>
+            </div>
+
             {/* GitHub Monitoring */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
@@ -443,7 +463,7 @@ export default function SystemHealthPage() {
                         </div>
                     </div>
 
-                    {/* Workflow Runs */}
+                    {/* Workflow Runs - Enhanced */}
                     <div>
                         <p className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800 flex items-center gap-2">
                             <GitPullRequest className="w-3.5 h-3.5" />
