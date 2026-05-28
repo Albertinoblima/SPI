@@ -8,6 +8,7 @@ interface Step5SummaryProps {
     onBack: () => void;
     saveSuccess?: boolean;
     saveError?: string | null;
+    isSaving?: boolean;
 }
 
 const Step5Summary: React.FC<Step5SummaryProps> = ({
@@ -16,6 +17,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
     onBack,
     saveSuccess = false,
     saveError = null,
+    isSaving = false,
 }) => {
     return (
         <div className="max-w-2xl mx-auto p-6">
@@ -62,10 +64,10 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                 </button>
                 <button
                     onClick={onSave}
-                    disabled={saveSuccess}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50"
+                    disabled={saveSuccess || isSaving}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 flex items-center gap-2"
                 >
-                    {saveSuccess ? 'Salvo' : 'Salvar Planejamento'}
+                    {isSaving ? 'Salvando...' : saveSuccess ? 'Salvo' : 'Salvar Planejamento'}
                 </button>
 
                 {!saveSuccess && (

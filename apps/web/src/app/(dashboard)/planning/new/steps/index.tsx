@@ -25,6 +25,7 @@ const PlanningSteps = () => {
     const [planningData, setPlanningData] = useState<any>({});
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Load draft from localStorage on mount
     useEffect(() => {
@@ -86,10 +87,11 @@ const PlanningSteps = () => {
     const handleSave = async () => {
         setSaveError(null);
         setSaveSuccess(false);
+        setIsSaving(true);
 
         try {
             const { createResearchPlan } = await import('@/lib/supabase/researchPlans');
-            await createResearchPlan({
+            const savedPlan = await createResearchPlan({
                 name: planningData.name || 'Planejamento sem nome',
                 planningData,
             });
@@ -98,6 +100,9 @@ const PlanningSteps = () => {
 
             // Clear draft after successful save
             localStorage.removeItem(DRAFT_KEY);
+
+            // Update local data with saved plan (so links work)
+            setPlanningData((prev: any) => ({ ...prev, id: savedPlan.id }));
         } catch (err: any) {
             const message = err?.message || 'Erro desconhecido ao salvar planejamento';
             setSaveError(message);
@@ -112,6 +117,8 @@ const PlanningSteps = () => {
                     planningDataKeys: Object.keys(planningData),
                 },
             });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -155,6 +162,7 @@ const PlanningSteps = () => {
                     onBack={handleBack}
                     saveSuccess={saveSuccess}
                     saveError={saveError}
+                    isSaving={isSaving}
                 />
             </div>
         );
