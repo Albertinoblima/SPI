@@ -175,10 +175,11 @@ export default function SystemHealthPage() {
         return () => clearInterval(interval);
     }, [fetchHealth]);
 
-    const latestDeploy = data?.vercel.deployments[0];
-    const errorCounts = data?.supabase.errorCounts24h ?? {};
+    const vercelDeployments = Array.isArray(data?.vercel?.deployments) ? data.vercel.deployments : [];
+    const latestDeploy = vercelDeployments[0] ?? null;
+    const errorCounts = data?.supabase?.errorCounts24h ?? {};
     const totalErrors24h = Object.values(errorCounts).reduce((a, b) => a + b, 0);
-    const githubRepo = data?.github.repo ?? 'Albertinoblima/SPI';
+    const githubRepo = data?.github?.repo ?? 'Albertinoblima/SPI';
 
     return (
         <div className="p-6 space-y-6">
@@ -499,12 +500,12 @@ export default function SystemHealthPage() {
                                 <div className="w-16 h-4 bg-gray-800 rounded" />
                             </div>
                         ))
-                    ) : data?.vercel.deployments.length === 0 ? (
+                    ) : vercelDeployments.length === 0 ? (
                         <p className="px-5 py-6 text-gray-500 text-sm text-center">
                             Nenhum deployment encontrado
                         </p>
                     ) : (
-                        data?.vercel.deployments.map((dep) => {
+                        vercelDeployments.map((dep) => {
                             const cfg = STATE_CONFIG[dep.state] ?? { label: dep.state, color: 'text-gray-400', icon: null };
                             return (
                                 <div key={dep.id} className="px-5 py-3 flex items-center gap-4">

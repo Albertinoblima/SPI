@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -14,6 +14,7 @@ import {
     LogIn,
     Menu,
     Activity,
+    Loader2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import AdminNotificationBell from '@/components/notifications/AdminNotificationBell';
@@ -26,6 +27,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [collapsed, setCollapsed] = useState(false);
+    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null); // null = checking
+
+    // Proteção client-side para Fase 0 do Update do Painel Administrativo
+    useEffect(() => {
+        const checkAdminAccess = async () => {
+            try {
+                const res = await fetch('/api/admin/me');
+                if (!res.ok) {
+                    // Não é admin → redireciona para área segura
+                    router.replace('/dashboard?error=admin_access_denied');
+                    return;
+                }
+                setIsAuthorized(true);
+            } catch {
+                router.replace('/dashboard?error=admin_access_denied');
+            }
+        };
+
+        checkAdminAccess();
+    }, [router]);
 
     const navItems = [
         {
@@ -44,14 +65,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             icon: AlertTriangle,
         },
         {
-            label: 'Suporte',
-            href: '/admin/support',
-            icon: MessageSquare,
-        },
-        {
             label: 'Saúde do Sistema',
             href: '/admin/system/health',
             icon: Activity,
+        },
+        {
+            label: 'System Admins',
+            href: '/admin/system/admins',
+            icon: Shield,
+        },
+        {
+            label: 'Suporte',
+            href: '/admin/support',
+            icon: MessageSquare,
         },
         {
             label: 'Auditoria',
@@ -66,6 +92,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         }
         return pathname?.startsWith(href);
     };
+
+    // Enquanto verifica permissão, mostra loader (proteção contra flash de conteúdo)
+    if (isAuthorized === null) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-slate-900">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <p className="text-sm text-slate-400">Verificando acesso administrativo...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAuthorized) {
+        return null; // Já redirecionou
+    }
 
     return (
         <div className="flex h-screen bg-slate-900">

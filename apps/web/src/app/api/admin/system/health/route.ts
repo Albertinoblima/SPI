@@ -150,13 +150,13 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Buscar dados em paralelo
+        // Buscar dados em paralelo (com tratamento defensivo)
         const [
             vercelResult,
             githubResult,
-            { data: recentErrors },
-            { data: analytics },
-            { data: systemStats },
+            errorsRes,
+            analyticsRes,
+            statsRes,
         ] = await Promise.all([
             fetchVercelDeployments(),
             fetchGitHubData(),
@@ -172,6 +172,10 @@ export async function GET(request: NextRequest) {
                 .limit(7),
             auth.supabase.from('vw_system_stats').select('*').single(),
         ]);
+
+        const recentErrors = errorsRes?.data ?? [];
+        const analytics = analyticsRes?.data ?? [];
+        const systemStats = statsRes?.data ?? null;
 
         // Contagem de erros por severidade (últimas 24h)
         const { data: errorCounts } = await auth.supabase
