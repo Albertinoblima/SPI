@@ -69,11 +69,15 @@ const PlanningSteps = () => {
                 if (error) throw error;
 
                 if (data) {
-                    // Restore the planning data structure
+                    // Restore the planning data structure defensively
+                    const baseData = data.planning_data && typeof data.planning_data === 'object' 
+                        ? data.planning_data 
+                        : {};
+
                     const restoredData = {
-                        ...data.planning_data,
-                        name: data.name,
-                        id: data.id, // important for update
+                        ...baseData,
+                        name: data.name || baseData.name || 'Planejamento sem nome',
+                        id: data.id,
                     };
                     setPlanningData(restoredData);
                     setIsEditMode(true);

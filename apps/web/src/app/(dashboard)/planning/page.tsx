@@ -122,17 +122,31 @@ const PlanningDashboardPage = () => {
 
                                     <button
                                         onClick={async () => {
-                                            if (confirm(`Duplicar o planejamento "${plan.name}"?`)) {
+                                            if (!confirm(`Duplicar o planejamento "${plan.name}"?`)) return;
+
+                                            try {
+                                                const { createResearchPlan } = await import('@/lib/supabase/researchPlans');
+                                                const newPlan = await createResearchPlan({
+                                                    name: `${plan.name} (Cópia)`,
+                                                    planningData: plan.planning_data || {},
+                                                });
+                                                window.location.href = `/planning/new?editId=${newPlan.id}`;
+                                            } catch (e: any) {
+                                                console.error('Duplicate planning error', e);
+                                                alert('Erro ao duplicar planejamento. O incidente foi registrado.');
+                                                // Report to monitoring
                                                 try {
-                                                    const { createResearchPlan } = await import('@/lib/supabase/researchPlans');
-                                                    const newPlan = await createResearchPlan({
-                                                        name: `${plan.name} (Cópia)`,
-                                                        planningData: plan.planning_data,
+                                                    await fetch('/api/system/errors/ingest', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            errorCode: 'PLANNING_SAVE_FAILED',
+                                                            errorMessage: 'Falha ao duplicar planejamento',
+                                                            severity: 'high',
+                                                            metadata: { planId: plan.id, error: e?.message },
+                                                        }),
                                                     });
-                                                    window.location.href = `/planning/new?editId=${newPlan.id}`;
-                                                } catch (e) {
-                                                    alert('Erro ao duplicar planejamento.');
-                                                }
+                                                } catch {}
                                             }
                                         }}
                                         className="text-emerald-400 hover:text-emerald-300 font-medium"

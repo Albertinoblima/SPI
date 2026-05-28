@@ -66,7 +66,18 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
     // Sugere distribuição proporcional à população
     const suggestProportionalDistribution = () => {
-        if (totalPopulation === 0 || sampleSize === 0) return;
+        if (totalPopulation === 0 || sampleSize === 0 || quotas.length === 0) {
+            // Fallback: distribute evenly
+            const even = Math.floor(sampleSize / quotas.length);
+            let remainder = sampleSize % quotas.length;
+
+            const newQuotas = quotas.map((q, idx) => ({
+                ...q,
+                interviews: even + (idx < remainder ? 1 : 0),
+            }));
+            setQuotas(newQuotas);
+            return;
+        }
 
         const newQuotas = quotas.map(q => {
             const proportion = q.population / totalPopulation;
@@ -77,11 +88,24 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         });
 
         // Ajuste para bater exatamente com o sampleSize
-        const currentTotal = newQuotas.reduce((s, q) => s + q.interviews, 0);
-        const diff = sampleSize - currentTotal;
+        let currentTotal = newQuotas.reduce((s, q) => s + q.interviews, 0);
+        let diff = sampleSize - currentTotal;
 
-        if (diff !== 0 && newQuotas.length > 0) {
-            newQuotas[0].interviews += diff;
+        // Distribute the difference
+        let i = 0;
+        while (diff !== 0 && newQuotas.length > 0) {
+            const idx = i % newQuotas.length;
+            if (diff > 0) {
+                newQuotas[idx].interviews += 1;
+                diff--;
+            } else {
+                if (newQuotas[idx].interviews > 0) {
+                    newQuotas[idx].interviews -= 1;
+                    diff++;
+                }
+            }
+            i++;
+            if (i > 100) break; // safety
         }
 
         setQuotas(newQuotas);

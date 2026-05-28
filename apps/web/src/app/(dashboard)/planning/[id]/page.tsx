@@ -223,17 +223,17 @@ const PlanningViewPage = () => {
                     <h2 className="text-xl font-semibold">Base Geográfica</h2>
                 </div>
 
-                {data.geographicBase?.municipalities?.length > 0 ? (
+                {Array.isArray(data.geographicBase?.municipalities) && data.geographicBase.municipalities.length > 0 ? (
                     <div>
                         <div className="text-sm text-slate-400 mb-2">
-                            Abrangência: <span className="text-white font-medium">{data.geographicBase.scope}</span>
+                            Abrangência: <span className="text-white font-medium">{data.geographicBase?.scope || 'N/A'}</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             {data.geographicBase.municipalities.map((m: any, idx: number) => (
                                 <div key={idx} className="bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                                    {m.name} - {m.uf}
-                                    {m.population && (
-                                        <span className="text-xs text-slate-400">({m.population.toLocaleString('pt-BR')})</span>
+                                    {m?.name || 'Desconhecido'} - {m?.uf || ''}
+                                    {m?.population && (
+                                        <span className="text-xs text-slate-400">({Number(m.population).toLocaleString('pt-BR')})</span>
                                     )}
                                 </div>
                             ))}
@@ -280,16 +280,16 @@ const PlanningViewPage = () => {
                     <h2 className="text-xl font-semibold">Distribuição e Cotas</h2>
                 </div>
 
-                {data.distribution?.quotas?.length > 0 ? (
+                {Array.isArray(data.distribution?.quotas) && data.distribution.quotas.length > 0 ? (
                     <div className="space-y-2">
                         {data.distribution.quotas.map((q: any, idx: number) => (
                             <div key={idx} className="flex justify-between items-center bg-slate-800 px-4 py-2.5 rounded-xl text-sm">
-                                <span>{q.name} {q.uf ? `(${q.uf})` : ''}</span>
-                                <span className="font-medium text-white">{q.interviews?.toLocaleString('pt-BR') || 0} entrevistas</span>
+                                <span>{q?.name || 'Desconhecido'} {q?.uf ? `(${q.uf})` : ''}</span>
+                                <span className="font-medium text-white">{Number(q?.interviews || 0).toLocaleString('pt-BR')} entrevistas</span>
                             </div>
                         ))}
                         <div className="text-right text-sm text-slate-400 mt-2">
-                            Total: <span className="font-semibold text-white">{data.distribution.totalAssigned || 0}</span>
+                            Total: <span className="font-semibold text-white">{Number(data.distribution?.totalAssigned || 0).toLocaleString('pt-BR')}</span>
                         </div>
                     </div>
                 ) : (
