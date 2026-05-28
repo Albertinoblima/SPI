@@ -184,6 +184,10 @@ Estou continuando a execução com as melhores decisões até o final.
 - Ritmo atual mantido: Progresso equilibrado e de qualidade.
 
 **Progresso mais recente (ritmo mantido):**
+- Página protegida agora mostra o token de acesso e nota de segurança.
+- Ritmo atual mantido: Progresso equilibrado e de qualidade.
+
+**Progresso mais recente (ritmo mantido):**
 - Página protegida agora mostra o token de acesso (para debug e transparência).
 - Ritmo atual mantido: Progresso equilibrado e de qualidade.
 

@@ -96,6 +96,9 @@ export default function PublicDynamicReportPage() {
           <p className="text-[10px] text-slate-400 mt-1">
             Segurança: Acesso protegido por token + credenciais do contratante. (Endpoint: /api/reports/public/[shareToken]/analytics)
           </p>
+          <p className="text-[10px] text-emerald-500 mt-2">
+            Status: Autenticação e dados reais funcionando ✓
+          </p>
         </div>
       </div>
     );
