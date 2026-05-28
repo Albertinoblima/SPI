@@ -55,6 +55,12 @@ interface TenantDetails {
         severity: string;
         created_at: string;
     }>;
+    health?: {
+        critical_24h: number;
+        high_24h: number;
+        medium_24h: number;
+        has_recent_issues: boolean;
+    };
 }
 
 export default function TenantDetailsPage() {
@@ -252,6 +258,65 @@ export default function TenantDetailsPage() {
                 </div>
             </div>
 
+            {/* Saúde & Incidentes - Destaque (Fase 2 + fechamento de loop) */}
+            {data.health && (data.health.critical_24h > 0 || data.health.high_24h > 0 || data.health.medium_24h > 0) && (
+                <div className="p-5 rounded-xl border border-red-700/50 bg-red-950/30">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                            <span className="font-semibold text-red-300">Saúde & Incidentes (últimas 24h)</span>
+                        </div>
+                        <Link
+                            href={`/admin/system/errors?tenant_id=${data.tenant.id}`}
+                            className="text-xs px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-medium transition"
+                        >
+                            Ver todos os erros →
+                        </Link>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        {data.health.critical_24h > 0 && (
+                            <div className="px-4 py-2 rounded-lg bg-red-500/20 text-red-200 text-sm font-medium border border-red-500/30">
+                                {data.health.critical_24h} crítico{data.health.critical_24h > 1 ? 's' : ''}
+                            </div>
+                        )}
+                        {data.health.high_24h > 0 && (
+                            <div className="px-4 py-2 rounded-lg bg-orange-500/20 text-orange-200 text-sm font-medium border border-orange-500/30">
+                                {data.health.high_24h} alto{data.health.high_24h > 1 ? 's' : ''}
+                            </div>
+                        )}
+                        {data.health.medium_24h > 0 && (
+                            <div className="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-200 text-sm font-medium border border-yellow-500/30">
+                                {data.health.medium_24h} médio{data.health.medium_24h > 1 ? 's' : ''}
+                            </div>
+                        )}
+                    </div>
+
+                    <p className="text-xs text-red-300/80 mt-2">
+                        Esta empresa tem incidentes recentes. Use o botão "Entrar como" acima ou resolva em massa na página de erros.
+                    </p>
+                </div>
+            )}
+
+            {/* Quick Actions Bar */}
+            <div className="flex flex-wrap gap-2">
+                <Link
+                    href={`/admin/system/errors?tenant_id=${data.tenant.id}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm font-medium transition"
+                >
+                    <AlertTriangle className="w-4 h-4" /> Ver todos os erros desta empresa
+                </Link>
+                <button
+                    onClick={() => {
+                        // Reutiliza a lógica de impersonation já existente no header
+                        document.querySelector<HTMLButtonElement>('button[title*="Assumir identidade"]')?.click();
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition"
+                >
+                    <LogIn className="w-4 h-4" /> Entrar como esta empresa
+                </button>
+            </div>
+
             {/* Status Control */}
             <div className="p-6 rounded-lg bg-slate-800 border border-slate-700">
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -405,28 +470,74 @@ export default function TenantDetailsPage() {
                 </div>
             </div>
 
-            {/* Recent Errors */}
+            {/* Recent Errors - Fortalecido (Fase 2) */}
             {data.recentErrors.length > 0 && (
-                <div className="p-6 rounded-lg bg-red-900/20 border border-red-700/30">
-                    <h2 className="text-lg font-semibold text-red-300 mb-4 flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5" />
-                        Erros Recentes (7 dias)
-                    </h2>
+                <div className="p-6 rounded-xl border border-red-700/50 bg-red-950/20">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-red-300 flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5" />
+                            Erros Recentes ({data.recentErrors.length})
+                        </h2>
+                        <div className="flex gap-2">
+                            <Link
+                                href={`/admin/system/errors?tenant_id=${data.tenant.id}`}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition"
+                            >
+                                Ver todos →
+                            </Link>
+                            <button
+                                onClick={async () => {
+                                    if (!confirm(`Marcar todos os ${data.recentErrors.length} erros recentes como resolvidos?`)) return;
+                                    try {
+                                        const res = await fetch('/api/admin/system/errors', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                action: 'mark_resolved',
+                                                errorIds: data.recentErrors.map(e => e.id),
+                                                resolved: true,
+                                            }),
+                                        });
+                                        if (res.ok) {
+                                            alert('Erros marcados como resolvidos!');
+                                            fetchTenant();
+                                        } else {
+                                            alert('Falha ao resolver erros em massa');
+                                        }
+                                    } catch {
+                                        alert('Erro de conexão');
+                                    }
+                                }}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition"
+                            >
+                                Marcar todos como resolvidos
+                            </button>
+                        </div>
+                    </div>
 
                     <div className="space-y-2">
-                        {data.recentErrors.slice(0, 3).map((error) => (
-                            <div
-                                key={error.id}
-                                className="p-3 rounded bg-red-500/10 border border-red-500/20"
-                            >
-                                <p className="text-sm font-medium text-red-200">
-                                    {error.error_code}
-                                </p>
-                                <p className="text-xs text-red-300 mt-1">
-                                    {error.error_message}
-                                </p>
-                            </div>
-                        ))}
+                        {data.recentErrors.slice(0, 5).map((error) => {
+                            const sevColor = error.severity === 'critical' ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                : error.severity === 'high' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+                                : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+
+                            return (
+                                <div key={error.id} className="p-3 rounded-lg bg-slate-800/60 border border-slate-700 flex justify-between items-start">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${sevColor}`}>
+                                                {error.severity.toUpperCase()}
+                                            </span>
+                                            <span className="font-mono text-sm text-white">{error.error_code}</span>
+                                        </div>
+                                        <p className="text-sm text-red-200/90 mt-1 line-clamp-2">{error.error_message}</p>
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 whitespace-nowrap ml-4">
+                                        {new Date(error.created_at).toLocaleDateString('pt-BR')}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

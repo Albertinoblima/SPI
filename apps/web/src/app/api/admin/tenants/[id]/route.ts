@@ -66,12 +66,30 @@ export async function GET(
             .order('created_at', { ascending: false })
             .limit(5);
 
+        // Calcular Saúde 24h (mesmo padrão usado na listagem)
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentHealthErrors } = await auth.supabase
+            .from('error_logs')
+            .select('severity')
+            .eq('tenant_id', tenantId)
+            .eq('resolved', false)
+            .gte('created_at', since24h);
+
+        const health = {
+            critical_24h: (recentHealthErrors ?? []).filter((e: any) => e.severity === 'critical').length,
+            high_24h: (recentHealthErrors ?? []).filter((e: any) => e.severity === 'high').length,
+            medium_24h: (recentHealthErrors ?? []).filter((e: any) => e.severity === 'medium').length,
+            has_recent_issues: false,
+        };
+        health.has_recent_issues = health.critical_24h > 0 || health.high_24h > 0;
+
         return apiSuccess({
             tenant,
             stats,
             users: users ?? [],
             surveys: surveys ?? [],
             recentErrors: recentErrors ?? [],
+            health,
         });
     } catch (error) {
         return handleApiUnhandledError(request, error, {

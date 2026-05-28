@@ -189,9 +189,10 @@ O Painel Administrativo funciona como **"God Mode"** da plataforma:
 - **Fase 1 (Ações em Massa)**: 
   - Bulk status (active/trial/suspended) para tenants.
   - Bulk "Marcar como Resolvido / Reabrir" para error_logs.
-- **Fase 2 (Observabilidade)**: "Saúde 24h" indicators na listagem de tenants (badges críticos/altos/médios com contagem agregada eficiente das últimas 24h). Torna o bulk muito mais acionável.
-- Verificações: tsc --noEmit limpo.
-- Commits: 4 commits focados nesta sessão (09735ec → a1de30c).
+- **Fase 2 (Observabilidade)**: "Saúde 24h" indicators + fechamento completo do loop: badge clicável → página de erros filtrada por tenant + banner rico com atalho direto para impersonation.
+- Fluxo operacional agora é excelente: ver problema → clicar → resolver em massa ou assumir identidade da empresa.
+- Verificações: tsc limpo.
+- Commits: 5 commits de alto impacto nesta sessão autônoma.
 
 Próximos candidatos de alto valor (decisão autônoma futura):
 - Bulk "marcar erros resolvidos" na página de errors
