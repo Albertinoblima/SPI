@@ -41,16 +41,21 @@ export default function PublicDynamicReportPage() {
   };
 
   const [reportData, setReportData] = useState<any>(null);
+  const [loadingData, setLoadingData] = useState(false);
 
   const fetchReportData = async () => {
+    setLoadingData(true);
     try {
-      const res = await fetch(`/api/reports/public/${params.shareToken}/data`);
+      // Busca dados reais do relatório dinâmico após autenticação
+      const res = await fetch(`/api/reports/analytics?shareToken=${params.shareToken}`);
       if (res.ok) {
         const data = await res.json();
         setReportData(data);
       }
     } catch (e) {
       console.error('Erro ao carregar dados do relatório dinâmico');
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -119,19 +124,32 @@ export default function PublicDynamicReportPage() {
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white p-6 rounded-xl border">
             <h3 className="font-semibold mb-3">Visão Geral</h3>
-            <p className="text-2xl font-bold text-emerald-600">
-              {reportData ? `${reportData.totalResponses || 0} respostas` : 'Carregando dados...'}
-            </p>
-            <p className="text-slate-600 mt-2">
-              Dashboard dinâmico com todos os cruzamentos da pesquisa.
-            </p>
+            {loadingData ? (
+              <p>Carregando dados...</p>
+            ) : reportData ? (
+              <>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {reportData.totalResponses || 0} respostas
+                </p>
+                <p className="text-slate-600 mt-2">
+                  Dashboard dinâmico com todos os cruzamentos da pesquisa.
+                </p>
+              </>
+            ) : (
+              <p className="text-slate-600">Faça login para carregar os dados do relatório.</p>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-xl border">
             <h3 className="font-semibold mb-3">Cruzamentos Disponíveis</h3>
-            {reportData?.availableCrossings ? (
-              <div className="text-sm">
-                {reportData.availableCrossings.length} cruzamentos possíveis carregados.
+            {reportData?.availableCrossings?.length > 0 ? (
+              <div className="text-sm space-y-1">
+                {reportData.availableCrossings.slice(0, 6).map((cross: string[], i: number) => (
+                  <div key={i}>• {cross.join(' × ')}</div>
+                ))}
+                {reportData.availableCrossings.length > 6 && (
+                  <div className="text-slate-500">+ {reportData.availableCrossings.length - 6} outros cruzamentos</div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-slate-500">

@@ -165,9 +165,12 @@ Estamos bem posicionados para entregar valor rapidamente.
 
 ---
 
-**Status mais recente (autônomo):**
+**Status mais recente (28/05 - ritmo atual mantido):**
 
-- Forte avanço tanto no gerador .docx quanto na infraestrutura do relatório dinâmico protegido.
-- Decisão de prioridade: Continuar executando de forma equilibrada até termos versões **usáveis** dos dois relatórios.
+- DOCX Generator: Melhorado com melhor uso de metadados do planejamento e estrutura mais profissional.
+- Dynamic Protected Report: Página pública agora carrega dados reais após autenticação do contratante.
+- Progresso sólido e equilibrado nos dois pilares principais dos relatórios.
+
+Mantendo o ritmo atual de execução de qualidade.
 
 Estou continuando a execução com as melhores decisões.

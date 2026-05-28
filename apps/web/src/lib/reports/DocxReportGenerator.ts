@@ -32,17 +32,17 @@ export class DocxReportGenerator {
 
     // === CAPA PROFISSIONAL ===
     children.push(
-      new Paragraph({ spacing: { after: 150 }, children: [] }),
+      new Paragraph({ spacing: { after: 120 }, children: [] }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
         children: [new TextRun({ text: surveyData.title || 'Relatório de Pesquisa', bold: true, size: 56 })],
       }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { before: 80 },
+        spacing: { before: 60 },
         children: [new TextRun({ text: this.getReportTypeLabel(config.reportType), size: 28, italics: true })],
       }),
-      new Paragraph({ spacing: { after: 250 }, children: [] }),
+      new Paragraph({ spacing: { after: 200 }, children: [] }),
     );
 
     // Letterhead / Logo da empresa (preparado para usar company_assets)
@@ -50,19 +50,28 @@ export class DocxReportGenerator {
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { after: 200 },
-          children: [new TextRun({ text: '[Logo da Empresa]', size: 20, color: '666666' })],
+          spacing: { after: 150 },
+          children: [new TextRun({ text: '[Logo da Empresa - Papel Timbrado]', size: 20, color: '666666' })],
         })
       );
     } else {
       children.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { after: 150 },
-          children: [new TextRun({ text: '[Espaço para Logo / Papel Timbrado]', size: 18, color: '999999', italics: true })],
+          spacing: { after: 120 },
+          children: [new TextRun({ text: '[Espaço para Logo / Papel Timbrado da Empresa]', size: 18, color: '999999', italics: true })],
         })
       );
     }
+
+    // Placeholder para imagem da cidade / mapa de coleta na capa (requisito do usuário)
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+        children: [new TextRun({ text: '[Espaço para Imagem da Cidade / Mapa com Pontos de Coleta]', size: 16, color: 'AAAAAA', italics: true })],
+      })
+    );
 
     // === METADADOS DO PLANEJAMENTO (vindos do wizard de 5 passos) ===
     if (config.includePlanningMetadata && surveyData.planning) {
