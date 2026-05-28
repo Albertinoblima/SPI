@@ -21,6 +21,8 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
     });
 
     const handleNext = () => {
+        const totalPopulation = geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0);
+
         onNext({ 
             geographicBase: {
                 scope: geoData.scope,
@@ -28,7 +30,9 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
                 localities: geoData.localities,
                 metadata: {
                     research_type: initialData?.researchType,
-                    total_population: geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0),
+                    total_population: totalPopulation,
+                    // Preparado para quando integrarmos dados de eleitorado (TSE)
+                    estimated_electorate: null, 
                 }
             }
         });

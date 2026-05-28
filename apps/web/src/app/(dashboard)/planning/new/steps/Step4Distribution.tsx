@@ -58,6 +58,9 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         quotas.reduce((sum, q) => sum + (q.population || 0), 0),
     [quotas]);
 
+    // Recebe metadados da base geográfica (vindo do Passo 2)
+    const geoMetadata = initialData?.geographicBase?.metadata || {};
+
     const updateQuota = (index: number, value: number) => {
         const newQuotas = [...quotas];
         newQuotas[index] = { ...newQuotas[index], interviews: Math.max(0, Math.floor(value)) };
@@ -126,14 +129,17 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
     return (
         <div className="max-w-4xl">
-            <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-semibold">Distribuição e Cotas</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div>
+                    <h2 className="text-2xl font-semibold">Distribuição e Cotas</h2>
+                    <p className="text-sm text-slate-400">Baseie a distribuição na população dos municípios selecionados.</p>
+                </div>
                 <button
                     onClick={suggestProportionalDistribution}
                     disabled={totalPopulation === 0}
-                    className="text-sm px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-400 rounded-lg font-medium transition-colors whitespace-nowrap"
                 >
-                    Sugerir distribuição proporcional à população
+                    Sugerir proporcional à população
                 </button>
             </div>
 

@@ -166,18 +166,27 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
           ))}
         </div>
 
-        {/* Resumo da Base */}
+        {/* Resumo da Base - Muito útil para o pesquisador */}
         {municipalities.length > 0 && (
-          <div className="mt-3 p-3 bg-slate-950 border border-slate-700 rounded-lg text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Total de municípios:</span>
-              <span className="font-medium text-white">{municipalities.length}</span>
+          <div className="mt-3 p-4 bg-slate-950 border border-slate-600 rounded-xl text-sm">
+            <div className="font-semibold text-slate-300 mb-2">Resumo da Base Selecionada</div>
+            
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Municípios:</span>
+                <span className="font-medium text-white">{municipalities.length}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-slate-400">População total:</span>
+                <span className="font-semibold text-emerald-400">
+                  {municipalities.reduce((sum, m) => sum + (m.population || 0), 0).toLocaleString('pt-BR')}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-slate-400">População estimada:</span>
-              <span className="font-medium text-emerald-400">
-                {municipalities.reduce((sum, m) => sum + (m.population || 0), 0).toLocaleString('pt-BR')} habitantes
-              </span>
+
+            <div className="mt-2 text-xs text-slate-500">
+              Esta base será usada para sugerir a distribuição de entrevistas no próximo passo.
             </div>
           </div>
         )}
