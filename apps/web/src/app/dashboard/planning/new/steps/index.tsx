@@ -82,7 +82,7 @@ const PlanningSteps = () => {
                     setPlanningData(restoredData);
                     setIsEditMode(true);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Erro ao carregar planejamento para edição:', err);
                 await reportClientError({
                     errorCode: 'PLANNING_LOAD_FAILED',
@@ -121,7 +121,7 @@ const PlanningSteps = () => {
         setSaveError(null);
     };
 
-    const handleNext = (data: any) => {
+    const handleNext = (data: Record<string, any>) => {
         const updatedData = { ...planningData, ...data };
         setPlanningData(updatedData);
         setSaveError(null);
@@ -171,9 +171,9 @@ const PlanningSteps = () => {
             localStorage.removeItem(DRAFT_KEY);
 
             // Update local data with saved plan (so links work)
-            setPlanningData((prev: any) => ({ ...prev, id: savedPlan.id }));
-        } catch (err: any) {
-            const message = err?.message || 'Erro desconhecido ao salvar planejamento';
+            setPlanningData((prev: any) => ({ ...prev, id: savedPlan.id })); // TODO: improve planningData type
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erro desconhecido ao salvar planejamento';
             setSaveError(message);
 
             await reportClientError({
@@ -206,7 +206,7 @@ const PlanningSteps = () => {
                     const isCompleted = index < currentStep;
 
                     return (
-                        <div key={index} className="flex flex-col items-center flex-1">
+                        <div key={step.id || index} className="flex flex-col items-center flex-1">
                             <div
                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mb-1 transition-colors ${
                                     isCompleted

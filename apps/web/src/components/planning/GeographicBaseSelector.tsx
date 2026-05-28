@@ -54,7 +54,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
     return () => clearTimeout(timer);
   }, [searchTerm, selectedUf]);
 
-  const addMunicipality = async (m: any) => {
+  const addMunicipality = async (m: { id: string; name: string; uf?: string }) => {
     const newMun: PlanningMunicipality = {
       ibge_id: m.ibge_id,
       name: m.nome,
@@ -394,7 +394,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
             const ruralCount = hasLocalities ? m.localities!.filter(l => l.zone === 'rural').length : 0;
 
             return (
-              <div key={index} className="border border-slate-700 bg-slate-800/80 rounded-2xl p-3.5 hover:border-slate-500 transition-colors">
+              <div key={item.id || item.name || index} className="border border-slate-700 bg-slate-800/80 rounded-2xl p-3.5 hover:border-slate-500 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="mt-0.5">
@@ -597,7 +597,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
 
                       return (
                         <label
-                          key={i}
+                          key={loc.id || loc.name || i}
                           className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition hover:bg-slate-800 ${isSelected ? 'bg-blue-950/40 ring-1 ring-blue-500/30' : ''}`}
                         >
                           <input

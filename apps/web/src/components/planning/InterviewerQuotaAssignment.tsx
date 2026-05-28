@@ -85,17 +85,17 @@ export function InterviewerQuotaAssignment({
     return map;
   }, [assignments, interviewers]);
 
-  const grandTotal = useMemo(() => 
+  const grandTotal = useMemo(() =>
     Object.values(totalsByInterviewer).reduce((s, v) => s + v, 0)
-  , [totalsByInterviewer]);
+    , [totalsByInterviewer]);
 
   const totalGeographic = useMemo(() =>
     geographicQuotas.reduce((s, q) => s + q.totalInterviews, 0)
-  , [geographicQuotas]);
+    , [geographicQuotas]);
 
   // Validação: alguma localidade está sobrecarregada?
   const overAssignedLocalities = useMemo(() => {
-    return geographicQuotas.filter(q => 
+    return geographicQuotas.filter(q =>
       (assignedByLocality[q.name] || 0) > q.totalInterviews
     );
   }, [assignedByLocality, geographicQuotas]);
@@ -158,7 +158,7 @@ export function InterviewerQuotaAssignment({
 
     activeInterviewers.forEach((interviewer, idx) => {
       const base = perInterviewer + (idx < remainder ? 1 : 0);
-      
+
       geographicQuotas.forEach(geo => {
         // Distribui de forma simples: cada entrevistador ativo recebe uma fatia da cota geográfica
         const share = Math.floor(geo.totalInterviews / activeInterviewers.length);
@@ -253,7 +253,7 @@ export function InterviewerQuotaAssignment({
           <span>Nenhum entrevistador cadastrado na equipe desta pesquisa.</span>
         </div>
         <p className="text-sm text-amber-600 mt-2">
-          Vá até a etapa de Equipe e adicione membros com papel "Entrevistador".
+          Vá até a etapa de Equipe e adicione membros com papel &quot;Entrevistador&quot;.
         </p>
       </div>
     );
@@ -317,13 +317,13 @@ export function InterviewerQuotaAssignment({
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             )}
             <div className={`text-sm font-medium ${hasOverAssignment ? 'text-red-700' : 'text-emerald-700'}`}>
-              {hasOverAssignment 
-                ? `${overAssignedLocalities.length} localidade(s) com excesso` 
+              {hasOverAssignment
+                ? `${overAssignedLocalities.length} localidade(s) com excesso`
                 : 'Distribuição dentro dos limites'}
             </div>
           </div>
           <div className="text-xs mt-1 text-slate-500">
-            A soma por localidade não pode exceder a cota geográfica definida.
+            A soma por localidade n 3o pode exceder a cota geogr 01fica definida.
           </div>
         </div>
       </div>
@@ -363,7 +363,7 @@ export function InterviewerQuotaAssignment({
                   </td>
 
                   {geoKeys.map(geoKey => {
-                    const current = assignments.find(a => 
+                    const current = assignments.find(a =>
                       a.interviewerId === intv.userId && a.localityKey === geoKey
                     )?.interviews || 0;
 
@@ -429,7 +429,7 @@ export function InterviewerQuotaAssignment({
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex gap-3">
           <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div>
-            <strong>Atenção:</strong> A soma das cotas atribuídas excede a cota geográfica em uma ou mais localidades. 
+            <strong>Aten 07 3o:</strong> A soma das cotas atribu 0d 0das excede a cota geogr 01fica em uma ou mais localidades.
             Ajuste os valores antes de salvar ou publicar a pesquisa.
           </div>
         </div>

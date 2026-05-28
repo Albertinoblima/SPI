@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 
 interface Step1DefinitionProps {
-    initialData?: any;
-    onNext: (data: any) => void;
+    initialData?: Record<string, any>;
+    onNext: (data: Record<string, any>) => void;
 }
 
 const Step1Definition: React.FC<Step1DefinitionProps> = ({ initialData, onNext }) => {

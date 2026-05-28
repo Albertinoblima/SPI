@@ -99,9 +99,9 @@ export function Step8Distribution({ surveyId }: Props) {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-lg font-bold text-slate-900">Etapa 8 — Distribuicao da Pesquisa</h2>
+                <h2 className="text-lg font-bold text-slate-900">Etapa 8 — Distribui&ccedil;&atilde;o da Pesquisa</h2>
                 <p className="text-sm text-slate-500 mt-1">
-                    Visualize a distribuicao proporcional de cotas por entrevistador, gere os controles de campo e publique a pesquisa.
+                    Visualize a distribui&ccedil;&atilde;o proporcional de cotas por entrevistador, gere os controles de campo e publique a pesquisa.
                 </p>
             </div>
 
@@ -222,7 +222,7 @@ export function Step8Distribution({ surveyId }: Props) {
 
                         {!loading && rows.length === 0 && (
                             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                                Nenhuma distribuicao gerada ainda. Clique em Redistribuir.
+                                Nenhuma distribui&ccedil;&atilde;o gerada ainda. Clique em Redistribuir.
                             </div>
                         )}
                     </div>

@@ -76,154 +76,132 @@ function formatTime(dateStr: string) {
 
 export default function SupportPage() {
     const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState('all');
-
     const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
+    const [loading, setLoading] = useState(true);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
-    const [msgInput, setMsgInput] = useState('');
-    const [sending, setSending] = useState(false);
-
     const [showNew, setShowNew] = useState(false);
-    const [showTicketForm, setShowTicketForm] = useState(false); // Controla quando mostrar o formulário após o assistente
+    const [showTicketForm, setShowTicketForm] = useState(false);
+    const [filterStatus, setFilterStatus] = useState('all');
     const [newTitle, setNewTitle] = useState('');
-    const [newMessage, setNewMessage] = useState('');
     const [newCategory, setNewCategory] = useState('general');
     const [newPriority, setNewPriority] = useState('medium');
+    const [newMessage, setNewMessage] = useState('');
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState('');
-
+    const [msgInput, setMsgInput] = useState('');
+    const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const isClosed = activeTicket?.status === 'closed' || activeTicket?.status === 'resolved';
+
+    const filteredTickets = filterStatus === 'all'
+        ? tickets
+        : tickets.filter(t => t.status === filterStatus);
 
     const fetchTickets = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch('/api/support/tickets');
-            if (res.ok) {
-                const { data } = await res.json();
-                setTickets(data.tickets ?? []);
-            }
+            const data = await res.json();
+            setTickets(data.tickets ?? []);
+        } catch {
+            // silent
         } finally {
             setLoading(false);
         }
     }, []);
 
+    useEffect(() => {
+        fetchTickets();
+    }, [fetchTickets]);
+
     const openTicket = useCallback(async (ticket: Ticket) => {
         setActiveTicket(ticket);
-        setMessages([]);
-        setLoadingMsgs(true);
         setShowNew(false);
+        setShowTicketForm(false);
+        setLoadingMsgs(true);
         try {
-            const res = await fetch(`/api/support/tickets/${ticket.id}`);
-            if (res.ok) {
-                const { data } = await res.json();
-                setMessages(data.messages ?? []);
-                setActiveTicket(data.ticket);
-            }
+            const res = await fetch(`/api/support/tickets/${ticket.id}/messages`);
+            const data = await res.json();
+            setMessages(data.messages ?? []);
+        } catch {
+            setMessages([]);
         } finally {
             setLoadingMsgs(false);
         }
     }, []);
 
-    useEffect(() => { fetchTickets(); }, [fetchTickets]);
-
-    // Poll para chat aberto
-    useEffect(() => {
-        if (activeTicket) {
-            pollRef.current = setInterval(async () => {
-                const res = await fetch(`/api/support/tickets/${activeTicket.id}`);
-                if (res.ok) {
-                    const { data } = await res.json();
-                    setMessages(data.messages ?? []);
-                    setActiveTicket(data.ticket);
-                }
-            }, 8000);
-            return () => { if (pollRef.current) clearInterval(pollRef.current); };
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTicket?.id]);
-
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const sendMessage = async () => {
-        if (!msgInput.trim() || !activeTicket || sending) return;
-        setSending(true);
-        try {
-            const res = await fetch(`/api/support/tickets/${activeTicket.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msgInput.trim() }),
-            });
-            if (res.ok) {
-                setMsgInput('');
-                const r2 = await fetch(`/api/support/tickets/${activeTicket.id}`);
-                if (r2.ok) {
-                    const { data } = await r2.json();
-                    setMessages(data.messages ?? []);
-                }
-            }
-        } finally {
-            setSending(false);
-        }
-    };
-
     const createTicket = async () => {
-        setCreateError('');
         if (!newTitle.trim() || !newMessage.trim()) {
-            setCreateError('Preencha o título e a mensagem.');
+            setCreateError('Preencha o assunto e a descrição.');
             return;
         }
         setCreating(true);
+        setCreateError('');
         try {
             const res = await fetch('/api/support/tickets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    title: newTitle.trim(),
-                    message: newMessage.trim(),
+                    title: newTitle,
                     category: newCategory,
                     priority: newPriority,
+                    message: newMessage,
                 }),
             });
-            if (res.ok) {
-                const { data } = await res.json();
-                setNewTitle(''); setNewMessage('');
-                setNewCategory('general'); setNewPriority('medium');
-                setShowNew(false);
-                await fetchTickets();
-                openTicket(data.ticket);
-            } else {
-                const err = await res.json();
-                setCreateError(err.error ?? 'Erro ao criar ticket');
-            }
+            if (!res.ok) throw new Error('Erro ao criar ticket');
+            await fetchTickets();
+            setShowNew(false);
+            setShowTicketForm(false);
+            setNewTitle('');
+            setNewMessage('');
+            setNewCategory('general');
+            setNewPriority('medium');
+        } catch {
+            setCreateError('Não foi possível criar o chamado. Tente novamente.');
         } finally {
             setCreating(false);
         }
     };
 
-    const filteredTickets = filterStatus === 'all'
-        ? tickets
-        : tickets.filter((t) => t.status === filterStatus);
-
-    const isClosed = activeTicket?.status === 'closed' || activeTicket?.status === 'resolved';
+    const sendMessage = async () => {
+        if (!msgInput.trim() || !activeTicket) return;
+        setSending(true);
+        try {
+            const res = await fetch(`/api/support/tickets/${activeTicket.id}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msgInput }),
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setMessages(prev => [...prev, data.message]);
+            setMsgInput('');
+        } catch {
+            // silent
+        } finally {
+            setSending(false);
+        }
+    };
 
     return (
-        <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+        <div className="p-6 max-w-screen-xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">💬 Suporte</h1>
-                    <p className="text-slate-500 text-sm mt-1">Abra chamados e acompanhe o atendimento</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Suporte</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">Gerencie seus chamados e acompanhe o status</p>
                 </div>
                 <button
-                    onClick={() => { 
-                        setShowNew(true); 
-                        setActiveTicket(null); 
-                        setShowTicketForm(false); 
+                    onClick={() => {
+                        setShowNew(true);
+                        setActiveTicket(null);
+                        setShowTicketForm(false);
                     }}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
                 >
@@ -290,7 +268,7 @@ export default function SupportPage() {
                 {/* Área principal */}
                 <div className="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
-                    {/* Novo ticket - Com Assistente de Ajuda (requisito do usuário) */}
+                    {/* Novo ticket */}
                     {showNew && (
                         <div className="flex-1 overflow-y-auto p-6">
                             <div className="max-w-2xl">
@@ -299,7 +277,7 @@ export default function SupportPage() {
                                     Antes de abrir um ticket, consulte nossa Base de Conhecimento. Muitos problemas são resolvidos rapidamente.
                                 </p>
 
-                                {/* Fluxo de Autossuporte Inteligente - Usuário decide */}
+                                {/* Fluxo de Autossuporte Inteligente */}
                                 <div className="mb-6">
                                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
                                         <span>1. Consulte nossa Base de Conhecimento (muitos problemas são resolvidos aqui)</span>
@@ -315,18 +293,18 @@ export default function SupportPage() {
                                                     errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
                                                     errorMessage: `Artigo de ajuda marcado como útil: ${topic.title}`,
                                                     severity: 'low',
-                                                    metadata: { 
-                                                        topicId: topic.id, 
-                                                        category: topic.category, 
+                                                    metadata: {
+                                                        topicId: topic.id,
+                                                        category: topic.category,
                                                         context: ctx,
-                                                        isPontaAPonta: topic.category === 'Fluxo Ponta a Ponta'
-                                                    }
+                                                        isPontaAPonta: topic.category === 'Fluxo Ponta a Ponta',
+                                                    },
                                                 });
                                             }}
                                             onStillNeedHelp={(description) => {
                                                 setShowTicketForm(true);
                                                 if (description && !newMessage) {
-                                                    setNewMessage(description + "\n\n(Descrição inicial do problema)");
+                                                    setNewMessage(description + '\n\n(Descrição inicial do problema)');
                                                 }
                                             }}
                                         />
@@ -342,88 +320,90 @@ export default function SupportPage() {
                                         </div>
 
                                         <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Assunto *</label>
-                                        <input
-                                            type="text"
-                                            value={newTitle}
-                                            onChange={(e) => setNewTitle(e.target.value)}
-                                            placeholder="Resumo do problema ou solicitação"
-                                            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
-                                            maxLength={120}
-                                        />
-                                    </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Assunto *</label>
+                                                <input
+                                                    type="text"
+                                                    value={newTitle}
+                                                    onChange={(e) => setNewTitle(e.target.value)}
+                                                    placeholder="Resumo do problema ou solicitação"
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
+                                                    maxLength={120}
+                                                />
+                                            </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
-                                            <select
-                                                value={newCategory}
-                                                onChange={(e) => setNewCategory(e.target.value)}
-                                                aria-label="Categoria do chamado"
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
-                                            >
-                                                <option value="general">Geral</option>
-                                                <option value="technical">Técnico</option>
-                                                <option value="billing">Financeiro</option>
-                                                <option value="feature">Sugestão</option>
-                                                <option value="bug">Bug</option>
-                                            </select>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
+                                                    <select
+                                                        value={newCategory}
+                                                        onChange={(e) => setNewCategory(e.target.value)}
+                                                        aria-label="Categoria do chamado"
+                                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
+                                                    >
+                                                        <option value="general">Geral</option>
+                                                        <option value="technical">Técnico</option>
+                                                        <option value="billing">Financeiro</option>
+                                                        <option value="feature">Sugestão</option>
+                                                        <option value="bug">Bug</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                                                    <select
+                                                        value={newPriority}
+                                                        onChange={(e) => setNewPriority(e.target.value)}
+                                                        aria-label="Prioridade do chamado"
+                                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
+                                                    >
+                                                        <option value="low">Baixa</option>
+                                                        <option value="medium">Média</option>
+                                                        <option value="high">Alta</option>
+                                                        <option value="urgent">Urgente</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Descrição detalhada *</label>
+                                                <textarea
+                                                    value={newMessage}
+                                                    onChange={(e) => setNewMessage(e.target.value)}
+                                                    placeholder="Explique o problema com o máximo de detalhes possível..."
+                                                    rows={5}
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500 resize-none"
+                                                />
+                                            </div>
+
+                                            {createError && (
+                                                <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-xl p-3 text-sm">
+                                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                                    {createError}
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={createTicket}
+                                                    disabled={creating}
+                                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition"
+                                                >
+                                                    {creating ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                                    {creating ? 'Enviando...' : 'Enviar chamado'}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowNew(false);
+                                                        setShowTicketForm(false);
+                                                    }}
+                                                    className="px-6 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 transition"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
-                                            <select
-                                                value={newPriority}
-                                                onChange={(e) => setNewPriority(e.target.value)}
-                                                aria-label="Prioridade do chamado"
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
-                                            >
-                                                <option value="low">Baixa</option>
-                                                <option value="medium">Média</option>
-                                                <option value="high">Alta</option>
-                                                <option value="urgent">Urgente</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Descrição detalhada *</label>
-                                        <textarea
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            placeholder="Explique o problema com o máximo de detalhes possível..."
-                                            rows={5}
-                                            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500 resize-none"
-                                        />
-                                    </div>
-
-                                    {createError && (
-                                        <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-xl p-3 text-sm">
-                                            <AlertCircle className="w-4 h-4 shrink-0" />
-                                            {createError}
-                                        </div>
-                                    )}
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={createTicket}
-                                            disabled={creating}
-                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition"
-                                        >
-                                            {creating ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                            {creating ? 'Enviando...' : 'Enviar chamado'}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowNew(false);
-                                                setShowTicketForm(false);
-                                            }}
-                                            className="px-6 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 transition"
-                                        >
-                                            Cancelar
-                                        </button>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
@@ -440,7 +420,11 @@ export default function SupportPage() {
                                             {STATUS_LABEL[activeTicket.status] ?? activeTicket.status}
                                         </span>
                                         <span className="text-xs text-slate-500">
-                                            {PRIORITY_ICON[activeTicket.priority]} {activeTicket.priority === 'urgent' ? 'Urgente' : activeTicket.priority === 'high' ? 'Alta' : activeTicket.priority === 'medium' ? 'Média' : 'Baixa'}
+                                            {PRIORITY_ICON[activeTicket.priority]}{' '}
+                                            {activeTicket.priority === 'urgent' ? 'Urgente'
+                                                : activeTicket.priority === 'high' ? 'Alta'
+                                                : activeTicket.priority === 'medium' ? 'Média'
+                                                : 'Baixa'}
                                         </span>
                                         <span className="text-xs text-slate-400">{CATEGORY_LABEL[activeTicket.category] ?? activeTicket.category}</span>
                                         <span className="text-xs text-slate-400">· Aberto em {formatDate(activeTicket.created_at)}</span>
@@ -459,7 +443,7 @@ export default function SupportPage() {
                                         <div className={`max-w-[70%] rounded-2xl px-4 py-3 ${msg.is_from_admin
                                             ? 'bg-slate-100 text-slate-800 rounded-tl-sm'
                                             : 'bg-blue-600 text-white rounded-tr-sm'
-                                            }`}>
+                                        }`}>
                                             {msg.is_from_admin && (
                                                 <p className="text-xs font-semibold text-blue-600 mb-1">⚡ Suporte iDialog</p>
                                             )}
@@ -490,7 +474,12 @@ export default function SupportPage() {
                                         type="text"
                                         value={msgInput}
                                         onChange={(e) => setMsgInput(e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                sendMessage();
+                                            }
+                                        }}
                                         placeholder="Digite sua resposta..."
                                         className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
                                     />

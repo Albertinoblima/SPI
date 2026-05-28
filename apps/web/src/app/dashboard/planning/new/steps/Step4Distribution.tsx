@@ -13,8 +13,12 @@ import { HelpAssistant } from '@/components/help/HelpAssistant';
 import { reportClientError } from '@/lib/monitoring/reportClientError';
 
 interface Step4DistributionProps {
-    initialData?: any;
-    onNext: (data: any) => void;
+    initialData?: {
+        sampleSize?: number;
+        quotas?: Quota[];
+        interviewerDistribution?: Array<{ interviewerId: string; localityKey: string; interviews: number }>;
+    };
+    onNext: (data: { quotas: Quota[]; interviewerDistribution?: Array<{ interviewerId: string; localityKey: string; interviews: number }> }) => void;
     onBack: () => void;
 }
 
@@ -23,7 +27,37 @@ interface Quota {
     uf?: string;
     population: number;
     interviews: number;
-    locked?: boolean;   // Novo: permite travar a cota
+    locked?: boolean;
+}
+
+interface PlanArea {
+    id?: string;
+    name: string;
+    displayName?: string;
+    population?: number;
+    interviews?: number;
+    originalIndex?: number;
+    locked?: boolean;
+    source?: string;
+    dataSource?: string;
+    parentMunicipality?: string;
+    parentUf?: string;
+}
+
+interface PlanMunicipality {
+    id?: string;
+    name: string;
+    uf?: string;
+    population?: number;
+    localities?: any[]; // TODO: Define proper nested Locality type from planning data
+    enriched?: Record<string, any>;
+}
+
+interface TeamMember {
+    id: string;
+    name?: string;
+    email?: string;
+    role?: string;
 }
 
 const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNext, onBack }) => {
@@ -35,19 +69,26 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
     const [tseSuggestion, setTseSuggestion] = useState<any>(null);
     const [showTseSuggestion, setShowTseSuggestion] = useState(false);
 
+    // INTEGRAÇÃO: Atribuição por Entrevistador (novo - Fase Ponta a Ponta)
+    // Estes estados devem ficar no topo do componente
+    const [showInterviewerAssignment, setShowInterviewerAssignment] = useState(false);
+    const [interviewerAssignments, setInterviewerAssignments] = useState<any[]>([]);
+    const [realInterviewers, setRealInterviewers] = useState<Interviewer[] | null>(null);
+    const [loadingTeam, setLoadingTeam] = useState(false);
+
     // Coleta todas as áreas no nível mais granular disponível
     // Prioridade: Localidades específicas > Municípios inteiros
     // Fase 1: Prefere população enriquecida (Censo 2022 / CNEFE) quando disponível
     const allAreas = useMemo(() => {
-        const areas: any[] = [];
+        const areas: PlanArea[] = [];
 
-        municipalities.forEach((m: any) => {
+        municipalities.forEach((m: PlanMunicipality) => {
             const enrichedPop = m.enriched?.population_census || m.enriched?.recommended_population;
             const effectivePopulation = enrichedPop || m.population;
 
             if (m.localities && m.localities.length > 0) {
                 // Tem localidades específicas selecionadas → usa elas
-                m.localities.forEach((loc: any) => {
+                m.localities.forEach((loc: any) => { // TODO: type localities properly
                     areas.push({
                         ...loc,
                         displayName: `${loc.name} (${m.name} - ${m.uf})`,
@@ -80,9 +121,9 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         }
 
         if (allAreas.length > 0) {
-            const totalPop = allAreas.reduce((sum: number, a: any) => sum + (a.population || 0), 0) || 1;
+            const totalPop = allAreas.reduce((sum: number, a: PlanArea) => sum + (a.population || 0), 0) || 1;
 
-            return allAreas.map((area: any) => {
+            return allAreas.map((area: PlanArea) => {
                 const pop = area.population || 0;
                 // Sugestão proporcional no nível mais granular possível
                 const suggested = Math.max(1, Math.round((pop / totalPop) * sampleSize));
@@ -102,13 +143,13 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
     const [quotas, setQuotas] = useState<Quota[]>(initialQuotas);
 
-    const totalAssigned = useMemo(() => 
-        quotas.reduce((sum, q) => sum + q.interviews, 0), 
-    [quotas]);
+    const totalAssigned = useMemo(() =>
+        quotas.reduce((sum, q) => sum + q.interviews, 0),
+        [quotas]);
 
     const totalPopulation = useMemo(() =>
         quotas.reduce((sum, q) => sum + (q.population || 0), 0),
-    [quotas]);
+        [quotas]);
 
     // Recebe metadados da base geográfica (vindo do Passo 2)
     const geoMetadata = initialData?.geographicBase?.metadata || {};
@@ -123,9 +164,9 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
     const toggleLock = (index: number) => {
         const newQuotas = [...quotas];
-        newQuotas[index] = { 
-            ...newQuotas[index], 
-            locked: !newQuotas[index].locked 
+        newQuotas[index] = {
+            ...newQuotas[index],
+            locked: !newQuotas[index].locked
         };
         setQuotas(newQuotas);
     };
@@ -143,11 +184,11 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
         // Usa a população real das áreas (prioriza localidades se existirem)
         const effectiveAreas = allAreas.length > 0 ? allAreas : municipalities;
-        const unlockedAreas = effectiveAreas.filter((area: any) => 
+        const unlockedAreas = effectiveAreas.filter((area: PlanArea) =>
             !quotas.find(q => (q.name === area.displayName || q.name === area.name) && q.locked)
         );
 
-        const unlockedTotalPop = unlockedAreas.reduce((sum: number, a: any) => sum + (a.population || 0), 0);
+        const unlockedTotalPop = unlockedAreas.reduce((sum: number, a: PlanArea) => sum + (a.population || 0), 0);
 
         if (unlockedTotalPop === 0 || remainingSample === 0) {
             const even = Math.floor(remainingSample / unlockedQuotas.length);
@@ -165,7 +206,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         const newQuotas = quotas.map(q => {
             if (q.locked) return q;
 
-            const area = effectiveAreas.find((a: any) => (a.displayName || a.name) === q.name);
+            const area = effectiveAreas.find((a: PlanArea) => (a.displayName || a.name) === q.name);
             const pop = area?.population || q.population || 0;
             const proportion = pop / unlockedTotalPop;
             return { ...q, interviews: Math.round(proportion * remainingSample) };
@@ -203,7 +244,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
     const cnefeMetrics = useMemo(() => {
         return computeCnefeDensity(
-            municipalities.map((m: any) => ({
+            municipalities.map((m: PlanMunicipality) => ({
                 residencesCnefe: m.enriched?.residences_cnefe,
                 population: m.population,
             })),
@@ -212,7 +253,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
     }, [municipalities, sampleSize]);
 
     const generateTseSuggestion = () => {
-        const areas = municipalities.map((m: any) => ({
+        const areas = municipalities.map((m: PlanMunicipality) => ({
             name: m.name,
             uf: m.uf,
             population: m.enriched?.population_census || m.population || 0,
@@ -309,11 +350,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
     const difference = totalAssigned - sampleSize;
 
-    // === INTEGRAÇÃO: Atribuição por Entrevistador (novo - Fase Ponta a Ponta) ===
-    const [showInterviewerAssignment, setShowInterviewerAssignment] = useState(false);
-    const [interviewerAssignments, setInterviewerAssignments] = useState<any[]>([]);
-    const [realInterviewers, setRealInterviewers] = useState<Interviewer[] | null>(null);
-    const [loadingTeam, setLoadingTeam] = useState(false);
+    // ...estados movidos para o topo do componente...
 
     // Carrega equipe real do tenant (melhor decisão: reutilizar API existente)
     const loadRealTeam = async () => {
@@ -323,8 +360,8 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             const json = await res.json();
             const members = json.data?.members || [];
             const interviewers = members
-                .filter((m: any) => m.role === 'interviewer' || m.role?.includes('entrevistador'))
-                .map((m: any) => ({
+                .filter((m: TeamMember) => m.role === 'interviewer' || m.role?.includes('entrevistador'))
+                .map((m: TeamMember) => ({
                     userId: m.id || m.user_id,
                     fullName: m.full_name || m.name || 'Entrevistador',
                     email: m.email,
@@ -334,7 +371,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 setRealInterviewers(interviewers);
             } else {
                 // Fallback para todos os membros se não houver papel explícito
-                setRealInterviewers(members.map((m: any) => ({
+                setRealInterviewers(members.map((m: TeamMember) => ({
                     userId: m.id || m.user_id,
                     fullName: m.full_name || m.name || 'Membro da equipe',
                     email: m.email,
@@ -358,7 +395,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         totalInterviews: q.interviews,
     }));
 
-    const handleInterviewerAssignmentChange = (newAssignments: any[]) => {
+    const handleInterviewerAssignmentChange = (newAssignments: Array<{ interviewerId: string; localityKey: string; interviews: number }>) => {
         setInterviewerAssignments(newAssignments);
         // Futuro: salvar no planningData.distribution.interviewerAssignments
     };
@@ -393,7 +430,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             </div>
 
             <p className="text-slate-400 mb-1">
-                Defina quantas entrevistas em cada município da base geográfica.
+                Defina quantas entrevistas em cada munic&iacute;pio da base geogr&aacute;fica.
             </p>
             <p className="text-sm mb-6">
                 Tamanho da amostra: <strong className="text-white">{sampleSize}</strong> entrevistas
@@ -404,15 +441,15 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
             {municipalities.length === 0 && (
                 <div className="mb-4 p-3 bg-amber-900/20 border border-amber-700 text-amber-300 rounded-lg text-sm">
-                    Você ainda não definiu uma base geográfica no passo anterior. 
-                    A sugestão de distribuição proporcional ficará limitada.
+                    Voc&ecirc; ainda n&atilde;o definiu uma base geogr&aacute;fica no passo anterior.
+                    A sugest&atilde;o de distribui&ccedil;&atilde;o proporcional ficar&aacute; limitada.
                 </div>
             )}
 
             <div className="space-y-4 mb-6">
                 {/* Agrupamento hierárquico: municípios > localidades específicas (quando Passo 2 usou refinamento) */}
                 {(() => {
-                    const groups: any = {};
+                    const groups: Record<string, PlanArea[]> = {};
                     quotas.forEach((q, index) => {
                         // Usa estrutura rica quando disponível (melhor que parse de string)
                         const isLocalityItem = q.name.includes('(') && q.name.includes(')');
@@ -423,8 +460,8 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                             const match = q.name.match(/\((.+?)\)/);
                             groupKey = match ? match[1] : 'Outros';
                             displayName = q.name.replace(/\s*\(.+\)$/, '');
-                        } else if ((q as any).parentMunicipality) {
-                            groupKey = `${(q as any).parentMunicipality} - ${(q as any).parentUf || ''}`.trim();
+                        } else if ((q as PlanArea).parentMunicipality) {
+                            groupKey = `${(q as PlanArea).parentMunicipality} - ${(q as PlanArea).parentUf || ''}`.trim();
                         }
 
                         if (!groups[groupKey]) groups[groupKey] = [];
@@ -438,25 +475,24 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                 {items.length > 1 && <span className="normal-case text-[10px] text-slate-500 font-normal">{items.length} áreas</span>}
                             </div>
                             <div className="space-y-2">
-                                {items.map((item: any) => {
+                                {items.map((item: PlanArea) => {
                                     const q = item;
-                                    const idx = item.originalIndex;
+                                    const stableKey = `${item.id || item.name || 'q'}-${item.originalIndex ?? idx}`;
                                     const density = q.population > 0 ? ((q.interviews / q.population) * 10000).toFixed(1) : null;
 
                                     return (
                                         <div
-                                            key={idx}
-                                            className={`flex items-center gap-4 border rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                                                q.locked ? 'border-amber-600 bg-amber-900/10' : 'border-slate-600 bg-slate-950/60'
-                                            }`}
+                                            key={stableKey}
+                                            className={`flex items-center gap-4 border rounded-xl px-3 py-2.5 text-sm transition-colors ${q.locked ? 'border-amber-600 bg-amber-900/10' : 'border-slate-600 bg-slate-950/60'
+                                                }`}
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium truncate flex items-center gap-2">
                                                     {q.displayName || q.name}
-                                                    {(q as any).source === 'locality' && (
+                                                    {(q as PlanArea).source === 'locality' && (
                                                         <span className="text-[9px] px-1.5 py-px rounded bg-amber-900/60 text-amber-300 border border-amber-700/40">LOCALIDADE</span>
                                                     )}
-                                                    {(q as any).dataSource === 'enriched' && (
+                                                    {(q as PlanArea).dataSource === 'enriched' && (
                                                         <span className="text-[9px] px-1.5 py-px rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700/40" title="Dados do Censo 2022 / CNEFE / TSE">
                                                             ENRIQUECIDO
                                                         </span>
@@ -473,7 +509,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                             <div className="flex items-center gap-2">
                                                 <div className="w-20">
                                                     <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                                        <div 
+                                                        <div
                                                             className={`h-1.5 ${q.locked ? 'bg-amber-500' : 'bg-blue-500'}`}
                                                             style={{ width: `${sampleSize > 0 ? Math.min((q.interviews / sampleSize) * 100, 100) : 0}%` }}
                                                         />
@@ -554,8 +590,8 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                             <div>
                                 <div className="text-xs uppercase tracking-wider text-indigo-400 mb-1.5">Por Faixa Etária (principais)</div>
                                 <div className="text-xs space-y-1">
-                                    {tseSuggestion.age.slice(0, 5).map((band: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between bg-slate-900/70 px-3 py-1 rounded">
+                                    {tseSuggestion.age.slice(0, 5).map((band: { label?: string; count?: number }, idx: number) => (
+                                        <div key={stableKey} className="flex justify-between bg-slate-900/70 px-3 py-1 rounded">
                                             <span className="text-slate-300">{band.label}</span>
                                             <span className="font-medium text-white">{band.interviews} <span className="text-slate-500">({(band.proportion * 100).toFixed(0)}%)</span></span>
                                         </div>
@@ -606,12 +642,11 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                     <div className="pt-2 border-t border-slate-700">
                         <div className="flex justify-between text-xs">
                             <span className="text-slate-400">Qualidade da distribuição:</span>
-                            <span className={`font-medium ${
-                                Math.abs(difference) < sampleSize * 0.05 ? 'text-emerald-400' : 
-                                Math.abs(difference) < sampleSize * 0.15 ? 'text-yellow-400' : 'text-red-400'
-                            }`}>
-                                {Math.abs(difference) < sampleSize * 0.05 ? 'Excelente' : 
-                                 Math.abs(difference) < sampleSize * 0.15 ? 'Boa' : 'Requer atenção'}
+                            <span className={`font-medium ${Math.abs(difference) < sampleSize * 0.05 ? 'text-emerald-400' :
+                                    Math.abs(difference) < sampleSize * 0.15 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                {Math.abs(difference) < sampleSize * 0.05 ? 'Excelente' :
+                                    Math.abs(difference) < sampleSize * 0.15 ? 'Boa' : 'Requer atenção'}
                             </span>
                         </div>
                     </div>
@@ -624,7 +659,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 )}
 
                 {/* Fase 1 - Indicador de qualidade dos dados geográficos */}
-                {municipalities.some((m: any) => m.enriched) && (
+                {municipalities.some((m: PlanMunicipality) => m.enriched) && (
                     <div className="pt-2 border-t border-slate-700 text-xs text-emerald-400">
                         • Usando dados enriquecidos (Censo 2022 + CNEFE + TSE) em parte da base
                     </div>
@@ -639,18 +674,18 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 <div className="flex items-center justify-between mb-2">
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="text-lg font-semibold">Atribuição por Entrevistador</span>
+                            <span className="text-lg font-semibold">Atribui&ccedil;&atilde;o por Entrevistador</span>
                             <span className="text-[10px] px-2 py-0.5 bg-emerald-900/70 text-emerald-400 rounded-full font-normal tracking-wide">FECHA O LOOP</span>
                         </div>
                         <p className="text-sm text-slate-400 mt-0.5">
-                            Distribua as cotas acima entre os membros da equipe. O mobile mostrará apenas a missão de cada entrevistador.
+                            Distribua as cotas acima entre os membros da equipe. O mobile mostrar&aacute; apenas a miss&atilde;o de cada entrevistador.
                         </p>
                         {/* Evolução do suporte: HelpAssistant contextual dentro do fluxo de distribuição */}
                         <div className="mt-2">
-                            <HelpAssistant 
-                                context="distribution" 
-                                compact 
-                                onStillNeedHelp={() => {}} 
+                            <HelpAssistant
+                                context="distribution"
+                                compact
+                                onStillNeedHelp={() => { }}
                                 onTrackHelpful={(topic) => {
                                     reportClientError({
                                         errorCode: 'HELP_TOPIC_MARKED_HELPFUL',

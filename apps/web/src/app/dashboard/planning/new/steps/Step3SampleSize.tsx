@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { calcInterviews, getMethodologyHint } from '@political-research/shared-utils/src/sampling-utils';
 
 interface Step3SampleSizeProps {
-    initialData?: any;
-    onNext: (data: any) => void;
+    initialData?: Record<string, any>;
+    onNext: (data: Record<string, any>) => void;
     onBack: () => void;
 }
 

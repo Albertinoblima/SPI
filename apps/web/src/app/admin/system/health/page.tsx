@@ -99,7 +99,7 @@ interface HealthData {
         errorCounts24h: Record<string, number>;
         recentErrors: ErrorLog[];
         analytics: AnalyticsRow[];
-        activeImpersonations?: any[];
+        activeImpersonations?: Array<{ id: string; user?: string; started_at?: string }>;
     };
     integrationStatus?: {
         github: { configured: boolean; label: string; description: string; impact?: string | null };
@@ -312,8 +312,8 @@ export default function SystemHealthPage() {
                 <a href="/admin/support" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm flex items-center gap-2 transition">
                     <MessageSquare className="w-4 h-4" /> Atender Suporte
                 </a>
-                <button 
-                    onClick={fetchHealth} 
+                <button
+                    onClick={fetchHealth}
                     disabled={loading}
                     className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm flex items-center gap-2 transition disabled:opacity-50"
                 >
@@ -454,15 +454,15 @@ export default function SystemHealthPage() {
                         </h3>
                         <p className="text-[11px] text-gray-500 mt-0.5">Eventos HELP_TOPIC_MARKED_HELPFUL (especialmente categoria "Fluxo Ponta a Ponta")</p>
                     </div>
-                    <a 
-                        href="/admin/system/errors?code=HELP_TOPIC_MARKED_HELPFUL" 
+                    <a
+                        href="/admin/system/errors?code=HELP_TOPIC_MARKED_HELPFUL"
                         className="text-[11px] px-3 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 rounded border border-emerald-700 flex items-center gap-1"
                     >
                         Ver eventos completos <ExternalLink className="w-3 h-3" />
                     </a>
                 </div>
                 <div className="text-xs text-gray-400">
-                    Cada vez que um usuário clica "Isso resolveu meu problema" nos artigos (incluindo os 6 novos do fluxo ponta a ponta), um evento de baixa severidade é registrado no sistema de monitoramento central.
+                    Cada vez que um usuário clica &quot;Isso resolveu meu problema&quot; nos artigos (incluindo os 6 novos do fluxo ponta a ponta), um evento de baixa severidade é registrado no sistema de monitoramento central.
                     Use o filtro por <span className="font-mono text-emerald-400">HELP_TOPIC_MARKED_HELPFUL</span> + metadados (category, context, isPontaAPonta) para medir adoção real dos guias.
                 </div>
             </div>
@@ -644,7 +644,7 @@ export default function SystemHealthPage() {
                                         : null;
                                     const statusCfg = WORKFLOW_STATUS_CONFIG[run.status];
                                     const isFailed = run.conclusion === 'failure' || run.conclusion === 'timed_out';
-                                    
+
                                     return (
                                         <a
                                             key={run.id}
@@ -722,7 +722,7 @@ export default function SystemHealthPage() {
                         vercelDeployments.map((dep) => {
                             const cfg = STATE_CONFIG[dep.state] ?? { label: dep.state, color: 'text-gray-400', icon: null };
                             const isProblematic = dep.state === 'ERROR' || dep.errorMessage;
-                            
+
                             return (
                                 <div key={dep.id} className={`px-5 py-3 flex items-center gap-4 ${isProblematic ? 'bg-red-950/20' : ''}`}>
                                     <div className={`flex items-center gap-1.5 text-sm font-medium w-28 shrink-0 ${cfg.color}`}>
@@ -768,7 +768,7 @@ export default function SystemHealthPage() {
                         Sessões de Impersonation Ativas ({data.supabase.activeImpersonations.length})
                     </h3>
                     <div className="space-y-2">
-                        {data.supabase.activeImpersonations.map((imp: any) => (
+                        {data.supabase.activeImpersonations.map((imp: { id: string; user?: string; started_at?: string }) => (
                             <div key={imp.id} className="flex justify-between items-center bg-slate-800/60 p-3 rounded text-sm">
                                 <div>
                                     <span className="font-medium text-white">{imp.users?.full_name || imp.users?.email}</span>
@@ -779,7 +779,7 @@ export default function SystemHealthPage() {
                                     <div className="text-xs text-slate-500">
                                         Desde {new Date(imp.started_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
-                                    <a 
+                                    <a
                                         href={`/admin/tenants/${imp.target_tenant_id}`}
                                         className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 rounded text-white transition"
                                     >
@@ -806,7 +806,7 @@ export default function SystemHealthPage() {
                         </a>
                     </div>
                     <div className="divide-y divide-gray-800">
-                        {data.supabase.recentErrors.slice(0, 5).map((err: any) => (
+                        {data.supabase.recentErrors.slice(0, 5).map((err: { id: string; message?: string; created_at?: string }) => (
                             <div key={err.id} className="px-5 py-3 flex items-start gap-3 text-sm hover:bg-gray-800/40">
                                 <span className={`text-xs px-2 py-0.5 rounded border shrink-0 mt-0.5 ${SEVERITY_COLORS[err.severity] ?? ''}`}>
                                     {err.severity}

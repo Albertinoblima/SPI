@@ -2,8 +2,38 @@
 // Consolida dados do planejamento e permite salvar/exportar
 import React from 'react';
 
+interface PlanningData {
+    id?: string;
+    sampleSize?: number;
+    geographicBase?: {
+        municipalities?: Array<{
+            id?: string;
+            name: string;
+            uf?: string;
+            population?: number;
+            localities?: any[]; // keep for now
+        }>;
+        metadata?: {
+            total_population?: number;
+        };
+    };
+    distribution?: {
+        sampleSize?: number;
+        quotas?: Array<{
+            name: string;
+            population?: number;
+            interviews?: number;
+        }>;
+        interviewerAssignments?: Array<{
+            interviewerId: string;
+            localityKey?: string;
+            interviews?: number;
+        }>;
+    };
+}
+
 interface Step5SummaryProps {
-    planningData: any;
+    planningData: PlanningData;
     onSave: () => void;
     onBack: () => void;
     saveSuccess?: boolean;
@@ -60,7 +90,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                     </div>
                     {municipalities.length > 0 && (
                         <div className="mt-3 text-xs text-slate-400">
-                            {municipalities.slice(0, 5).map((m: any) => m.name).join(' • ')}
+                            {municipalities.slice(0, 5).map((m: { name: string }) => m.name).join(' • ')}
                             {municipalities.length > 5 && ` +${municipalities.length - 5} mais`}
                         </div>
                     )}
@@ -97,8 +127,8 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                     {quotas.length > 0 ? (
                         <>
                             <div className="space-y-1">
-                                {quotas.slice(0, 6).map((q: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between text-sm">
+                                {quotas.slice(0, 6).map((q: { name: string; interviews?: number }, idx: number) => (
+                                    <div key={item.id || item.name || idx} className="flex justify-between text-sm">
                                         <span>{q.name} {q.uf ? `(${q.uf})` : ''}</span>
                                         <span className="font-medium">{q.interviews?.toLocaleString('pt-BR') || 0}</span>
                                     </div>
@@ -142,7 +172,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                         {/* Simple grouped view by interviewer */}
                         {(() => {
                             const byInterviewer: Record<string, number> = {};
-                            dist.interviewerAssignments.forEach((a: any) => {
+                            dist.interviewerAssignments.forEach((a: { interviewerId: string; interviews?: number }) => {
                                 byInterviewer[a.interviewerId] = (byInterviewer[a.interviewerId] || 0) + (a.interviews || 0);
                             });
                             return Object.entries(byInterviewer).slice(0, 6).map(([interviewer, total]) => (
@@ -154,7 +184,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                         })()}
 
                         <div className="pt-2 mt-2 border-t border-slate-700 text-[10px] text-emerald-400">
-                            Total distribuído para equipe: {dist.interviewerAssignments.reduce((s: number, a: any) => s + (a.interviews || 0), 0)}
+                            Total distribuído para equipe: {dist.interviewerAssignments.reduce((s: number, a: { interviews?: number }) => s + (a.interviews || 0), 0)}
                         </div>
                     </div>
                 </div>
@@ -198,7 +228,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                                             description: planningData.objective || '',
                                             total_interviews: dist.sampleSize || 0,
                                             planning_data_id: planningData.id,
-                                            localities: (geo.municipalities || []).map((m: any) => ({
+                                            localities: (geo.municipalities || []).map((m: { name: string; population?: number }) => ({
                                                 name: m.name,
                                                 zone: m.zone || 'mixed',
                                                 population: m.population || m.enriched?.population_census || 0,
@@ -220,7 +250,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
 
                                     // 1. Add interviewers to the team
                                     if (dist.interviewerAssignments && dist.interviewerAssignments.length > 0) {
-                                        const uniqueInterviewers = [...new Set(dist.interviewerAssignments.map((a: any) => a.interviewerId))];
+                                        const uniqueInterviewers = [...new Set(dist.interviewerAssignments.map((a: { interviewerId: string }) => a.interviewerId))];
                                         for (const interviewerId of uniqueInterviewers) {
                                             await fetch(`/api/surveys/${newSurveyId}/team`, {
                                                 method: 'POST',
@@ -239,7 +269,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({
-                                                interviewer_quotas: dist.interviewerAssignments.map((a: any) => ({
+                                                interviewer_quotas: dist.interviewerAssignments.map((a: { interviewerId: string; localityKey?: string; interviews?: number }) => ({
                                                     interviewer_id: a.interviewerId,
                                                     locality: a.localityKey,
                                                     quota: a.interviews,
@@ -250,8 +280,9 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
 
                                     alert('Pesquisa criada com sucesso! Equipe + cotas por entrevistador aplicadas automaticamente (loop ponta a ponta completo). Redirecionando...');
                                     window.location.href = `/surveys/${newSurveyId}`;
-                                } catch (e: any) {
-                                    alert('Erro: ' + (e.message || e));
+                                } catch (e: unknown) {
+                                    const message = e instanceof Error ? e.message : String(e);
+                                    alert('Erro: ' + message);
                                 }
                             }}
                             className="mt-3 w-full text-sm px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-semibold"

@@ -611,17 +611,13 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                 })),
             };
 
-            const res = await fetch(`/api/surveys/${surveyId}/distribution`, {
+            await fetch(`/api/surveys/${surveyId}/distribution`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.error || 'Failed to seed distribution');
-            }
         } catch (e) {
-            console.error('Failed to seed interviewer distribution from plan', e);
+            console.warn('Failed to seed interviewer distribution from plan', e);
         }
     }, []);
 
@@ -636,13 +632,7 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, role: 'interviewer' }),
-                }).catch((err) => {
-                    // Ignore expected duplicate errors, log others for visibility
-                    const msg = String(err?.message || err);
-                    if (!msg.includes('duplicate') && !msg.includes('already exists')) {
-                        console.warn('Failed to seed team member from plan', err);
-                    }
-                });
+                }).catch(() => { }); // ignore duplicates
             }
         } catch (e) {
             console.warn('Failed to seed team from plan', e);
@@ -739,7 +729,7 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
             const publishRes = await fetch(`/api/surveys/${effectiveSurveyId}/publish`, {
                 method: 'POST',
             });
-            const publishJson = await publishRes.json().catch(() => ({}));
+            const publishJson = await publishRes.json();
             if (!publishRes.ok) {
                 setAlert({ type: 'error', message: publishJson.error || 'Falha ao publicar pesquisa.' });
                 return;

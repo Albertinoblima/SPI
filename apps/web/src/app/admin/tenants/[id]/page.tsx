@@ -245,7 +245,8 @@ export default function TenantDetailsPage() {
                                 } else {
                                     alert('Falha ao iniciar impersonation');
                                 }
-                            } catch {
+                            } catch (err) {
+                                console.error('Impersonate failed', err);
                                 alert('Erro ao conectar com o servidor');
                             }
                         }}
@@ -518,9 +519,12 @@ export default function TenantDetailsPage() {
                                             alert('Erros marcados como resolvidos!');
                                             fetchTenant();
                                         } else {
+                                            console.error('Failed to bulk resolve errors');
                                             alert('Falha ao resolver erros em massa');
                                         }
-                                    } catch {
+                                    } catch (err) {
+                                        console.error('Failed to mark errors as resolved', err);
+                                    }
                                         alert('Erro de conexão');
                                     }
                                 }}

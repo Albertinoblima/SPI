@@ -8,8 +8,8 @@ import type { GeographicBaseSelection } from '@/components/planning/types';
 import type { GeoScope } from '@/lib/survey-decisions';
 
 interface Step2GeographicBaseProps {
-    initialData?: any;
-    onNext: (data: any) => void;
+    initialData?: Record<string, any>;
+    onNext: (data: Record<string, any>) => void;
     onBack: () => void;
 }
 

@@ -25,6 +25,13 @@ export default function PublicDynamicReportPage() {
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [error, setError] = useState('');
+  const [reportData, setReportData] = useState<any>(null);
+  const [loadingData, setLoadingData] = useState(false);
+  // Estado para cruzamento dinâmico real (mover para o topo)
+  const [cross1, setCross1] = useState('');
+  const [cross2, setCross2] = useState('');
+  const [crossResult, setCrossResult] = useState<any>(null);
+  const [loadingCross, setLoadingCross] = useState(false);
 
   const handleLogin = async () => {
     setError('');
@@ -43,9 +50,6 @@ export default function PublicDynamicReportPage() {
       setError('Credenciais inválidas ou link expirado');
     }
   };
-
-  const [reportData, setReportData] = useState<any>(null);
-  const [loadingData, setLoadingData] = useState(false);
 
   const fetchReportData = async (emailForFetch?: string, passwordForFetch?: string) => {
     setLoadingData(true);
@@ -115,12 +119,6 @@ export default function PublicDynamicReportPage() {
     );
   }
 
-  // Estado para cruzamento dinâmico real
-  const [cross1, setCross1] = useState('');
-  const [cross2, setCross2] = useState('');
-  const [crossResult, setCrossResult] = useState<any>(null);
-  const [loadingCross, setLoadingCross] = useState(false);
-
   const availableQs = reportData?.availableCrossings || [];
 
   const loadCrossTab = async () => {
@@ -130,8 +128,8 @@ export default function PublicDynamicReportPage() {
     try {
       const e = email;
       const p = password;
-      const query = e && p 
-        ? `?email=${encodeURIComponent(e)}&password=${encodeURIComponent(p)}&cross1=${cross1}&cross2=${cross2}` 
+      const query = e && p
+        ? `?email=${encodeURIComponent(e)}&password=${encodeURIComponent(p)}&cross1=${cross1}&cross2=${cross2}`
         : `?cross1=${cross1}&cross2=${cross2}`;
       const res = await fetch(`/api/reports/public/${params.shareToken}/analytics${query}`);
       if (res.ok) {
@@ -159,8 +157,8 @@ export default function PublicDynamicReportPage() {
           <h1 className="text-3xl font-bold">Relatório Dinâmico Protegido</h1>
           <p className="text-slate-600">Dashboard interativo para o contratante • Acesso seguro por token + credenciais</p>
         </div>
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           className="px-4 py-2 border rounded-lg text-sm hover:bg-white"
         >
           Sair
@@ -172,18 +170,18 @@ export default function PublicDynamicReportPage() {
         <div className="flex items-center gap-2 font-medium text-emerald-700 mb-2">
           <HelpCircle className="w-4 h-4" /> Precisa de ajuda para interpretar este relatório?
         </div>
-        <HelpAssistant 
-            context="reports" 
-            compact 
-            onStillNeedHelp={() => {}} 
-            onTrackHelpful={(topic) => {
-                reportClientError({
-                    errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
-                    errorMessage: `Artigo útil (relatório contratante): ${topic.title}`,
-                    severity: 'low',
-                    metadata: { topicId: topic.id, category: topic.category, context: 'reports', isPontaAPonta: topic.category === 'Fluxo Ponta a Ponta' }
-                });
-            }}
+        <HelpAssistant
+          context="reports"
+          compact
+          onStillNeedHelp={() => { }}
+          onTrackHelpful={(topic) => {
+            reportClientError({
+              errorCode: 'HELP_TOPIC_MARKED_HELPFUL',
+              errorMessage: `Artigo útil (relatório contratante): ${topic.title}`,
+              severity: 'low',
+              metadata: { topicId: topic.id, category: topic.category, context: 'reports', isPontaAPonta: topic.category === 'Fluxo Ponta a Ponta' }
+            });
+          }}
         />
       </div>
 
@@ -210,10 +208,10 @@ export default function PublicDynamicReportPage() {
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white p-6 rounded-xl border shadow-sm">
             <h3 className="font-semibold mb-4 text-lg">Análise de Cruzamentos (Interativa)</h3>
-            
+
             <div className="flex flex-wrap gap-3 mb-4">
-              <select 
-                value={cross1} 
+              <select
+                value={cross1}
                 onChange={(e) => setCross1(e.target.value)}
                 className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]"
               >
@@ -223,8 +221,8 @@ export default function PublicDynamicReportPage() {
                 ))}
               </select>
 
-              <select 
-                value={cross2} 
+              <select
+                value={cross2}
                 onChange={(e) => setCross2(e.target.value)}
                 className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]"
               >
@@ -234,7 +232,7 @@ export default function PublicDynamicReportPage() {
                 ))}
               </select>
 
-              <button 
+              <button
                 onClick={loadCrossTab}
                 disabled={!cross1 || !cross2 || loadingCross}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-lg text-sm font-medium"
