@@ -23,11 +23,10 @@ import TenantNotificationBell from '@/components/notifications/TenantNotificatio
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/hooks/useTheme';
 
+
 interface DashboardLayoutProps {
     children: ReactNode;
 }
-
-];
 
 import { ClipboardList } from 'lucide-react';
 
@@ -40,6 +39,7 @@ const navItems = [
     { label: 'Suporte', href: '/support', icon: LifeBuoy },
     { label: 'Ajuda', href: '/help', icon: CircleHelp },
     { label: 'Configurações', href: '/settings', icon: Settings },
+];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();

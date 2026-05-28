@@ -1,6 +1,9 @@
-// Utilitário para barra de largura dinâmica (Tailwind + style encapsulado)
-// eslint-disable-next-line react/no-inline-styles
-function BarraDinamica({ percent, className = '', ...props }) {
+type BarraDinamicaProps = {
+    percent: number;
+    className?: string;
+    [key: string]: any;
+};
+function BarraDinamica({ percent, className = '', ...props }: BarraDinamicaProps) {
     return (
         <div
             className={`bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500 ${className}`}
@@ -10,9 +13,12 @@ function BarraDinamica({ percent, className = '', ...props }) {
     );
 }
 
-// Utilitário para barra de altura dinâmica (Timeline)
-// eslint-disable-next-line react/no-inline-styles
-function BarraAltura({ percent, className = '', ...props }) {
+type BarraAlturaProps = {
+    percent: number;
+    className?: string;
+    [key: string]: any;
+};
+function BarraAltura({ percent, className = '', ...props }: BarraAlturaProps) {
     return (
         <div
             className={`w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all cursor-pointer group relative ${className}`}
@@ -22,9 +28,12 @@ function BarraAltura({ percent, className = '', ...props }) {
     );
 }
 
-// Utilitário para ponto animado com delay
-// eslint-disable-next-line react/no-inline-styles
-function PontoAnimado({ delayMs, className = '', ...props }) {
+type PontoAnimadoProps = {
+    delayMs: number;
+    className?: string;
+    [key: string]: any;
+};
+function PontoAnimado({ delayMs, className = '', ...props }: PontoAnimadoProps) {
     return (
         <div
             className={`w-3 h-3 bg-red-500 rounded-full animate-pulse ${className}`}

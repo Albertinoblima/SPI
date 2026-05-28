@@ -235,44 +235,30 @@ export default function MunicipiosPage() {
                             </div>
                         </div>
                         <div className="w-28">
-                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">UF</label>
+                            <label htmlFor="uf-select" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">UF</label>
                             <select
+                                id="uf-select"
                                 value={uf}
                                 onChange={(e) => applyFilter(() => { setUf(e.target.value); setRegiao(''); })}
                                 aria-label="Filtrar por UF"
                                 className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                             >
-                                <label htmlFor="uf-select" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">UF</label>
-                                <select
-                                    id="uf-select"
-                                    value={uf}
-                                    onChange={(e) => applyFilter(() => { setUf(e.target.value); setRegiao(''); })}
-                                    aria-label="Filtrar por UF"
-                                    className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value="">Todas</option>
-                                    {ALL_UFS.map((u) => <option key={u} value={u}>{u}</option>)}
-                                </select>
+                                <option value="">Todas</option>
+                                {ALL_UFS.map((u) => <option key={u} value={u}>{u}</option>)}
+                            </select>
                         </div>
                         <div className="w-40">
-                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Região</label>
+                            <label htmlFor="regiao-select" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Região</label>
                             <select
+                                id="regiao-select"
                                 value={regiao}
                                 onChange={(e) => applyFilter(() => { setRegiao(e.target.value); setUf(''); })}
                                 aria-label="Filtrar por região"
                                 className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                             >
-                                <label htmlFor="regiao-select" className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Região</label>
-                                <select
-                                    id="regiao-select"
-                                    value={regiao}
-                                    onChange={(e) => applyFilter(() => { setRegiao(e.target.value); setUf(''); })}
-                                    aria-label="Filtrar por região"
-                                    className="w-full py-2 px-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value="">Todas</option>
-                                    {REGIOES.map((r) => <option key={r} value={r}>{r}</option>)}
-                                </select>
+                                <option value="">Todas</option>
+                                {REGIOES.map((r) => <option key={r} value={r}>{r}</option>)}
+                            </select>
                         </div>
                         <button
                             onClick={fetchMunicipios}
