@@ -343,17 +343,34 @@ export default function SystemHealthPage() {
                 </div>
             </div>
 
-            {/* System Alerts Summary - Fase 2 */}
+            {/* System Alerts Summary - Fase 2 (Actionable) */}
             {(totalErrors24h > 5 || latestDeploy?.state === 'ERROR' || (data?.github.workflowRuns ?? []).some(r => r.conclusion === 'failure')) && (
                 <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="w-5 h-5 text-red-400" />
-                        <span className="font-semibold text-red-400">Alertas do Sistema</span>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                            <span className="font-semibold text-red-400">Alertas do Sistema</span>
+                        </div>
+                        <a href="/admin/system/errors" className="text-xs px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-white transition">
+                            Ver todos os erros →
+                        </a>
                     </div>
                     <div className="text-sm text-red-200 space-y-1">
-                        {totalErrors24h > 5 && <div>• Alto volume de erros nas últimas 24h ({totalErrors24h})</div>}
-                        {latestDeploy?.state === 'ERROR' && <div>• Último deploy no Vercel falhou</div>}
-                        {(data?.github.workflowRuns ?? []).some(r => r.conclusion === 'failure') && <div>• Workflows GitHub com falhas recentes</div>}
+                        {totalErrors24h > 5 && (
+                            <div className="flex items-center justify-between">
+                                <span>• Alto volume de erros nas últimas 24h ({totalErrors24h})</span>
+                                <a href="/admin/system/errors?severity=critical" className="text-xs underline">Investigar</a>
+                            </div>
+                        )}
+                        {latestDeploy?.state === 'ERROR' && (
+                            <div className="flex items-center justify-between">
+                                <span>• Último deploy no Vercel falhou</span>
+                                <a href="https://vercel.com/dashboard" target="_blank" className="text-xs underline">Abrir Vercel</a>
+                            </div>
+                        )}
+                        {(data?.github.workflowRuns ?? []).some(r => r.conclusion === 'failure') && (
+                            <div>• Workflows GitHub com falhas recentes — ver seção abaixo</div>
+                        )}
                     </div>
                 </div>
             )}
@@ -598,56 +615,38 @@ export default function SystemHealthPage() {
                 </div>
             )}
 
-            {/* Erros Recentes Supabase */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
-                    <h2 className="text-white font-semibold flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                        Erros Recentes — Supabase
-                    </h2>
-                    <a href="/admin/system/errors" className="text-xs text-gray-500 hover:text-gray-300">
-                        Ver todos →
-                    </a>
-                </div>
-                <div className="divide-y divide-gray-800">
-                    {loading ? (
-                        Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="px-5 py-3 flex gap-4 animate-pulse">
-                                <div className="w-16 h-4 bg-gray-800 rounded" />
-                                <div className="flex-1 h-4 bg-gray-800 rounded" />
-                            </div>
-                        ))
-                    ) : data?.supabase.recentErrors.length === 0 ? (
-                        <p className="px-5 py-6 text-gray-500 text-sm text-center flex items-center justify-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-400" />
-                            Nenhum erro registrado
-                        </p>
-                    ) : (
-                        data?.supabase.recentErrors.map((err) => (
-                            <div key={err.id} className="px-5 py-3 flex items-start gap-4">
+            {/* Recent Critical Errors Preview - Fase 2 Operational Value */}
+            {data?.supabase?.recentErrors && data.supabase.recentErrors.length > 0 && (
+                <div className="bg-gray-900 border border-gray-800 rounded-xl">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+                        <h2 className="text-white font-semibold flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-red-400" />
+                            Erros Críticos Recentes
+                        </h2>
+                        <a href="/admin/system/errors" className="text-xs text-gray-500 hover:text-gray-300">
+                            Ver todos os erros →
+                        </a>
+                    </div>
+                    <div className="divide-y divide-gray-800">
+                        {data.supabase.recentErrors.slice(0, 5).map((err: any) => (
+                            <div key={err.id} className="px-5 py-3 flex items-start gap-3 text-sm hover:bg-gray-800/40">
                                 <span className={`text-xs px-2 py-0.5 rounded border shrink-0 mt-0.5 ${SEVERITY_COLORS[err.severity] ?? ''}`}>
                                     {err.severity}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-mono text-xs text-gray-500">{err.error_code}</span>
-                                        <span className="text-sm text-gray-300 truncate">{err.error_message}</span>
-                                    </div>
-                                    {err.http_path && (
-                                        <p className="text-xs text-gray-600 mt-0.5">{err.http_path}</p>
-                                    )}
+                                    <div className="font-mono text-xs text-gray-500">{err.error_code}</div>
+                                    <div className="text-gray-300 truncate">{err.error_message}</div>
                                 </div>
-                                <div className="text-xs text-gray-500 shrink-0">
-                                    {new Date(err.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                <div className="text-xs text-gray-500 shrink-0 whitespace-nowrap">
+                                    {new Date(err.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </div>
-                                {err.resolved && (
-                                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                                )}
                             </div>
-                        ))
-                    )}
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
+
+
 
             {/* Analytics Supabase (7 dias) */}
             {!loading && (data?.supabase.analytics?.length ?? 0) > 0 && (
