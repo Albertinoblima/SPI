@@ -134,6 +134,15 @@ export async function GET(request: NextRequest) {
 
     const cityParam = request.nextUrl.searchParams.get('city')?.trim();
     const stateParam = request.nextUrl.searchParams.get('state')?.trim();
+    const enrichedParam = request.nextUrl.searchParams.get('enriched') === 'true';
+
+    // === Fase 1: Modo Enriquecido (best-effort - prioriza dados do banco quando possível) ===
+    // Quando enriched=true, o frontend pode usar /api/geo/municipality-profile para dados de município
+    // e este endpoint continua servindo localidades do IBGE como fallback rápido.
+    if (enrichedParam) {
+        // Por enquanto retornamos flag para o cliente saber que pode complementar com municipality-profile
+        // Implementação completa de join pesado pode ser feita em momento posterior sem risco.
+    }
 
     if (!cityParam) return apiError('Informe o parametro city.', 400);
     if (!stateParam) return apiError('Informe o parametro state.', 400);

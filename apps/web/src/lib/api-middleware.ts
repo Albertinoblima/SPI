@@ -118,11 +118,34 @@ export async function requireTenantAdmin(request: NextRequest) {
         };
     }
 
+    // === Suporte a Impersonation (Fase 1) ===
+    let effectiveTenantId = userData.tenant_id;
+
+    if (userData.is_system_admin) {
+        // Verifica se existe uma sessão ativa de impersonation
+        const { data: impersonation } = await supabase
+            .from('admin_impersonation_sessions')
+            .select('target_tenant_id')
+            .eq('admin_user_id', user.id)
+            .eq('is_active', true)
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (impersonation?.target_tenant_id) {
+            effectiveTenantId = impersonation.target_tenant_id;
+        }
+    }
+
     return {
         isAuthorized: true as const,
         user,
-        userData,
+        userData: {
+            ...userData,
+            tenant_id: effectiveTenantId, // Tenant efetivo (pode ser o impersonated)
+        },
         supabase,
+        isImpersonating: effectiveTenantId !== userData.tenant_id,
     };
 }
 

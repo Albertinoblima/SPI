@@ -217,12 +217,38 @@ export default function TenantsPage() {
                                                 {tenant.stats?.total_responses || 0}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <Link
-                                                    href={`/admin/tenants/${tenant.id}`}
-                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition"
-                                                >
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </Link>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm(`Deseja realmente entrar como "${tenant.name}"?`)) return;
+                                                            try {
+                                                                const res = await fetch('/api/admin/impersonate', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ action: 'start', tenantId: tenant.id }),
+                                                                });
+                                                                if (res.ok) {
+                                                                    window.location.href = '/dashboard';
+                                                                } else {
+                                                                    alert('Falha ao iniciar impersonation');
+                                                                }
+                                                            } catch {
+                                                                alert('Erro ao conectar com o servidor');
+                                                            }
+                                                        }}
+                                                        className="text-xs px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium transition"
+                                                        title="Entrar como esta empresa (Impersonation)"
+                                                    >
+                                                        Entrar como
+                                                    </button>
+
+                                                    <Link
+                                                        href={`/admin/tenants/${tenant.id}`}
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                                    >
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </Link>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

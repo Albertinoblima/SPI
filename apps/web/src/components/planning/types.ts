@@ -7,7 +7,10 @@
  * - Simples o suficiente para o fluxo de Planejamento (sem o Passo 3)
  */
 
-import type { GeoLevel, GeoScope, PopulationType } from '@/lib/survey-decisions';
+import type { GeoLevel, GeoScope } from '@/lib/survey-decisions';
+
+// População type é definido em surveys mas usamos string aqui para evitar acoplamento forte
+type PopulationType = string;
 
 /**
  * Representa uma localidade (pode ser município ou localidade mais granular).
@@ -23,17 +26,34 @@ export interface PlanningLocality {
   population_type?: PopulationType;
   ibge_id?: number;
   tse_code?: string;
+
+  // Dados enriquecidos opcionais (CNEFE / Censo por localidade)
+  residences_cnefe?: number;
+  electorate?: number;
 }
 
 /**
  * Representa um município na base geográfica do planejamento.
+ * Suporta dados enriquecidos vindos de /api/geo/municipality-profile (Fase 1 Geo Enrichment).
  */
 export interface PlanningMunicipality {
   ibge_id?: number;
   name: string;
   uf: string;
   population?: number;
-  localities?: PlanningLocality[]; // Futuro: localidades dentro do município
+  localities?: PlanningLocality[];
+
+  // === Campos enriquecidos (opcionais) ===
+  enriched?: {
+    population_census?: number;
+    electorate_total?: number;
+    residences_cnefe?: number;
+    data_quality_score?: number; // 0-3
+    has_census?: boolean;
+    has_tse?: boolean;
+    has_cnefe?: boolean;
+    sources?: string[];
+  };
 }
 
 /**
@@ -42,12 +62,15 @@ export interface PlanningMunicipality {
 export interface GeographicBase {
   scope: GeoScope | 'mixed';
   municipalities: PlanningMunicipality[];
-  localities?: PlanningLocality[]; // Suporte futuro a seleção direta de localidades
+  localities?: PlanningLocality[];
   metadata?: {
     total_population?: number;
     total_electorate?: number;
     research_type?: string;
     selected_at?: string;
+    // Fase 1 - Geo Enrichment
+    used_enriched_data?: boolean;
+    data_quality_summary?: string;
   };
 }
 

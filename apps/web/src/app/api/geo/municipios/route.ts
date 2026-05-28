@@ -51,8 +51,17 @@ export async function GET(request: NextRequest) {
             });
         }
 
+        // Fase 1 - Enriquecimento: expomos flags de qualidade que já existem na view
+        const enrichedData = (data ?? []).map((row: any) => ({
+            ...row,
+            has_census_data: (row.populacao_censo ?? 0) > 0,
+            has_tse_data: (row.total_eleitores ?? 0) > 0,
+            has_cnefe_data: (row.residencias_cnefe ?? 0) > 0,
+            data_quality_score: row.ingestoes_concluidas ?? 0,
+        }));
+
         return apiSuccess({
-            municipios: data ?? [],
+            municipios: enrichedData,
             pagination: {
                 page,
                 limit,

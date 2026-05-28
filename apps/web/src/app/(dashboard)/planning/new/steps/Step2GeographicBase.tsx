@@ -21,21 +21,30 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
     });
 
     const handleNext = () => {
-        const totalPopulation = geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0);
+        const totalPopulation = geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0) +
+                                (geoData.localities || []).reduce((sum, l) => sum + (l.population || 0), 0);
 
-        onNext({ 
-            geographicBase: {
-                scope: geoData.scope,
-                municipalities: geoData.municipalities,
-                localities: geoData.localities,
-                metadata: {
-                    research_type: initialData?.researchType,
-                    total_population: totalPopulation,
-                    // Preparado para quando integrarmos dados de eleitorado (TSE)
-                    estimated_electorate: null, 
-                }
+        // Build a clean, rich structure for downstream steps (especially Step 4)
+        const richBase = {
+            scope: geoData.scope,
+            municipalities: geoData.municipalities.map(m => ({
+                ...m,
+                // Ensure localities are properly attached if any
+                localities: m.localities || [],
+            })),
+            // Flat list of all selected localities (most granular level)
+            selectedLocalities: (geoData.localities && geoData.localities.length > 0) 
+                ? geoData.localities 
+                : geoData.municipalities.flatMap(m => m.localities || []),
+            metadata: {
+                research_type: initialData?.researchType,
+                total_population: totalPopulation,
+                has_specific_localities: (geoData.localities && geoData.localities.length > 0) || 
+                                        geoData.municipalities.some(m => m.localities && m.localities.length > 0),
             }
-        });
+        };
+
+        onNext({ geographicBase: richBase });
     };
 
     return (
@@ -55,18 +64,43 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
 
             {geoData.municipalities.length > 0 && (
                 <div className="mb-6 p-4 bg-slate-900 border border-slate-600 rounded-2xl text-sm">
-                    <div className="font-semibold text-white mb-2">Resumo da Base Geográfica</div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-slate-400">Municípios:</div>
-                        <div className="font-medium text-right text-white">{geoData.municipalities.length}</div>
-                        
-                        <div className="text-slate-400">População total:</div>
-                        <div className="font-semibold text-right text-emerald-400">
-                            {geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0).toLocaleString('pt-BR')}
+                    <div className="font-semibold text-white mb-2 flex items-center justify-between">
+                        <span>Resumo da Base Geográfica</span>
+                        {(() => {
+                            const locCount = geoData.municipalities.reduce((s, m) => s + (m.localities?.length || 0), 0);
+                            return locCount > 0 ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/50 text-amber-300 border border-amber-700/40">
+                                    {locCount} localidades específicas
+                                </span>
+                            ) : null;
+                        })()}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-slate-400">Municípios:</span>
+                            <span className="font-medium text-white">{geoData.municipalities.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-400">População:</span>
+                            <span className="font-semibold text-emerald-400">
+                                {geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0).toLocaleString('pt-BR')}
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-400">Granularidade:</span>
+                            <span className="font-medium text-amber-300">
+                                {geoData.municipalities.some(m => m.localities && m.localities.length > 0) ? 'Localidades' : 'Municipal'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-400">Áreas para cotas:</span>
+                            <span className="font-medium text-white">
+                                {geoData.municipalities.reduce((s, m) => s + (m.localities?.length || 1), 0)}
+                            </span>
                         </div>
                     </div>
                     <div className="text-xs text-slate-500 mt-2">
-                        Esta base será usada para sugerir a distribuição de entrevistas no próximo passo.
+                        A distribuição proporcional no Passo 4 respeitará automaticamente as localidades específicas quando definidas.
                     </div>
                 </div>
             )}

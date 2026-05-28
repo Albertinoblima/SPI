@@ -22,6 +22,7 @@ import ChatWidget from '@/components/support/ChatWidget';
 import TenantNotificationBell from '@/components/notifications/TenantNotificationBell';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/hooks/useTheme';
+import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
 
 
 interface DashboardLayoutProps {
@@ -244,6 +245,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                 {/* ── Conteúdo principal ── */}
                 <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                    <ImpersonationBanner />
                     {/* Header */}
                     <header className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center px-3 sm:px-4 flex-shrink-0 gap-2 transition-colors duration-200">
                         {/* Hamburguer: mobile = abre drawer | desktop = colapsa sidebar */}
