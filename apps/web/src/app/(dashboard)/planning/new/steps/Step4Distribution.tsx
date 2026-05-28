@@ -20,26 +20,49 @@ interface Quota {
 
 const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNext, onBack }) => {
     const sampleSize: number = initialData?.sampleSize || 0;
-    const municipalities = initialData?.geographicBase?.municipalities || [];
+    const geoBase = initialData?.geographicBase || {};
+    const municipalities = geoBase.municipalities || [];
 
-    // Converte municípios selecionados em quotas iniciais
+    // Coleta todas as localidades (se existirem) ou cai para municípios
+    const allAreas = useMemo(() => {
+        const areas: any[] = [];
+        municipalities.forEach((m: any) => {
+            if (m.localities && m.localities.length > 0) {
+                m.localities.forEach((loc: any) => {
+                    areas.push({
+                        ...loc,
+                        displayName: `${loc.name} (${m.name})`,
+                        parentMunicipality: m.name,
+                    });
+                });
+            } else {
+                areas.push({
+                    ...m,
+                    displayName: m.name,
+                });
+            }
+        });
+        return areas;
+    }, [municipalities]);
+
+    // Converte áreas selecionadas (localidades ou municípios) em quotas iniciais
     const initialQuotas: Quota[] = useMemo(() => {
         if (initialData?.distribution?.quotas?.length) {
             return initialData.distribution.quotas;
         }
 
-        if (municipalities.length > 0) {
-            const totalPop = municipalities.reduce((sum: number, m: any) => sum + (m.population || 0), 0);
+        if (allAreas.length > 0) {
+            const totalPop = allAreas.reduce((sum: number, a: any) => sum + (a.population || 0), 0);
 
-            return municipalities.map((m: any) => {
-                const pop = m.population || 0;
+            return allAreas.map((area: any) => {
+                const pop = area.population || 0;
                 const suggested = totalPop > 0 
                     ? Math.round((pop / totalPop) * sampleSize) 
-                    : Math.round(sampleSize / municipalities.length);
+                    : Math.round(sampleSize / allAreas.length);
 
                 return {
-                    name: m.name,
-                    uf: m.uf,
+                    name: area.displayName || area.name,
+                    uf: area.uf,
                     population: pop,
                     interviews: suggested,
                     locked: false,
@@ -48,7 +71,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         }
 
         return [{ name: 'Geral', population: 0, interviews: sampleSize, locked: false }];
-    }, [municipalities, sampleSize, initialData?.distribution?.quotas]);
+    }, [allAreas, sampleSize, initialData?.distribution?.quotas]);
 
     const [quotas, setQuotas] = useState<Quota[]>(initialQuotas);
 
@@ -89,44 +112,39 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
         const remainingSample = Math.max(0, sampleSize - lockedTotal);
 
-        if (unlockedQuotas.length === 0) {
-            // Tudo travado, não faz nada
-            return;
-        }
+        if (unlockedQuotas.length === 0) return;
 
-        const unlockedTotalPop = unlockedQuotas.reduce((sum, q) => sum + (q.population || 0), 0);
+        // Usa a população real das áreas (prioriza localidades se existirem)
+        const effectiveAreas = allAreas.length > 0 ? allAreas : municipalities;
+        const unlockedAreas = effectiveAreas.filter((area: any) => 
+            !quotas.find(q => (q.name === area.displayName || q.name === area.name) && q.locked)
+        );
+
+        const unlockedTotalPop = unlockedAreas.reduce((sum: number, a: any) => sum + (a.population || 0), 0);
 
         if (unlockedTotalPop === 0 || remainingSample === 0) {
-            // Distribui igualmente entre as não travadas
             const even = Math.floor(remainingSample / unlockedQuotas.length);
             let remainder = remainingSample % unlockedQuotas.length;
 
             const newQuotas = quotas.map(q => {
                 if (q.locked) return q;
-
                 const idx = unlockedQuotas.findIndex(uq => uq.name === q.name);
-                return {
-                    ...q,
-                    interviews: even + (idx < remainder ? 1 : 0),
-                };
+                return { ...q, interviews: even + (idx < remainder ? 1 : 0) };
             });
-
             setQuotas(newQuotas);
             return;
         }
 
-        // Distribuição proporcional apenas entre as não travadas
         const newQuotas = quotas.map(q => {
             if (q.locked) return q;
 
-            const proportion = (q.population || 0) / unlockedTotalPop;
-            return {
-                ...q,
-                interviews: Math.round(proportion * remainingSample),
-            };
+            const area = effectiveAreas.find((a: any) => (a.displayName || a.name) === q.name);
+            const pop = area?.population || q.population || 0;
+            const proportion = pop / unlockedTotalPop;
+            return { ...q, interviews: Math.round(proportion * remainingSample) };
         });
 
-        // Ajuste fino para bater o total
+        // Ajuste fino
         let currentTotal = newQuotas.reduce((s, q) => s + q.interviews, 0);
         let diff = sampleSize - currentTotal;
 
@@ -135,18 +153,15 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             const unlockedIndices = newQuotas
                 .map((q, idx) => ({ q, idx }))
                 .filter(item => !item.q.locked);
-
             if (unlockedIndices.length === 0) break;
 
             const target = unlockedIndices[i % unlockedIndices.length];
-            const idx = target.idx;
-
             if (diff > 0) {
-                newQuotas[idx].interviews += 1;
+                newQuotas[target.idx].interviews += 1;
                 diff--;
             } else {
-                if (newQuotas[idx].interviews > 0) {
-                    newQuotas[idx].interviews -= 1;
+                if (newQuotas[target.idx].interviews > 0) {
+                    newQuotas[target.idx].interviews -= 1;
                     diff++;
                 }
             }
