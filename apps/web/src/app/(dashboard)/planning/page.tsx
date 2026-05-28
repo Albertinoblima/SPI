@@ -105,12 +105,26 @@ const PlanningDashboardPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="mt-4 pt-4 border-t border-slate-800">
+                                <div className="mt-4 pt-4 border-t border-slate-800 flex flex-wrap gap-3">
+                                    <Link
+                                        href={`/planning/${plan.id}`}
+                                        className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-white font-medium"
+                                    >
+                                        Ver detalhes
+                                    </Link>
+
+                                    <Link
+                                        href={`/planning/new?editId=${plan.id}`}
+                                        className="inline-flex items-center gap-1 text-sm text-amber-400 hover:text-amber-300 font-medium"
+                                    >
+                                        Editar
+                                    </Link>
+
                                     <Link
                                         href={`/surveys/new?planId=${plan.id}`}
-                                        className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 font-medium"
+                                        className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 font-medium ml-auto"
                                     >
-                                        Criar Pesquisa a partir deste Planejamento
+                                        Criar Pesquisa
                                         <ArrowRight size={16} />
                                     </Link>
                                 </div>
