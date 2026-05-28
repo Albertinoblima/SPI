@@ -174,3 +174,8 @@ Estamos bem posicionados para entregar valor rapidamente.
 Continuando no mesmo ritmo de execução de qualidade (28/05).
 
 Estou continuando a execução com as melhores decisões até o final.
+
+**Atualização mais recente (ritmo mantido):**
+- Criado endpoint seguro dedicado para o relatório dinâmico público.
+- Página protegida agora consome dados reais após autenticação do contratante.
+- Progresso equilibrado nos dois relatórios.

@@ -46,8 +46,8 @@ export default function PublicDynamicReportPage() {
   const fetchReportData = async () => {
     setLoadingData(true);
     try {
-      // Chama o endpoint de analytics real (já existente e com dados)
-      const res = await fetch(`/api/reports/analytics?shareToken=${params.shareToken}`);
+      // Usa o endpoint dedicado e seguro para o relatório dinâmico público
+      const res = await fetch(`/api/reports/public/${params.shareToken}/analytics`);
       if (res.ok) {
         const data = await res.json();
         setReportData(data);
