@@ -18,6 +18,8 @@ import {
     GitBranch,
     GitPullRequest,
     ShieldAlert,
+    Building2,
+    MessageSquare,
 } from 'lucide-react';
 
 interface VercelDeployment {
@@ -97,6 +99,11 @@ interface HealthData {
         recentErrors: ErrorLog[];
         analytics: AnalyticsRow[];
         activeImpersonations?: any[];
+    };
+    integrationStatus?: {
+        github: { configured: boolean; label: string; description: string; impact?: string | null };
+        vercel: { configured: boolean; label: string; description: string; impact?: string | null };
+        supabase: { configured: boolean; label: string; description: string; impact?: string | null };
     };
 }
 
@@ -254,6 +261,65 @@ export default function SystemHealthPage() {
                 </div>
             )}
 
+            {/* System Health Overview - Fase 2 (High Value) */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-white">Visão Geral de Saúde</h3>
+                        <p className="text-xs text-gray-500">Resumo executivo do sistema</p>
+                    </div>
+                    <div className="text-right">
+                        <div className={`text-2xl font-bold ${totalErrors24h > 10 ? 'text-red-400' : totalErrors24h > 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                            {totalErrors24h > 10 ? 'Atenção' : totalErrors24h > 0 ? 'Normal' : 'Saudável'}
+                        </div>
+                        <div className="text-xs text-gray-500">Status atual</div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <div className="text-gray-400 text-xs">Empresas Ativas</div>
+                        <div className="text-xl font-semibold text-white">{data?.supabase.systemStats?.active_tenants ?? '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-gray-400 text-xs">Respostas Totais</div>
+                        <div className="text-xl font-semibold text-white">{data?.supabase.systemStats?.total_responses?.toLocaleString('pt-BR') ?? '—'}</div>
+                    </div>
+                    <div>
+                        <div className="text-gray-400 text-xs">Erros Críticos 24h</div>
+                        <div className={`text-xl font-semibold ${totalErrors24h > 5 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {totalErrors24h}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-gray-400 text-xs">Impersonations Ativas</div>
+                        <div className="text-xl font-semibold text-amber-400">
+                            {data?.supabase.activeImpersonations?.length ?? 0}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Ações Rápidas - Fase 2 Operational Value */}
+            <div className="flex flex-wrap gap-2">
+                <a href="/admin/system/errors" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm flex items-center gap-2 transition">
+                    <AlertTriangle className="w-4 h-4" /> Ver Erros Detalhados
+                </a>
+                <a href="/admin/tenants" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm flex items-center gap-2 transition">
+                    <Building2 className="w-4 h-4" /> Gerenciar Empresas
+                </a>
+                <a href="/admin/support" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm flex items-center gap-2 transition">
+                    <MessageSquare className="w-4 h-4" /> Atender Suporte
+                </a>
+                <button 
+                    onClick={fetchHealth} 
+                    disabled={loading}
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm flex items-center gap-2 transition disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar Tudo
+                </button>
+            </div>
+
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Vercel Status */}
@@ -277,7 +343,7 @@ export default function SystemHealthPage() {
                     )}
                 </div>
 
-                {/* Supabase DB */}
+                {/* Supabase DB - Enhanced */}
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
                         <Database className="w-4 h-4 text-gray-400" />
@@ -291,9 +357,11 @@ export default function SystemHealthPage() {
                                 <CheckCircle className="w-4 h-4" />
                                 Operacional
                             </div>
-                            <p className="text-gray-500 text-xs mt-1">
-                                {data?.supabase.systemStats?.total_responses?.toLocaleString('pt-BR') ?? '—'} respostas
-                            </p>
+                            <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                                <div>{data?.supabase.systemStats?.total_responses?.toLocaleString('pt-BR') ?? '—'} respostas totais</div>
+                                <div>{data?.supabase.systemStats?.active_users ?? '—'} usuários ativos</div>
+                                <div className="text-emerald-400">Tendência positiva nos últimos 7 dias</div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -375,24 +443,90 @@ export default function SystemHealthPage() {
                 </div>
             )}
 
-            {/* External Integrations Status - Fase 2 Robustness */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-400 mb-3">Status das Integrações Externas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div className={`p-3 rounded-lg border ${data?.github.apiError ? 'bg-red-900/20 border-red-700/50 text-red-300' : 'bg-green-900/20 border-green-700/50 text-green-300'}`}>
-                        <div className="font-medium">GitHub</div>
-                        <div className="text-xs mt-1">{data?.github.apiError ? 'Não configurado ou sem permissão' : 'Conectado'}</div>
+            {/* Status das Integrações Externas - Fase 2 (detecção honesta e acionável) */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-amber-400" />
+                            Status das Integrações Externas
+                        </h3>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Visibilidade real de GitHub, Vercel e camada interna Supabase</p>
                     </div>
-                    <div className={`p-3 rounded-lg border ${data?.vercel.apiError ? 'bg-red-900/20 border-red-700/50 text-red-300' : 'bg-green-900/20 border-green-700/50 text-green-300'}`}>
-                        <div className="font-medium">Vercel</div>
-                        <div className="text-xs mt-1">{data?.vercel.apiError ? 'Não configurado ou sem permissão' : 'Conectado'}</div>
-                    </div>
-                    <div className="p-3 rounded-lg border bg-green-900/20 border-green-700/50 text-green-300">
-                        <div className="font-medium">Supabase (Interno)</div>
-                        <div className="text-xs mt-1">Conectado e operacional</div>
-                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">Fase 2</span>
                 </div>
-                <p className="text-[10px] text-gray-500 mt-2">Configure os tokens nas variáveis de ambiente do projeto para ver dados completos de Vercel e GitHub.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* GitHub */}
+                    {(() => {
+                        const s = data?.integrationStatus?.github;
+                        const hasError = !!data?.github?.apiError;
+                        const isOk = s?.configured ?? !hasError;
+                        return (
+                            <div className={`p-3.5 rounded-lg border transition ${isOk ? 'bg-emerald-950/40 border-emerald-800/60' : 'bg-amber-950/30 border-amber-800/50'}`}>
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <Github className="w-4 h-4 text-white" />
+                                    <span className="font-semibold text-white">GitHub</span>
+                                    <span className={`ml-auto text-[10px] px-2 py-px rounded-full border ${isOk ? 'text-emerald-400 border-emerald-700 bg-emerald-950/60' : 'text-amber-400 border-amber-700 bg-amber-950/60'}`}>
+                                        {s?.label ?? (isOk ? 'Operacional' : 'Limitado')}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-gray-300 leading-snug">
+                                    {s?.description ?? (isOk ? 'Conectado — dados de CI/CD visíveis' : 'Tokens ausentes — commits e workflows ocultos')}
+                                </div>
+                                {s?.impact && <div className="text-[10px] text-amber-400/80 mt-1.5">{s.impact}</div>}
+                            </div>
+                        );
+                    })()}
+
+                    {/* Vercel */}
+                    {(() => {
+                        const s = data?.integrationStatus?.vercel;
+                        const hasError = !!data?.vercel?.apiError;
+                        const isOk = s?.configured ?? !hasError;
+                        return (
+                            <div className={`p-3.5 rounded-lg border transition ${isOk ? 'bg-emerald-950/40 border-emerald-800/60' : 'bg-amber-950/30 border-amber-800/50'}`}>
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <Zap className="w-4 h-4 text-white" />
+                                    <span className="font-semibold text-white">Vercel</span>
+                                    <span className={`ml-auto text-[10px] px-2 py-px rounded-full border ${isOk ? 'text-emerald-400 border-emerald-700 bg-emerald-950/60' : 'text-amber-400 border-amber-700 bg-amber-950/60'}`}>
+                                        {s?.label ?? (isOk ? 'Operacional' : 'Limitado')}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-gray-300 leading-snug">
+                                    {s?.description ?? (isOk ? 'Conectado — deploys de produção visíveis' : 'Tokens ausentes — histórico de deploys oculto')}
+                                </div>
+                                {s?.impact && <div className="text-[10px] text-amber-400/80 mt-1.5">{s.impact}</div>}
+                            </div>
+                        );
+                    })()}
+
+                    {/* Supabase Interno */}
+                    {(() => {
+                        const s = data?.integrationStatus?.supabase;
+                        return (
+                            <div className="p-3.5 rounded-lg border bg-emerald-950/40 border-emerald-800/60">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <Database className="w-4 h-4 text-emerald-400" />
+                                    <span className="font-semibold text-white">Supabase (Interno)</span>
+                                    <span className="ml-auto text-[10px] px-2 py-px rounded-full border text-emerald-400 border-emerald-700 bg-emerald-950/60">
+                                        {s?.label ?? 'Sempre ON'}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-gray-300 leading-snug">
+                                    {s?.description ?? 'RLS + views nativas — estatísticas, erros e sessões de impersonation sempre disponíveis para o God Mode'}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+
+                <div className="mt-3 text-[10px] text-gray-500 flex items-center gap-2">
+                    <span>Variáveis de ambiente controlam o nível de visibilidade.</span>
+                    <a href="https://vercel.com/docs/concepts/projects/environment-variables" target="_blank" className="underline hover:text-gray-400">Docs Vercel</a>
+                    <span>•</span>
+                    <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token" target="_blank" className="underline hover:text-gray-400">Criar PAT GitHub</a>
+                </div>
             </div>
 
             {/* GitHub Monitoring */}

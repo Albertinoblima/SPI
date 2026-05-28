@@ -204,6 +204,35 @@ export async function GET(request: NextRequest) {
             return acc;
         }, {});
 
+        // Status estruturado das integrações externas (honesto e acionável)
+        const githubConfigured = !githubResult.error;
+        const vercelConfigured = !vercelResult.error;
+
+        const integrationStatus = {
+            github: {
+                configured: githubConfigured,
+                label: githubConfigured ? 'Operacional' : 'Não configurado',
+                description: githubConfigured
+                    ? 'Tokens OK — commits recentes e workflows visíveis em tempo real'
+                    : 'Sem GITHUB_TOKEN/REPO — commits e status de workflows ocultos (funcionalidade limitada)',
+                impact: githubConfigured ? null : 'Impacto: monitoramento de deploys e CI menos completo',
+            },
+            vercel: {
+                configured: vercelConfigured,
+                label: vercelConfigured ? 'Operacional' : 'Não configurado',
+                description: vercelConfigured
+                    ? 'VERCEL_TOKEN OK — histórico completo de deployments de produção'
+                    : 'Sem VERCEL_TOKEN/PROJECT_ID — lista de deploys e status de build não disponível',
+                impact: vercelConfigured ? null : 'Impacto: visibilidade de releases e falhas de deploy reduzida',
+            },
+            supabase: {
+                configured: true,
+                label: 'Interno (RLS)',
+                description: 'Conexão nativa via views e RLS — stats, erros e impersonations sempre disponíveis',
+                impact: null,
+            },
+        };
+
         return apiSuccess({
             vercel: {
                 deployments: vercelResult.deployments.map((d) => ({
@@ -233,6 +262,7 @@ export async function GET(request: NextRequest) {
                 analytics: analytics ?? [],
                 activeImpersonations: activeImpersonations ?? [],
             },
+            integrationStatus,
         });
     } catch (error) {
         await trackedApiError(request, 'Falha ao gerar diagnóstico de saúde do sistema', 500, {
