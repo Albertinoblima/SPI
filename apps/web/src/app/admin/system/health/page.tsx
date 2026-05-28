@@ -549,7 +549,7 @@ export default function SystemHealthPage() {
                 <div className="bg-amber-900/20 border border-amber-700/50 rounded-xl p-4">
                     <h3 className="text-amber-400 font-semibold flex items-center gap-2 mb-3">
                         <ShieldAlert className="w-5 h-5" />
-                        Sessões de Impersonation Ativas
+                        Sessões de Impersonation Ativas ({data.supabase.activeImpersonations.length})
                     </h3>
                     <div className="space-y-2">
                         {data.supabase.activeImpersonations.map((imp: any) => (
@@ -559,12 +559,21 @@ export default function SystemHealthPage() {
                                     <span className="text-slate-400"> → </span>
                                     <span className="text-amber-300 font-medium">{imp.tenants?.name}</span>
                                 </div>
-                                <div className="text-xs text-slate-500">
-                                    Desde {new Date(imp.started_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                <div className="flex items-center gap-3">
+                                    <div className="text-xs text-slate-500">
+                                        Desde {new Date(imp.started_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                    <a 
+                                        href={`/admin/tenants/${imp.target_tenant_id}`}
+                                        className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 rounded text-white transition"
+                                    >
+                                        Ver Tenant
+                                    </a>
                                 </div>
                             </div>
                         ))}
                     </div>
+                    <p className="text-[10px] text-amber-400/70 mt-2">Estas sessões aparecem automaticamente no banner global para o administrador.</p>
                 </div>
             )}
 
