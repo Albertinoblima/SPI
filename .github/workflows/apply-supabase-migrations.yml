@@ -54,6 +54,13 @@ jobs:
           echo "✅ Token presente (comprimento: $(echo -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | wc -c) caracteres)"
           echo "Projeto: $SUPABASE_PROJECT_REF"
 
+      - name: Link Supabase project (required for db push with access token)
+        run: |
+          echo "Linkando o projeto $SUPABASE_PROJECT_REF usando o Access Token..."
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       - name: Check pending migrations (dry run)
         continue-on-error: true
         run: |
@@ -66,17 +73,20 @@ jobs:
         id: push
         run: |
           echo "Aplicando migrations no projeto $SUPABASE_PROJECT_REF..."
-          if supabase db push --yes --project-ref "$SUPABASE_PROJECT_REF"; then
+          if supabase db push --yes --linked; then
             echo "✅ Migrations aplicadas com sucesso."
           else
             echo "::error::Falha ao aplicar migrations com 'supabase db push --yes'"
             echo ""
             echo "Possíveis causas:"
-            echo "  - Token sem permissão suficiente (precisa de acesso de escrita no projeto)"
-            echo "  - Conflito de schema / migration já aplicada manualmente"
-            echo "  - Erro de sintaxe na migration"
+            echo "  - O token não tem permissão de escrita no projeto"
+            echo "  - Alguma migration já foi aplicada manualmente (conflito de histórico)"
+            echo "  - Erro de sintaxe ou dependência na migration"
             echo ""
-            echo "Dica: rode localmente 'supabase db push --dry-run' para ver o diff"
+            echo "Dica: rode localmente dentro da pasta 'political-research-platform':"
+            echo "  npx supabase login"
+            echo "  npx supabase link --project-ref icnclqtwtcbrmuxpujwb"
+            echo "  npx supabase db push --dry-run"
             exit 1
           fi
         env:
