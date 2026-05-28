@@ -196,6 +196,13 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 )}
             </p>
 
+            {municipalities.length === 0 && (
+                <div className="mb-4 p-3 bg-amber-900/20 border border-amber-700 text-amber-300 rounded-lg text-sm">
+                    Você ainda não definiu uma base geográfica no passo anterior. 
+                    A sugestão de distribuição proporcional ficará limitada.
+                </div>
+            )}
+
             <div className="space-y-3 mb-6">
                 {quotas.map((quota, index) => {
                     const density = quota.population > 0 

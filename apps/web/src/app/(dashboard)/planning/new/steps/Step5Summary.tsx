@@ -118,6 +118,12 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                                         ⚠️ A distribuição atual tem mais de 10% de diferença em relação ao tamanho da amostra.
                                     </div>
                                 )}
+
+                                {geo?.municipalities?.length > 0 && totalPop > 0 && (
+                                    <div className="mt-1 text-xs text-slate-400">
+                                        Densidade geral: {((dist.totalAssigned || 0) / totalPop * 10000).toFixed(1)} entrevistas por 10 mil habitantes.
+                                    </div>
+                                )}
                             </div>
                         </>
                     ) : (

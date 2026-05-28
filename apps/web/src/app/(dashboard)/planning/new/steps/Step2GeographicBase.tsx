@@ -71,19 +71,27 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
                 </div>
             )}
 
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
                 <button
                     onClick={onBack}
                     className="px-5 py-2.5 rounded-lg border border-slate-600 hover:bg-slate-800 transition-colors"
                 >
                     Voltar
                 </button>
-                <button
-                    onClick={handleNext}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
-                >
-                    Próximo passo
-                </button>
+
+                <div className="flex items-center gap-3">
+                    {geoData.municipalities.length === 0 && (
+                        <span className="text-xs text-amber-400">
+                            Recomendamos selecionar pelo menos alguns municípios para uma base mais representativa.
+                        </span>
+                    )}
+                    <button
+                        onClick={handleNext}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Próximo passo
+                    </button>
+                </div>
             </div>
         </div>
     );
