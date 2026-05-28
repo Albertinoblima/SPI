@@ -67,7 +67,8 @@ jobs:
       # The remote database already had tables created outside of the
       # Supabase migration system (history table was out of sync).
       #
-      # This step marks the last migration before 20260527000001 as applied.
+      # This step marks migration 20260522000001 (and all previous) as applied
+      # in the remote history table, so that db push only sees the new one.
       # After this migration is successfully applied via GitHub,
       # THIS ENTIRE STEP MUST BE COMMENTED OUT OR REMOVED.
       #
@@ -76,8 +77,8 @@ jobs:
       - name: TEMPORARY - Repair migration history (one-time only)
         run: |
           echo "Reparando histórico de migrations (one-time fix)..."
-          echo "Marcando 20260522000001_company_assets_and_nome_fantasia como aplicada..."
-          supabase migration repair --status applied 20260522000001_company_assets_and_nome_fantasia
+          echo "Marcando 20260522000001 como aplicada (todas anteriores também)..."
+          supabase migration repair --status applied 20260522000001
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
