@@ -30,20 +30,30 @@ export class DocxReportGenerator {
   async generate(config: ReportConfiguration, surveyData: any): Promise<Buffer> {
     const children: any[] = [];
 
-    // === CAPA ===
+    // === CAPA (Estrutura preparada para modelos avançados) ===
     children.push(
-      new Paragraph({ spacing: { after: 400 }, children: [] }),
+      new Paragraph({ spacing: { after: 200 }, children: [] }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: surveyData.title || 'Relatório de Pesquisa', bold: true, size: 48 })],
+        children: [new TextRun({ text: surveyData.title || 'Relatório de Pesquisa', bold: true, size: 52 })],
       }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { before: 200 },
-        children: [new TextRun({ text: `Tipo: ${this.getReportTypeLabel(config.reportType)}`, size: 24 })],
+        spacing: { before: 100 },
+        children: [new TextRun({ text: this.getReportTypeLabel(config.reportType), size: 26, italics: true })],
       }),
-      new Paragraph({ spacing: { after: 600 }, children: [] }),
+      new Paragraph({ spacing: { after: 300 }, children: [] }),
     );
+
+    // Placeholder para papel timbrado / logo da empresa (usando company_assets no futuro)
+    if (surveyData.tenant?.logo_url) {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: '[Logo da Empresa - Papel Timbrado]', size: 18, color: '888888' })],
+        })
+      );
+    }
 
     // === METADADOS DO PLANEJAMENTO ===
     if (config.includePlanningMetadata && surveyData.planning) {
