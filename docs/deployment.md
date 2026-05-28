@@ -56,7 +56,7 @@ git push
    - **service_role key**: `eyJ...`
    - **Project Ref**: string de ~20 chars (ex: `abcdefghijklmnop`)
 
-3. Publique banco e funções:
+3. Publique banco e funções (primeira vez):
 
 ```bash
 cd c:\DEV\Sistema_Pesquisa\political-research-platform
@@ -66,7 +66,9 @@ npx supabase db push
 npx supabase functions deploy sync-responses --no-verify-jwt
 ```
 
-1. Crie bucket de mídia:
+> **A partir de agora as migrations são automáticas via GitHub** (veja seção "Migrações via GitHub" abaixo).
+
+4. Crie bucket de mídia:
    - Storage → Create bucket → nome: `response-media` → Public: **false**
 
 ## Passo 3 - Frontend no Vercel ✅ Deploy manual feito / ⏳ Auto-deploy pendente
@@ -150,6 +152,58 @@ eas build --platform android --profile preview
 Distribuição:
 
 - APK/AAB por link privado (GitHub Releases, Drive, etc.)
+
+## Migrações de Banco via GitHub (Novo fluxo)
+
+Depois da configuração inicial manual (`supabase db push`), **todas as novas migrations** são aplicadas automaticamente pelo GitHub Actions.
+
+### Como funciona
+
+- O workflow [`.github/workflows/apply-supabase-migrations.yml`](.github/workflows/apply-supabase-migrations.yml) é disparado quando:
+  - Você faz push para a branch `main` de qualquer arquivo em `supabase/migrations/**`
+  - Ou executa manualmente via **Actions → "Apply Supabase Migrations" → Run workflow**
+
+- O workflow usa a CLI oficial do Supabase + o secret `SUPABASE_ACCESS_TOKEN`.
+- Ele executa `supabase db push --yes` no projeto `icnclqtwtcbrmuxpujwb`.
+
+### Vantagens
+
+- Não precisa mais rodar `supabase db push` localmente.
+- Histórico completo de quem aplicou qual migration e quando (no log do GitHub Actions).
+- Seguro: só aplica automaticamente em `main` (branches `develop` e PRs apenas fazem lint via `sql-lint.yml`).
+
+### Configuração necessária (uma única vez)
+
+1. Gere um **Supabase Access Token**:
+   - Acesse: https://supabase.com/dashboard/account/tokens
+   - Clique em **Generate new token**
+   - Dê um nome (ex: `github-actions-migrations`)
+   - Copie o token (ele só aparece uma vez)
+
+2. Adicione como GitHub Secret:
+   - Vá em: https://github.com/Albertinoblima/SPI/settings/secrets/actions
+   - Clique em **New repository secret**
+   - Nome: `SUPABASE_ACCESS_TOKEN`
+   - Valor: cole o token gerado acima
+
+3. (Opcional) Teste manualmente:
+   - GitHub → **Actions** tab → "Apply Supabase Migrations" → **Run workflow** (escolha branch `main`)
+
+### Fluxo recomendado de trabalho
+
+```bash
+# 1. Crie sua migration normalmente
+supabase migration new nome_da_sua_migration
+
+# 2. Edite o arquivo gerado em supabase/migrations/
+
+# 3. Commit + push (o workflow roda automaticamente)
+git add supabase/migrations/...
+git commit -m "feat(db): adiciona migration para research_plans"
+git push
+```
+
+A migration será aplicada automaticamente no Supabase em poucos segundos após o push para `main`.
 
 ## Operação contínua
 
