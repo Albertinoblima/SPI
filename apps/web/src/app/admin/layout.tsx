@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import AdminNotificationBell from '@/components/notifications/AdminNotificationBell';
+import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -194,8 +195,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </div>
 
                 {/* Page Content */}
-                <div className="flex-1 overflow-y-auto bg-slate-900 p-8">
-                    {children}
+                <div className="flex-1 overflow-y-auto bg-slate-900">
+                    <ImpersonationBanner />
+                    <div className="p-8">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>

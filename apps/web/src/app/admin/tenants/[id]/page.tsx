@@ -10,6 +10,7 @@ import {
     ArrowLeft,
     Lock,
     Trash2,
+    LogIn,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -218,8 +219,36 @@ export default function TenantDetailsPage() {
                     <p className="text-slate-400 mt-1">{data.tenant.slug}</p>
                 </div>
 
-                <div className={`px-4 py-2 rounded-lg font-semibold ${getStatusColor(data.tenant.status)}`}>
-                    {data.tenant.status === 'active' ? 'Ativo' : data.tenant.status === 'suspended' ? 'Suspenso' : 'Trial'}
+                <div className="flex items-center gap-3">
+                    <div className={`px-4 py-2 rounded-lg font-semibold ${getStatusColor(data.tenant.status)}`}>
+                        {data.tenant.status === 'active' ? 'Ativo' : data.tenant.status === 'suspended' ? 'Suspenso' : 'Trial'}
+                    </div>
+
+                    {/* Fase 1 - Impersonation Button */}
+                    <button
+                        onClick={async () => {
+                            if (!confirm(`Deseja realmente entrar como "${data.tenant.name}"?`)) return;
+                            try {
+                                const res = await fetch('/api/admin/impersonate', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ action: 'start', tenantId: data.tenant.id }),
+                                });
+                                if (res.ok) {
+                                    window.location.href = '/dashboard';
+                                } else {
+                                    alert('Falha ao iniciar impersonation');
+                                }
+                            } catch {
+                                alert('Erro ao conectar com o servidor');
+                            }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition text-sm"
+                        title="Assumir identidade desta empresa para suporte"
+                    >
+                        <LogIn className="w-4 h-4" />
+                        Entrar como esta empresa
+                    </button>
                 </div>
             </div>
 
