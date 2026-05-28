@@ -171,6 +171,6 @@ Estamos bem posicionados para entregar valor rapidamente.
 - Dynamic Protected Report: Página pública agora busca e exibe dados reais (totais + cruzamentos) após login do contratante.
 - Ritmo mantido: Progresso sólido, equilibrado e de qualidade nos dois relatórios (download + dinâmico protegido).
 
-Continuando no mesmo ritmo de execução de qualidade.
+Continuando no mesmo ritmo de execução de qualidade (28/05).
 
-Estou continuando a execução com as melhores decisões.
+Estou continuando a execução com as melhores decisões até o final.
