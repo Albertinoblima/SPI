@@ -3,7 +3,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import GeographicBaseSelector, { SelectedMunicipality } from '@/components/planning/GeographicBaseSelector';
+import GeographicBaseSelector from '@/components/planning/GeographicBaseSelector';
+import type { GeographicBaseSelection } from '@/components/planning/types';
+import type { GeoScope } from '@/lib/survey-decisions';
 
 interface Step2GeographicBaseProps {
     initialData?: any;
@@ -12,13 +14,20 @@ interface Step2GeographicBaseProps {
 }
 
 const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, onNext, onBack }) => {
-    const [geoData, setGeoData] = useState({
-        scope: initialData?.geographicBase?.scope || 'mixed',
-        municipalities: initialData?.geographicBase?.municipalities || [] as SelectedMunicipality[],
+    const [geoData, setGeoData] = useState<GeographicBaseSelection>({
+        scope: (initialData?.geographicBase?.scope as GeoScope) || 'mixed',
+        municipalities: initialData?.geographicBase?.municipalities || [],
+        localities: initialData?.geographicBase?.localities || [],
     });
 
     const handleNext = () => {
-        onNext({ geographicBase: geoData });
+        onNext({ 
+            geographicBase: {
+                scope: geoData.scope,
+                municipalities: geoData.municipalities,
+                localities: geoData.localities,
+            }
+        });
     };
 
     return (
@@ -35,6 +44,17 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
                     researchType={initialData?.researchType}
                 />
             </div>
+
+            {geoData.municipalities.length > 0 && (
+                <div className="mb-6 p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300">
+                    <strong>Base selecionada:</strong> {geoData.municipalities.length} município(s) • 
+                    População aproximada: {
+                        geoData.municipalities
+                            .reduce((sum, m) => sum + (m.population || 0), 0)
+                            .toLocaleString('pt-BR')
+                    } habitantes
+                </div>
+            )}
 
             <div className="flex justify-between">
                 <button

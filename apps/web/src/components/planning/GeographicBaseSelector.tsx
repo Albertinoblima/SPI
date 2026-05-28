@@ -1,27 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MapPin, Plus, X, Loader2 } from 'lucide-react';
-
-export interface SelectedMunicipality {
-  ibge_id?: number;
-  name: string;
-  uf: string;
-  population?: number;
-  localities?: Array<{
-    id: string | number;
-    name: string;
-    population: number;
-    zone?: string;
-  }>;
-}
+import { useState, useEffect, useMemo } from 'react';
+import { MapPin, X, Loader2 } from 'lucide-react';
+import { getSurveyDecision, allowedGeoLevels, type GeoScope } from '@/lib/survey-decisions';
+import type { GeographicBaseSelection, PlanningMunicipality, PlanningLocality } from './types';
 
 interface Props {
-  value: {
-    scope: 'national' | 'state' | 'city' | 'mixed';
-    municipalities: SelectedMunicipality[];
-  };
-  onChange: (data: { scope: string; municipalities: SelectedMunicipality[] }) => void;
+  value: GeographicBaseSelection;
+  onChange: (data: GeographicBaseSelection) => void;
   researchType?: string;
 }
 
@@ -32,6 +18,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
   const [selectedUf, setSelectedUf] = useState('');
 
   const municipalities = value.municipalities || [];
+  const localities = value.localities || [];
 
   // Busca de municípios via API existente
   useEffect(() => {
@@ -63,25 +50,28 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
   }, [searchTerm, selectedUf]);
 
   const addMunicipality = (m: any) => {
-    const newMun: SelectedMunicipality = {
+    const newMun: PlanningMunicipality = {
       ibge_id: m.ibge_id,
       name: m.nome,
       uf: m.uf,
       population: m.populacao_estimada || m.populacao_censo,
     };
 
-    // Evita duplicados
     if (!municipalities.some((m2) => m2.ibge_id === newMun.ibge_id)) {
-      const updated = [...municipalities, newMun];
-      onChange({ ...value, municipalities: updated });
+      onChange({
+        ...value,
+        municipalities: [...municipalities, newMun],
+      });
     }
     setSearchTerm('');
     setResults([]);
   };
 
   const removeMunicipality = (ibgeId?: number) => {
-    const updated = municipalities.filter((m) => m.ibge_id !== ibgeId);
-    onChange({ ...value, municipalities: updated });
+    onChange({
+      ...value,
+      municipalities: municipalities.filter((m) => m.ibge_id !== ibgeId),
+    });
   };
 
   return (
@@ -90,14 +80,20 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
         <label className="block text-sm font-medium mb-2">Abrangência Geográfica</label>
         <select
           value={value.scope}
-          onChange={(e) => onChange({ ...value, scope: e.target.value as any })}
+          onChange={(e) => onChange({ ...value, scope: e.target.value as GeoScope | 'mixed' })}
           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"
         >
-          <option value="national">Nacional</option>
-          <option value="state">Estadual</option>
-          <option value="city">Municipal</option>
-          <option value="mixed">Mista (vários municípios)</option>
+          {getAllowedScopes(researchType).map((scope) => (
+            <option key={scope} value={scope}>
+              {SCOPE_LABELS[scope]}
+            </option>
+          ))}
         </select>
+        {researchType && (
+          <p className="text-xs text-slate-500 mt-1">
+            Recomendado para o tipo de pesquisa selecionado.
+          </p>
+        )}
       </div>
 
       <div>
@@ -169,4 +165,32 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
       </div>
     </div>
   );
+}
+
+// --- Helpers ---
+
+const SCOPE_LABELS: Record<GeoScope | 'mixed', string> = {
+  national: 'Nacional',
+  state: 'Estadual',
+  city: 'Municipal',
+  specific_public: 'Público Específico',
+  mixed: 'Mista',
+};
+
+function getAllowedScopes(researchType?: string): (GeoScope | 'mixed')[] {
+  const allScopes: (GeoScope | 'mixed')[] = ['national', 'state', 'city', 'specific_public', 'mixed'];
+
+  if (!researchType) return allScopes;
+
+  try {
+    const decision = getSurveyDecision(researchType);
+    // Se o tipo de pesquisa tem escopos específicos, priorizamos eles + mixed
+    if (decision.allowedScopes.length > 0) {
+      return [...decision.allowedScopes, 'mixed'];
+    }
+  } catch {
+    // fallback
+  }
+
+  return allScopes;
 }
