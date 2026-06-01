@@ -1,5 +1,4 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 /**
  * Creates a Supabase server client for use in Route Handlers and Server Components.
@@ -8,6 +7,7 @@ import { cookies } from 'next/headers';
  * This function is async to handle both sync and async usage safely.
  */
 export async function createSupabaseServerClient() {
+  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
 
   return createServerClient(
