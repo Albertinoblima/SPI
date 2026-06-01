@@ -17,7 +17,7 @@ export interface PlanningData {
         population?: number;
         zone?: 'urban' | 'rural' | 'mixed';
         geo_level?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     }>;
     // Parâmetros amostrais
     population?: number;
@@ -31,8 +31,8 @@ export interface PlanningData {
     }>;
     // Outros campos relevantes
     methodology?: string;
-    quotas?: any;
-    [key: string]: any;
+    quotas?: Record<string, unknown>;
+    [key: string]: unknown;
 }
 
 /**
@@ -62,11 +62,11 @@ export interface WizardInitialData {
         methodology: string;
         target_audience: string;
         // ...outros campos técnicos
-        [key: string]: any;
+        [key: string]: unknown;
     };
-    localities: Array<any>;
-    premises: Array<any>;
-    questions: Array<any>;
+    localities: Array<Record<string, unknown>>;
+    premises: Array<Record<string, unknown>>;
+    questions: Array<Record<string, unknown>>;
 }
 
 /**
