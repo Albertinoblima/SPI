@@ -1,0 +1,1186 @@
+﻿
+> typecheck
+> turbo run typecheck
+
+node.exe : ÔÇó turbo 2.8.17
+No C:\Users\alber\AppData\Roaming\npm\npm.ps1:24 caractere:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npm-cli.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ÔÇó turbo 2.8.17:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ÔÇó Packages in scope: @political-research/shared-types, @political-research/shared-utils, @political-research/shared-validations, mobile, web
+ÔÇó Running typecheck in 5 packages
+ÔÇó Remote caching disabled
+@political-research/shared-types:build: cache hit, replaying logs f7f5a487d822cb22
+@political-research/shared-types:build: 
+@political-research/shared-utils:typecheck: cache miss, executing 1d393b3e3f3102de
+@political-research/shared-validations:build: cache hit, replaying logs aed4a88ebc6a7409
+@political-research/shared-types:build: > @political-research/shared-types@0.1.0 build
+@political-research/shared-types:build: > tsc
+@political-research/shared-types:build: 
+@political-research/shared-validations:build: 
+@political-research/shared-validations:build: > @political-research/shared-validations@0.1.0 build
+@political-research/shared-validations:build: > tsc
+@political-research/shared-validations:build: 
+web:typecheck: cache miss, executing d927a7042c6161dd
+@political-research/shared-types:typecheck: cache hit, replaying logs 4638d0ae3b63f614
+@political-research/shared-validations:typecheck: cache hit, replaying logs 6e85138c2497fabd
+@political-research/shared-types:typecheck: 
+@political-research/shared-types:typecheck: > @political-research/shared-types@0.1.0 typecheck
+@political-research/shared-types:typecheck: > tsc --noEmit
+@political-research/shared-types:typecheck: 
+@political-research/shared-validations:typecheck: 
+@political-research/shared-validations:typecheck: > @political-research/shared-validations@0.1.0 typecheck
+@political-research/shared-validations:typecheck: > tsc --noEmit
+@political-research/shared-validations:typecheck: 
+@political-research/shared-utils:build: cache hit, replaying logs 128514ea25d8c72e
+@political-research/shared-utils:build: 
+@political-research/shared-utils:build: > @political-research/shared-utils@0.1.0 build
+@political-research/shared-utils:build: > tsc
+@political-research/shared-utils:build: 
+mobile:typecheck: cache miss, executing 98fd78c0ece4057d
+web:typecheck: 
+web:typecheck: > web@0.1.0 typecheck
+web:typecheck: > tsc --noEmit
+web:typecheck: 
+mobile:typecheck: 
+mobile:typecheck: > mobile@0.1.0 typecheck
+mobile:typecheck: > tsc --noEmit
+mobile:typecheck: 
+@political-research/shared-utils:typecheck: 
+@political-research/shared-utils:typecheck: > @political-research/shared-utils@0.1.0 typecheck
+@political-research/shared-utils:typecheck: > tsc --noEmit
+@political-research/shared-utils:typecheck: 
+web:typecheck: src/app/(auth)/login/page.tsx(55,28): error TS2345: Argument of type '{ email: string | undefined; password: string | undefined; }' is not assignable to parameter of type 'SetStateAction<{ email?: string; password?: string; }>'.
+web:typecheck:   Type '{ email: string | undefined; password: string | undefined; }' is not assignable to type '{ email?: string; password?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'email' are incompatible.
+web:typecheck:       Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:         Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/admin/support/[id]/page.tsx(82,29): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/admin/system/health/page.tsx(811,120): error TS2538: Type 'undefined' cannot be used as an index type.
+web:typecheck: src/app/admin/tenants/[id]/page.tsx(69,29): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/admin/tenants/[id]/page.tsx(121,21): error TS2345: Argument of type '(prev: TenantDetails | null) => { tenant: { status: "active" | "suspended" | "archived"; id: string; name: string; slug: string; max_users: number; max_surveys: number; storage_limit_mb: number; created_at: string; }; ... 4 more ...; health?: { ...; }; } | null' is not assignable to parameter of type 'SetStateAction<TenantDetails | null>'.
+web:typecheck:   Type '(prev: TenantDetails | null) => { tenant: { status: "active" | "suspended" | "archived"; id: string; name: string; slug: string; max_users: number; max_surveys: number; storage_limit_mb: number; created_at: string; }; ... 4 more ...; health?: { ...; }; } | null' is not assignable to type '(prevState: TenantDetails | null) => TenantDetails | null'.
+web:typecheck:     Type '{ tenant: { status: "active" | "suspended" | "archived"; id: string; name: string; slug: string; max_users: number; max_surveys: number; storage_limit_mb: number; created_at: string; }; stats: { ...; }; users: { ...; }[]; surveys: { ...; }[]; recentErrors: { ...; }[]; health?: { ...; }; } | null' is not assignable to type 'TenantDetails | null'.
+web:typecheck:       Type '{ tenant: { status: "active" | "suspended" | "archived"; id: string; name: string; slug: string; max_users: number; max_surveys: number; storage_limit_mb: number; created_at: string; }; ... 4 more ...; health?: { critical_24h: number; high_24h: number; medium_24h: number; has_recent_issues: boolean; }; }' is not assignable to type 'TenantDetails' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:         The types of 'tenant.status' are incompatible between these types.
+web:typecheck:           Type '"active" | "suspended" | "archived"' is not assignable to type '"active" | "suspended" | "trial"'.
+web:typecheck:             Type '"archived"' is not assignable to type '"active" | "suspended" | "trial"'.
+web:typecheck: src/app/admin/tenants/page.tsx(164,24): error TS2352: Conversion of type 'Record<string, { bg: string; text: string; label: string; }>' to type 'Record<string, { label: string; className: string; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+web:typecheck:   'string' index signatures are incompatible.
+web:typecheck:     Property 'className' is missing in type '{ bg: string; text: string; label: string; }' but required in type '{ label: string; className: string; }'.
+web:typecheck: src/app/admin/tenants/page.tsx(164,106): error TS4111: Property 'active' comes from an index signature, so it must be accessed with ['active'].
+web:typecheck: src/app/admin/tenants/page.tsx(168,87): error TS18048: 'badge' is possibly 'undefined'.
+web:typecheck: src/app/admin/tenants/page.tsx(168,93): error TS2339: Property 'bg' does not exist on type '{ bg: string; text: string; label: string; } | { label: string; className: string; }'.
+web:typecheck:   Property 'bg' does not exist on type '{ label: string; className: string; }'.
+web:typecheck: src/app/admin/tenants/page.tsx(168,99): error TS18048: 'badge' is possibly 'undefined'.
+web:typecheck: src/app/admin/tenants/page.tsx(168,105): error TS2339: Property 'text' does not exist on type '{ bg: string; text: string; label: string; } | { label: string; className: string; }'.
+web:typecheck:   Property 'text' does not exist on type '{ label: string; className: string; }'.
+web:typecheck: src/app/admin/tenants/page.tsx(170,18): error TS18048: 'badge' is possibly 'undefined'.
+web:typecheck: src/app/api/admin/impersonate/route.ts(29,69): error TS4111: Property 'tenants' comes from an index signature, so it must be accessed with ['tenants'].
+web:typecheck: src/app/api/admin/impersonate/route.ts(77,30): error TS2339: Property 'error' does not exist on type 'never'.
+web:typecheck: src/app/api/admin/impersonate/route.ts(77,62): error TS2339: Property 'status' does not exist on type 'never'.
+web:typecheck: src/app/api/admin/support/tickets/[id]/messages/route.ts(64,53): error TS4111: Property 'resolved_at' comes from an index signature, so it must be accessed with ['resolved_at'].
+web:typecheck: src/app/api/admin/support/tickets/[id]/route.ts(125,35): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+web:typecheck: src/app/api/admin/support/tickets/[id]/route.ts(126,37): error TS4111: Property 'priority' comes from an index signature, so it must be accessed with ['priority'].
+web:typecheck: src/app/api/admin/support/tickets/[id]/route.ts(127,54): error TS4111: Property 'assigned_to' comes from an index signature, so it must be accessed with ['assigned_to'].
+web:typecheck: src/app/api/admin/support/tickets/[id]/route.ts(130,27): error TS4111: Property 'resolved_at' comes from an index signature, so it must be accessed with ['resolved_at'].
+web:typecheck: src/app/api/admin/system/errors/route.ts(195,101): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/admin/system/errors/route.ts(222,56): error TS4111: Property 'error_code' comes from an index signature, so it must be accessed with ['error_code'].
+web:typecheck: src/app/api/admin/system/errors/route.ts(223,40): error TS4111: Property 'severity' comes from an index signature, so it must be accessed with ['severity'].
+web:typecheck: src/app/api/admin/system/errors/route.ts(226,43): error TS4111: Property 'error_code' comes from an index signature, so it must be accessed with ['error_code'].
+web:typecheck: src/app/api/admin/system/health/route.ts(71,15): error TS2322: Type '{ sha: string; message: string | undefined; author: string; date: string; url: string; }[]' is not assignable to type 'GitHubCommit[]'.
+web:typecheck:   Type '{ sha: string; message: string | undefined; author: string; date: string; url: string; }' is not assignable to type 'GitHubCommit'.
+web:typecheck:     Types of property 'message' are incompatible.
+web:typecheck:       Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:         Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/admin/system/health/route.ts(72,27): error TS4111: Property 'sha' comes from an index signature, so it must be accessed with ['sha'].
+web:typecheck: src/app/api/admin/system/health/route.ts(73,32): error TS4111: Property 'commit' comes from an index signature, so it must be accessed with ['commit'].
+web:typecheck: src/app/api/admin/system/health/route.ts(73,68): error TS4111: Property 'message' comes from an index signature, so it must be accessed with ['message'].
+web:typecheck: src/app/api/admin/system/health/route.ts(74,32): error TS4111: Property 'commit' comes from an index signature, so it must be accessed with ['commit'].
+web:typecheck: src/app/api/admin/system/health/route.ts(74,68): error TS4111: Property 'author' comes from an index signature, so it must be accessed with ['author'].
+web:typecheck: src/app/api/admin/system/health/route.ts(74,104): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/api/admin/system/health/route.ts(75,30): error TS4111: Property 'commit' comes from an index signature, so it must be accessed with ['commit'].
+web:typecheck: src/app/api/admin/system/health/route.ts(75,66): error TS4111: Property 'author' comes from an index signature, so it must be accessed with ['author'].
+web:typecheck: src/app/api/admin/system/health/route.ts(75,102): error TS4111: Property 'date' comes from an index signature, so it must be accessed with ['date'].
+web:typecheck: src/app/api/admin/system/health/route.ts(76,27): error TS4111: Property 'html_url' comes from an index signature, so it must be accessed with ['html_url'].
+web:typecheck: src/app/api/admin/system/health/route.ts(80,26): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/admin/system/health/route.ts(81,28): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/api/admin/system/health/route.ts(82,30): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+web:typecheck: src/app/api/admin/system/health/route.ts(83,27): error TS4111: Property 'conclusion' comes from an index signature, so it must be accessed with ['conclusion'].
+web:typecheck: src/app/api/admin/system/health/route.ts(83,49): error TS4111: Property 'conclusion' comes from an index signature, so it must be accessed with ['conclusion'].
+web:typecheck: src/app/api/admin/system/health/route.ts(84,30): error TS4111: Property 'head_branch' comes from an index signature, so it must be accessed with ['head_branch'].
+web:typecheck: src/app/api/admin/system/health/route.ts(85,29): error TS4111: Property 'event' comes from an index signature, so it must be accessed with ['event'].
+web:typecheck: src/app/api/admin/system/health/route.ts(86,33): error TS4111: Property 'created_at' comes from an index signature, so it must be accessed with ['created_at'].
+web:typecheck: src/app/api/admin/system/health/route.ts(87,33): error TS4111: Property 'updated_at' comes from an index signature, so it must be accessed with ['updated_at'].
+web:typecheck: src/app/api/admin/system/health/route.ts(88,27): error TS4111: Property 'html_url' comes from an index signature, so it must be accessed with ['html_url'].
+web:typecheck: src/app/api/admin/system/health/route.ts(90,19): error TS4111: Property 'created_at' comes from an index signature, so it must be accessed with ['created_at'].
+web:typecheck: src/app/api/admin/system/health/route.ts(90,35): error TS4111: Property 'updated_at' comes from an index signature, so it must be accessed with ['updated_at'].
+web:typecheck: src/app/api/admin/system/health/route.ts(91,41): error TS4111: Property 'updated_at' comes from an index signature, so it must be accessed with ['updated_at'].
+web:typecheck: src/app/api/admin/system/health/route.ts(91,84): error TS4111: Property 'created_at' comes from an index signature, so it must be accessed with ['created_at'].
+web:typecheck: src/app/api/admin/tenants/[id]/route.ts(140,49): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+web:typecheck: src/app/api/admin/tenants/[id]/route.ts(141,52): error TS4111: Property 'max_users' comes from an index signature, so it must be accessed with ['max_users'].
+web:typecheck: src/app/api/admin/tenants/[id]/route.ts(142,54): error TS4111: Property 'max_surveys' comes from an index signature, so it must be accessed with ['max_surveys'].
+web:typecheck: src/app/api/admin/tenants/[id]/route.ts(143,59): error TS4111: Property 'storage_limit_mb' comes from an index signature, so it must be accessed with ['storage_limit_mb'].
+web:typecheck: src/app/api/admin/tenants/[id]/route.ts(144,47): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/api/admin/tenants/route.ts(88,73): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(102,22): error TS4111: Property 'tenant_id' comes from an index signature, so it must be accessed with ['tenant_id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(103,48): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+web:typecheck: src/app/api/admin/tenants/route.ts(103,52): error TS4111: Property 'tenant_id' comes from an index signature, so it must be accessed with ['tenant_id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(104,21): error TS4111: Property 'severity' comes from an index signature, so it must be accessed with ['severity'].
+web:typecheck: src/app/api/admin/tenants/route.ts(105,26): error TS4111: Property 'severity' comes from an index signature, so it must be accessed with ['severity'].
+web:typecheck: src/app/api/admin/tenants/route.ts(106,26): error TS4111: Property 'severity' comes from an index signature, so it must be accessed with ['severity'].
+web:typecheck: src/app/api/admin/tenants/route.ts(108,32): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+web:typecheck: src/app/api/admin/tenants/route.ts(108,36): error TS4111: Property 'tenant_id' comes from an index signature, so it must be accessed with ['tenant_id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(116,45): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(119,51): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+web:typecheck: src/app/api/admin/tenants/route.ts(119,58): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(188,102): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/admin/tenants/route.ts(213,71): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+web:typecheck: src/app/api/admin/tenants/route.ts(217,48): error TS4111: Property 'status' comes from an index signature, so it must be accessed with ['status'].
+web:typecheck: src/app/api/auth/reset-password/route.ts(69,37): error TS2379: Argument of type '{ action: string; email: string | undefined; request: NextRequest; userId: string; description: string; metadata: { reason: string; }; }' is not assignable to parameter of type 'AuthAuditEventInput' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'email' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/auth/reset-password/route.ts(83,33): error TS2379: Argument of type '{ action: string; email: string | undefined; request: NextRequest; userId: string; description: string; }' is not assignable to parameter of type 'AuthAuditEventInput' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'email' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/dashboard/route.ts(16,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/dashboard/route.ts(20,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/dashboard/route.ts(31,18): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/dashboard/route.ts(37,18): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/dashboard/route.ts(41,18): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/dashboard/route.ts(54,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+web:typecheck: src/app/api/dashboard/route.ts(55,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+web:typecheck: src/app/api/dashboard/route.ts(56,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+web:typecheck: src/app/api/dashboard/route.ts(58,38): error TS7006: Parameter 'm' implicitly has an 'any' type.
+web:typecheck: src/app/api/dashboard/route.ts(59,39): error TS7006: Parameter 'm' implicitly has an 'any' type.
+web:typecheck: src/app/api/entrevistas/sync/route.ts(54,33): error TS2379: Argument of type '{ local_id: string | undefined; ok: false; error: string; }' is not assignable to parameter of type '{ local_id?: string; interview_id?: string; ok: boolean; error?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'local_id' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/entrevistas/sync/route.ts(79,33): error TS2379: Argument of type '{ local_id: string | undefined; ok: false; error: string; }' is not assignable to parameter of type '{ local_id?: string; interview_id?: string; ok: boolean; error?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'local_id' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/entrevistas/sync/route.ts(96,37): error TS2379: Argument of type '{ local_id: string | undefined; ok: false; error: string; }' is not assignable to parameter of type '{ local_id?: string; interview_id?: string; ok: boolean; error?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'local_id' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/entrevistas/sync/route.ts(101,29): error TS2379: Argument of type '{ local_id: string | undefined; interview_id: any; ok: true; }' is not assignable to parameter of type '{ local_id?: string; interview_id?: string; ok: boolean; error?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'local_id' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/entrevistas/sync/route.ts(103,29): error TS2379: Argument of type '{ local_id: string | undefined; ok: false; error: string; }' is not assignable to parameter of type '{ local_id?: string; interview_id?: string; ok: boolean; error?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'local_id' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/geo/municipality-profile/route.ts(125,91): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/api/geo/municipality-profile/route.ts(173,96): error TS4111: Property 'quantidade_residencias' comes from an index signature, so it must be accessed with ['quantidade_residencias'].
+web:typecheck: src/app/api/geo/municipios/route.ts(57,30): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+web:typecheck: src/app/api/geo/municipios/route.ts(57,35): error TS4111: Property 'populacao_censo' comes from an index signature, so it must be accessed with ['populacao_censo'].
+web:typecheck: src/app/api/geo/municipios/route.ts(58,27): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+web:typecheck: src/app/api/geo/municipios/route.ts(58,32): error TS4111: Property 'total_eleitores' comes from an index signature, so it must be accessed with ['total_eleitores'].
+web:typecheck: src/app/api/geo/municipios/route.ts(59,29): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+web:typecheck: src/app/api/geo/municipios/route.ts(59,34): error TS4111: Property 'residencias_cnefe' comes from an index signature, so it must be accessed with ['residencias_cnefe'].
+web:typecheck: src/app/api/geo/municipios/route.ts(60,37): error TS4111: Property 'ingestoes_concluidas' comes from an index signature, so it must be accessed with ['ingestoes_concluidas'].
+web:typecheck: src/app/api/geo/population/route.ts(68,17): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/geo/population/route.ts(69,17): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/geo/population/route.ts(70,17): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/geo/population/route.ts(107,34): error TS2538: Type 'undefined' cannot be used as an index type.
+web:typecheck: src/app/api/geo/population/state/route.ts(46,34): error TS2538: Type 'undefined' cannot be used as an index type.
+web:typecheck: src/app/api/geo/voters/route.ts(28,13): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:   Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/app/api/geo/voters/route.ts(31,36): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+web:typecheck:   Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/app/api/mobile/pesquisa/[id]/cotas/route.ts(63,33): error TS4111: Property 'locality_id' comes from an index signature, so it must be accessed with ['locality_id'].
+web:typecheck: src/app/api/mobile/pesquisa/[id]/cotas/route.ts(64,64): error TS2538: Type '{}' cannot be used as an index type.
+web:typecheck: src/app/api/mobile/pesquisa/[id]/cotas/route.ts(68,44): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+web:typecheck: src/app/api/mobile/pesquisa/[id]/cotas/route.ts(68,47): error TS4111: Property 'quota_total' comes from an index signature, so it must be accessed with ['quota_total'].
+web:typecheck: src/app/api/mobile/pesquisa/[id]/route.ts(94,33): error TS4111: Property 'locality_id' comes from an index signature, so it must be accessed with ['locality_id'].
+web:typecheck: src/app/api/mobile/pesquisa/[id]/route.ts(95,64): error TS2538: Type '{}' cannot be used as an index type.
+web:typecheck: src/app/api/mobile/pesquisa/[id]/route.ts(99,44): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+web:typecheck: src/app/api/mobile/pesquisa/[id]/route.ts(99,47): error TS4111: Property 'quota_total' comes from an index signature, so it must be accessed with ['quota_total'].
+web:typecheck: src/app/api/reports/[surveyId]/analytics/route.ts(20,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/analytics/route.ts(26,11): error TS2375: Type '{ localityIds: any; zones: any; dateFrom: string | undefined; dateTo: string | undefined; onlyComplete: boolean; }' is not assignable to type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'dateFrom' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/api/reports/[surveyId]/generate-docx/route.ts(16,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/generate/route.ts(20,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/jobs/route.ts(16,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/jobs/route.ts(49,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/shares/route.ts(16,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/shares/route.ts(60,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/reports/[surveyId]/shares/route.ts(63,47): error TS2339: Property 'supabase' does not exist on type 'SurveyAuthContext'.
+web:typecheck: src/app/api/settings/company-assets/route.ts(20,65): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company-assets/route.ts(24,10): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(17,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(22,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(30,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(43,18): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(72,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(77,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(115,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/company/route.ts(124,18): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/logo/route.ts(20,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/settings/logo/route.ts(24,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/[id]/premises/route.ts(15,44): error TS2554: Expected 0 arguments, but got 2.
+web:typecheck: src/app/api/surveys/[id]/premises/route.ts(18,49): error TS2339: Property 'supabase' does not exist on type 'SurveyAuthContext'.
+web:typecheck: src/app/api/surveys/[id]/premises/route.ts(27,31): error TS7006: Parameter 'p' implicitly has an 'any' type.
+web:typecheck: src/app/api/surveys/[id]/route.ts(133,54): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/[id]/route.ts(136,10): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/[id]/route.ts(256,61): error TS2379: Argument of type '{ geographic_scope: "" | "state" | "city" | "national" | "specific_public" | null | undefined; population_size: number | null | undefined; }' is not assignable to parameter of type 'SurveySamplingFields' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'geographic_scope' are incompatible.
+web:typecheck:     Type '"" | "state" | "city" | "national" | "specific_public" | null | undefined' is not assignable to type '"" | "state" | "city" | "national" | "specific_public" | null'.
+web:typecheck:       Type 'undefined' is not assignable to type '"" | "state" | "city" | "national" | "specific_public" | null'.
+web:typecheck: src/app/api/surveys/[id]/route.ts(311,42): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(312,36): error TS4111: Property 'zone' comes from an index signature, so it must be accessed with ['zone'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(313,48): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(314,47): error TS4111: Property 'population_type' comes from an index signature, so it must be accessed with ['population_type'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(315,57): error TS4111: Property 'interviews_required' comes from an index signature, so it must be accessed with ['interviews_required'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(316,55): error TS4111: Property 'interviews_weight' comes from an index signature, so it must be accessed with ['interviews_weight'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(317,41): error TS4111: Property 'geo_level' comes from an index signature, so it must be accessed with ['geo_level'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(318,49): error TS4111: Property 'parent_state_name' comes from an index signature, so it must be accessed with ['parent_state_name'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(319,48): error TS4111: Property 'parent_city_name' comes from an index signature, so it must be accessed with ['parent_city_name'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(333,37): error TS4111: Property 'category' comes from an index signature, so it must be accessed with ['category'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(334,34): error TS4111: Property 'label' comes from an index signature, so it must be accessed with ['label'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(335,36): error TS4111: Property 'options' comes from an index signature, so it must be accessed with ['options'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(336,40): error TS4111: Property 'is_required' comes from an index signature, so it must be accessed with ['is_required'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(337,43): error TS4111: Property 'allow_multiple' comes from an index signature, so it must be accessed with ['allow_multiple'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(338,50): error TS4111: Property 'stratification_label' comes from an index signature, so it must be accessed with ['stratification_label'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(353,42): error TS4111: Property 'question_text' comes from an index signature, so it must be accessed with ['question_text'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(354,42): error TS4111: Property 'question_type' comes from an index signature, so it must be accessed with ['question_type'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(355,40): error TS4111: Property 'is_required' comes from an index signature, so it must be accessed with ['is_required'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(357,36): error TS4111: Property 'options' comes from an index signature, so it must be accessed with ['options'].
+web:typecheck: src/app/api/surveys/[id]/route.ts(358,45): error TS4111: Property 'validation_rules' comes from an index signature, so it must be accessed with ['validation_rules'].
+web:typecheck: src/app/api/surveys/[id]/routes/route.ts(110,132): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/api/surveys/[id]/team/route.ts(66,41): error TS4111: Property 'usuario_id' comes from an index signature, so it must be accessed with ['usuario_id'].
+web:typecheck: src/app/api/surveys/[id]/team/route.ts(67,39): error TS4111: Property 'papel' comes from an index signature, so it must be accessed with ['papel'].
+web:typecheck: src/app/api/surveys/route.ts(110,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/route.ts(114,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/route.ts(121,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/route.ts(152,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/route.ts(156,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(62,49): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(63,54): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(64,54): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(65,73): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(66,134): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(91,38): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(92,52): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(93,50): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(94,46): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(95,44): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(96,107): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(116,48): error TS18046: 'supabase.from' is of type 'unknown'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(117,18): error TS4111: Property 'from' comes from an index signature, so it must be accessed with ['from'].
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(129,43): error TS18046: 'supabase.from' is of type 'unknown'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(130,18): error TS4111: Property 'from' comes from an index signature, so it must be accessed with ['from'].
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(143,48): error TS18046: 'supabase.from' is of type 'unknown'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(144,18): error TS4111: Property 'from' comes from an index signature, so it must be accessed with ['from'].
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(156,43): error TS18046: 'supabase.from' is of type 'unknown'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(157,18): error TS4111: Property 'from' comes from an index signature, so it must be accessed with ['from'].
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(221,17): error TS2322: Type '{ value: string; label: string; quota_pct: number | undefined; }[]' is not assignable to type '{ value: string; label: string; quota_pct?: number; }[]'.
+web:typecheck:   Type '{ value: string; label: string; quota_pct: number | undefined; }' is not assignable to type '{ value: string; label: string; quota_pct?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'quota_pct' are incompatible.
+web:typecheck:       Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:         Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(243,28): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(243,68): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(251,17): error TS2322: Type '{ quota_pct: number | undefined; value: string; label: string; }[]' is not assignable to type '{ value: string; label: string; quota_pct?: number; }[]'.
+web:typecheck:   Type '{ quota_pct: number | undefined; value: string; label: string; }' is not assignable to type '{ value: string; label: string; quota_pct?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'quota_pct' are incompatible.
+web:typecheck:       Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:         Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(271,28): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(271,73): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(279,17): error TS2322: Type '{ quota_pct: number | undefined; value: string; label: string; }[]' is not assignable to type '{ value: string; label: string; quota_pct?: number; }[]'.
+web:typecheck:   Type '{ quota_pct: number | undefined; value: string; label: string; }' is not assignable to type '{ value: string; label: string; quota_pct?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'quota_pct' are incompatible.
+web:typecheck:       Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:         Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/app/api/surveys/stratification-suggestions/route.ts(300,17): error TS2345: Argument of type 'SupabaseClient<any, "public", any, any, any>' is not assignable to parameter of type 'Record<string, unknown>'.
+web:typecheck:   Index signature for type 'string' is missing in type 'SupabaseClient<any, "public", any, any, any>'.
+web:typecheck: src/app/api/system/errors/ingest/route.ts(38,30): error TS4111: Property 'method' comes from an index signature, so it must be accessed with ['method'].
+web:typecheck: src/app/api/system/errors/ingest/route.ts(38,62): error TS4111: Property 'method' comes from an index signature, so it must be accessed with ['method'].
+web:typecheck: src/app/api/system/errors/ingest/route.ts(39,28): error TS4111: Property 'method' comes from an index signature, so it must be accessed with ['method'].
+web:typecheck: src/app/api/system/errors/ingest/route.ts(43,30): error TS4111: Property 'target' comes from an index signature, so it must be accessed with ['target'].
+web:typecheck: src/app/api/system/errors/ingest/route.ts(43,62): error TS4111: Property 'target' comes from an index signature, so it must be accessed with ['target'].
+web:typecheck: src/app/api/system/errors/ingest/route.ts(44,28): error TS4111: Property 'target' comes from an index signature, so it must be accessed with ['target'].
+web:typecheck: src/app/api/system/errors/ingest/route.ts(47,49): error TS2379: Argument of type '{ request: NextRequest; errorCode: any; errorMessage: any; severity: any; correlationId: string; httpMethod: string | undefined; httpPath: string | undefined; httpStatusCode: any; metadata: Record<...> | undefined; }' is not assignable to parameter of type 'CaptureSystemErrorInput' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'httpPath' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string | null'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string | null'.
+web:typecheck: src/app/api/team/[id]/route.ts(21,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/[id]/route.ts(25,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/[id]/route.ts(33,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/[id]/route.ts(53,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/[id]/route.ts(57,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/[id]/route.ts(104,43): error TS4111: Property 'full_name' comes from an index signature, so it must be accessed with ['full_name'].
+web:typecheck: src/app/api/team/[id]/route.ts(105,45): error TS4111: Property 'phone' comes from an index signature, so it must be accessed with ['phone'].
+web:typecheck: src/app/api/team/[id]/route.ts(106,30): error TS4111: Property 'role' comes from an index signature, so it must be accessed with ['role'].
+web:typecheck: src/app/api/team/[id]/route.ts(107,49): error TS4111: Property 'is_active' comes from an index signature, so it must be accessed with ['is_active'].
+web:typecheck: src/app/api/team/[id]/route.ts(153,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/[id]/route.ts(161,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/route.ts(18,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/route.ts(22,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/route.ts(30,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/route.ts(56,69): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/route.ts(57,73): error TS2304: Cannot find name 'correlationId'.
+web:typecheck: src/app/api/team/route.ts(60,14): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/app/api/team/route.ts(65,84): error TS2304: Cannot find name 'correlationId'.
+web:typecheck: src/app/dashboard/dashboard/page.tsx(378,21): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FC<{ className?: string; }>'.
+web:typecheck:   Types of property 'defaultProps' are incompatible.
+web:typecheck:     Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>> | undefined' is not assignable to type 'Partial<{ className?: string; }> | undefined'.
+web:typecheck:       Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Partial<{ className?: string; }>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:         Types of property 'className' are incompatible.
+web:typecheck:           Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:             Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/dashboard/page.tsx(385,21): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FC<{ className?: string; }>'.
+web:typecheck:   Types of property 'defaultProps' are incompatible.
+web:typecheck:     Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>> | undefined' is not assignable to type 'Partial<{ className?: string; }> | undefined'.
+web:typecheck:       Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Partial<{ className?: string; }>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:         Types of property 'className' are incompatible.
+web:typecheck:           Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:             Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/dashboard/page.tsx(392,21): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FC<{ className?: string; }>'.
+web:typecheck:   Types of property 'defaultProps' are incompatible.
+web:typecheck:     Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>> | undefined' is not assignable to type 'Partial<{ className?: string; }> | undefined'.
+web:typecheck:       Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Partial<{ className?: string; }>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:         Types of property 'className' are incompatible.
+web:typecheck:           Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:             Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/dashboard/page.tsx(399,21): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FC<{ className?: string; }>'.
+web:typecheck:   Types of property 'defaultProps' are incompatible.
+web:typecheck:     Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>> | undefined' is not assignable to type 'Partial<{ className?: string; }> | undefined'.
+web:typecheck:       Type 'Partial<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Partial<{ className?: string; }>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:         Types of property 'className' are incompatible.
+web:typecheck:           Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:             Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/help/page.tsx(64,30): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/municipios/[id]/page.tsx(120,24): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/municipios/[id]/page.tsx(248,22): error TS2375: Type '{ icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>; label: string; value: string; sub: string | undefined; color: string; }' is not assignable to type '{ icon: ElementType<any, keyof IntrinsicElements>; label: string; value: string | number; sub?: string; color?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'sub' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(18,27): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(111,62): error TS2339: Property 'sampleSize' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(112,33): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(112,49): error TS2339: Property 'municipalities' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(113,44): error TS2339: Property 'quotas' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(113,114): error TS4111: Property 'interviews' comes from an index signature, so it must be accessed with ['interviews'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(207,61): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(212,29): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(217,62): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(229,37): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(229,53): error TS2339: Property 'municipalities' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(229,77): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(229,92): error TS2339: Property 'municipalities' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(232,89): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(232,105): error TS2339: Property 'scope' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(235,35): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(235,50): error TS2339: Property 'municipalities' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(237,37): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(237,41): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(237,67): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(237,71): error TS4111: Property 'uf' comes from an index signature, so it must be accessed with ['uf'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(238,37): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(238,41): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(239,93): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(259,76): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(263,76): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(267,76): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(286,51): error TS2339: Property 'quotas' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(286,80): error TS2339: Property 'quotas' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(288,44): error TS2339: Property 'quotas' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(290,39): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(290,43): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(290,71): error TS4111: Property 'uf' comes from an index signature, so it must be accessed with ['uf'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(290,82): error TS4111: Property 'uf' comes from an index signature, so it must be accessed with ['uf'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(291,85): error TS4111: Property 'interviews' comes from an index signature, so it must be accessed with ['interviews'].
+web:typecheck: src/app/dashboard/planning/[id]/page.tsx(295,106): error TS2339: Property 'totalAssigned' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/__tests__/Step5Summary-contract.test.ts(5,15): error TS2614: Module '"../Step5Summary"' has no exported member 'PlanningData'. Did you mean to use 'import PlanningData from "../Step5Summary"' instead?
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(130,47): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(130,53): error TS2339: Property 'trim' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(154,44): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(156,54): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(156,67): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(157,40): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(163,21): error TS2322: Type '{}' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(163,40): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(185,45): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(209,35): error TS2304: Cannot find name 'step'.
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(261,14): error TS2604: JSX element type 'StepComponent' does not have any construct or call signatures.
+web:typecheck: src/app/dashboard/planning/new/steps/index.tsx(261,14): error TS2786: 'StepComponent' cannot be used as a JSX component.
+web:typecheck:   Its type 'FC<Step1DefinitionProps> | FC<Step2GeographicBaseProps> | FC<Step4DistributionProps> | undefined' is not a valid JSX element type.
+web:typecheck:     Type 'undefined' is not assignable to type 'ElementType'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(11,51): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(12,61): error TS4111: Property 'objective' comes from an index signature, so it must be accessed with ['objective'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(13,67): error TS4111: Property 'researchType' comes from an index signature, so it must be accessed with ['researchType'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(14,71): error TS4111: Property 'targetAudience' comes from an index signature, so it must be accessed with ['targetAudience'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(18,19): error TS2339: Property 'trim' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(19,29): error TS2339: Property 'trim' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(31,25): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(42,25): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(55,29): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step1Definition.tsx(76,29): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(18,30): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(18,46): error TS2339: Property 'scope' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(19,38): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(19,54): error TS2339: Property 'municipalities' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(20,34): error TS4111: Property 'geographicBase' comes from an index signature, so it must be accessed with ['geographicBase'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(20,50): error TS2339: Property 'localities' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(40,45): error TS4111: Property 'researchType' comes from an index signature, so it must be accessed with ['researchType'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(61,21): error TS2322: Type 'unknown' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step2GeographicBase.tsx(61,48): error TS4111: Property 'researchType' comes from an index signature, so it must be accessed with ['researchType'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(13,63): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(14,55): error TS4111: Property 'margin' comes from an index signature, so it must be accessed with ['margin'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(15,63): error TS4111: Property 'confidence' comes from an index signature, so it must be accessed with ['confidence'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(26,40): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(26,53): error TS4111: Property 'researchType' comes from an index signature, so it must be accessed with ['researchType'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(42,25): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(52,25): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step3SampleSize.tsx(61,25): error TS2322: Type '{}' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(66,34): error TS2339: Property 'geographicBase' does not exist on type '{ sampleSize?: number; quotas?: Quota[]; interviewerDistribution?: { interviewerId: string; localityKey: string; interviews: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(87,45): error TS4111: Property 'population_census' comes from an index signature, so it must be accessed with ['population_census'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(87,78): error TS4111: Property 'recommended_population' comes from an index signature, so it must be accessed with ['recommended_population'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(93,32): error TS2379: Argument of type '{ displayName: string; parentMunicipality: string; parentUf: string | undefined; source: string; dataSource: string; id: string; name: string; zone?: string; interviews_required?: number; }' is not assignable to parameter of type 'PlanArea' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'parentUf' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(106,21): error TS2412: Type '{} | undefined' is not assignable to type 'number | undefined' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(120,26): error TS2339: Property 'distribution' does not exist on type '{ sampleSize?: number; quotas?: Quota[]; interviewerDistribution?: { interviewerId: string; localityKey: string; interviews: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(121,32): error TS2339: Property 'distribution' does not exist on type '{ sampleSize?: number; quotas?: Quota[]; interviewerDistribution?: { interviewerId: string; localityKey: string; interviews: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(134,30): error TS2339: Property 'uf' does not exist on type 'PlanArea'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(144,44): error TS2339: Property 'distribution' does not exist on type '{ sampleSize?: number; quotas?: Quota[]; interviewerDistribution?: { interviewerId: string; localityKey: string; interviews: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(157,38): error TS2339: Property 'geographicBase' does not exist on type '{ sampleSize?: number; quotas?: Quota[]; interviewerDistribution?: { interviewerId: string; localityKey: string; interviews: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(160,13): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(163,9): error TS2375: Type '{ interviews: number; name?: string; uf?: string; population?: number; locked?: boolean; source?: string; }' is not assignable to type 'Quota' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Property 'name' is optional in type '{ interviews: number; name?: string; uf?: string; population?: number; locked?: boolean; source?: string; }' but required in type 'Quota'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(169,9): error TS2375: Type '{ locked: boolean; name?: string; uf?: string; population?: number; interviews?: number; source?: string; }' is not assignable to type 'Quota' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Property 'name' is optional in type '{ locked: boolean; name?: string; uf?: string; population?: number; interviews?: number; source?: string; }' but required in type 'Quota'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(171,22): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(230,17): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(230,27): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(233,21): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(233,31): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(234,21): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(234,31): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(250,46): error TS4111: Property 'residences_cnefe' comes from an index signature, so it must be accessed with ['residences_cnefe'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(261,37): error TS4111: Property 'population_census' comes from an index signature, so it must be accessed with ['population_census'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(269,26): error TS2345: Argument of type 'StratificationSuggestion' is not assignable to parameter of type 'SetStateAction<Record<string, unknown> | null>'.
+web:typecheck:   Type 'StratificationSuggestion' is not assignable to type 'Record<string, unknown>'.
+web:typecheck:     Index signature for type 'string' is missing in type 'StratificationSuggestion'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(282,30): error TS18046: 'tseSuggestion.sex' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(282,44): error TS4111: Property 'sex' comes from an index signature, so it must be accessed with ['sex'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(283,32): error TS18046: 'tseSuggestion.sex' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(283,46): error TS4111: Property 'sex' comes from an index signature, so it must be accessed with ['sex'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(311,17): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(314,21): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(315,21): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(342,13): error TS2353: Object literal may only specify known properties, and 'distribution' does not exist in type '{ quotas: Quota[]; interviewerDistribution?: { interviewerId: string; localityKey: string; interviews: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(367,39): error TS2339: Property 'user_id' does not exist on type 'TeamMember'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(368,33): error TS2339: Property 'full_name' does not exist on type 'TeamMember'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(377,39): error TS2339: Property 'user_id' does not exist on type 'TeamMember'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(378,33): error TS2339: Property 'full_name' does not exist on type 'TeamMember'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(463,29): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(470,25): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(482,111): error TS2304: Cannot find name 'idx'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(483,53): error TS18048: 'q.population' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(483,74): error TS18048: 'q.interviews' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(483,89): error TS18048: 'q.population' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(503,50): error TS18048: 'q.population' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(505,69): error TS18048: 'q.population' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(516,107): error TS18048: 'q.interviews' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(524,82): error TS2304: Cannot find name 'idx'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(530,79): error TS2304: Cannot find name 'idx'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(553,99): error TS4111: Property 'basedOn' comes from an index signature, so it must be accessed with ['basedOn'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(579,88): error TS18046: 'tseSuggestion.sex' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(579,102): error TS4111: Property 'sex' comes from an index signature, so it must be accessed with ['sex'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(580,85): error TS18046: 'tseSuggestion.sex' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(580,99): error TS4111: Property 'sex' comes from an index signature, so it must be accessed with ['sex'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(584,88): error TS18046: 'tseSuggestion.sex' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(584,102): error TS4111: Property 'sex' comes from an index signature, so it must be accessed with ['sex'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(585,85): error TS18046: 'tseSuggestion.sex' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(585,99): error TS4111: Property 'sex' comes from an index signature, so it must be accessed with ['sex'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(591,26): error TS18046: 'tseSuggestion.age' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(591,40): error TS4111: Property 'age' comes from an index signature, so it must be accessed with ['age'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(595,38): error TS18046: 'tseSuggestion.age' is of type 'unknown'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(595,52): error TS4111: Property 'age' comes from an index signature, so it must be accessed with ['age'].
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(596,51): error TS2304: Cannot find name 'stableKey'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(598,92): error TS2339: Property 'interviews' does not exist on type '{ label?: string; count?: number; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(598,145): error TS2339: Property 'proportion' does not exist on type '{ label?: string; count?: number; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step4Distribution.tsx(725,29): error TS2322: Type 'Record<string, unknown>[]' is not assignable to type 'InterviewerQuota[]'.
+web:typecheck:   Type 'Record<string, unknown>' is missing the following properties from type 'InterviewerQuota': interviewerId, localityKey, interviews
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(112,70): error TS2339: Property 'population' does not exist on type 'PlanningData'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(116,70): error TS2339: Property 'margin' does not exist on type 'PlanningData'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(120,70): error TS2339: Property 'confidence' does not exist on type 'PlanningData'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(137,47): error TS2304: Cannot find name 'item'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(137,58): error TS2304: Cannot find name 'item'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(138,59): error TS2339: Property 'uf' does not exist on type '{ name: string; interviews?: number; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(138,70): error TS2339: Property 'uf' does not exist on type '{ name: string; interviews?: number; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(148,50): error TS2339: Property 'totalAssigned' does not exist on type '{ sampleSize?: number; quotas?: { name: string; population?: number; interviews?: number; }[]; interviewerAssignments?: { interviewerId: string; localityKey?: string; interviews?: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(152,67): error TS2339: Property 'totalAssigned' does not exist on type '{ sampleSize?: number; quotas?: { name: string; population?: number; interviews?: number; }[]; interviewerAssignments?: { interviewerId: string; localityKey?: string; interviews?: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(158,34): error TS18048: 'geo.municipalities.length' is possibly 'undefined'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(160,66): error TS2339: Property 'totalAssigned' does not exist on type '{ sampleSize?: number; quotas?: { name: string; population?: number; interviews?: number; }[]; interviewerAssignments?: { interviewerId: string; localityKey?: string; interviews?: number; }[]; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(239,57): error TS2339: Property 'zone' does not exist on type '{ name: string; population?: number; }'.
+web:typecheck: src/app/dashboard/planning/new/steps/Step5Summary.tsx(240,79): error TS2339: Property 'enriched' does not exist on type '{ name: string; population?: number; }'.
+web:typecheck: src/app/dashboard/planning/page.tsx(93,36): error TS2345: Argument of type '(plan: Record<string, unknown>) => React.JSX.Element' is not assignable to parameter of type '(value: ResearchPlan, index: number, array: ResearchPlan[]) => Element'.
+web:typecheck:   Types of parameters 'plan' and 'value' are incompatible.
+web:typecheck:     Type 'ResearchPlan' is not assignable to type 'Record<string, unknown>'.
+web:typecheck:       Index signature for type 'string' is missing in type 'ResearchPlan'.
+web:typecheck: src/app/dashboard/planning/page.tsx(95,33): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+web:typecheck: src/app/dashboard/planning/page.tsx(95,43): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/page.tsx(101,78): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/dashboard/planning/page.tsx(101,84): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/page.tsx(103,65): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+web:typecheck:     Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+web:typecheck:   Overload 2 of 4, '(value: string | number): Date', gave the following error.
+web:typecheck:     Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+web:typecheck: src/app/dashboard/planning/page.tsx(103,70): error TS4111: Property 'created_at' comes from an index signature, so it must be accessed with ['created_at'].
+web:typecheck: src/app/dashboard/planning/page.tsx(110,65): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/page.tsx(117,76): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/page.tsx(125,91): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/page.tsx(130,67): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/app/dashboard/planning/page.tsx(131,53): error TS2322: Type '{}' is not assignable to type 'PlanningData | Record<string, unknown>'.
+web:typecheck: src/app/dashboard/planning/page.tsx(131,72): error TS4111: Property 'planning_data' comes from an index signature, so it must be accessed with ['planning_data'].
+web:typecheck: src/app/dashboard/planning/page.tsx(146,86): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/planning/page.tsx(146,100): error TS2339: Property 'message' does not exist on type '{}'.
+web:typecheck: src/app/dashboard/planning/page.tsx(158,75): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/dashboard/surveys/[id]/monitor/page.tsx(92,57): error TS2304: Cannot find name 'params'.
+web:typecheck: src/app/dashboard/surveys/[id]/monitor/page.tsx(98,57): error TS2304: Cannot find name 'params'.
+web:typecheck: src/app/dashboard/surveys/[id]/page.tsx(17,13): error TS2322: Type '(data: { title: string; description: string; questions: Record<string, unknown>[]; }) => Promise<void>' is not assignable to type '(data: { title: string; description: string; questions: Question[]; }) => Promise<void>'.
+web:typecheck:   Types of parameters 'data' and 'data' are incompatible.
+web:typecheck:     Type '{ title: string; description: string; questions: Question[]; }' is not assignable to type '{ title: string; description: string; questions: Record<string, unknown>[]; }'.
+web:typecheck:       Types of property 'questions' are incompatible.
+web:typecheck:         Type 'Question[]' is not assignable to type 'Record<string, unknown>[]'.
+web:typecheck:           Type 'Question' is not assignable to type 'Record<string, unknown>'.
+web:typecheck:             Index signature for type 'string' is missing in type 'Question'.
+web:typecheck: src/app/dashboard/surveys/[id]/reports/page.tsx(3,10): error TS2305: Module '"react"' has no exported member 'useParams'.
+web:typecheck: src/app/dashboard/surveys/[id]/reports/page.tsx(3,21): error TS2305: Module '"react"' has no exported member 'useSearchParams'.
+web:typecheck: src/app/dashboard/surveys/[id]/reports/page.tsx(25,52): error TS2304: Cannot find name 'ReportType'.
+web:typecheck: src/app/dashboard/surveys/[id]/reports/page.tsx(95,10): error TS2375: Type '{ surveyId: any; onGenerated: (url: string) => void; initialReportType: any; initialSelectedPremiseIds: any; initialUseAIInsights: boolean; contextMessage: string | undefined; }' is not assignable to type 'ReportGeneratorPanelProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'contextMessage' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/surveys/new/page.tsx(12,13): error TS2375: Type '{ draftId: string | undefined; planId: string | undefined; }' is not assignable to type '{ draftId?: string; planId?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'draftId' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/app/dashboard/surveys/page.tsx(122,26): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/app/dashboard/team/page.tsx(128,41): error TS4111: Property 'password' comes from an index signature, so it must be accessed with ['password'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(122,35): error TS4111: Property 'availableCrossings' comes from an index signature, so it must be accessed with ['availableCrossings'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(194,73): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(194,85): error TS4111: Property 'totalResponses' comes from an index signature, so it must be accessed with ['totalResponses'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(196,77): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+web:typecheck:     Argument of type '{}' is not assignable to parameter of type 'string | number | Date'.
+web:typecheck:   Overload 2 of 4, '(value: string | number): Date', gave the following error.
+web:typecheck:     Argument of type '{}' is not assignable to parameter of type 'string | number'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(196,88): error TS4111: Property 'lastUpdated' comes from an index signature, so it must be accessed with ['lastUpdated'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(219,30): error TS2339: Property 'map' does not exist on type '{}'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(220,27): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(220,34): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(220,38): error TS2322: Type 'unknown' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(220,47): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(220,51): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(220,54): error TS4111: Property 'text' comes from an index signature, so it must be accessed with ['text'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(230,30): error TS2339: Property 'map' does not exist on type '{}'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(231,27): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(231,34): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(231,38): error TS2322: Type 'unknown' is not assignable to type 'string | number | readonly string[] | undefined'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(231,47): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(231,51): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(231,54): error TS4111: Property 'text' comes from an index signature, so it must be accessed with ['text'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(285,26): error TS2339: Property 'length' does not exist on type '{}'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(287,30): error TS2339: Property 'slice' does not exist on type '{}'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(288,68): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(288,71): error TS4111: Property 'text' comes from an index signature, so it must be accessed with ['text'].
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(288,111): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/app/reports/public/[shareToken]/page.tsx(288,114): error TS4111: Property 'type' comes from an index signature, so it must be accessed with ['type'].
+web:typecheck: src/components/dashboard/AnalyticsDashboard.tsx(129,38): error TS18048: 'selectedSurvey' is possibly 'undefined'.
+web:typecheck: src/components/dashboard/AnalyticsDashboard.tsx(155,40): error TS18048: 'selectedSurvey' is possibly 'undefined'.
+web:typecheck: src/components/dashboard/SurveyBuilder.tsx(98,51): error TS2345: Argument of type 'Question | undefined' is not assignable to parameter of type 'Question'.
+web:typecheck:   Type 'undefined' is not assignable to type 'Question'.
+web:typecheck: src/components/dashboard/SurveyBuilder.tsx(127,13): error TS2322: Type '{ label: string; id?: string; value?: string; order?: number; }' is not assignable to type 'QuestionOption'.
+web:typecheck:   Property 'id' is optional in type '{ label: string; id?: string; value?: string; order?: number; }' but required in type 'QuestionOption'.
+web:typecheck: src/components/dashboard/SurveyBuilder.tsx(205,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/help/HelpAssistant.tsx(88,9): error TS2554: Expected 1 arguments, but got 0.
+web:typecheck: src/components/help/HelpAssistant.tsx(173,50): error TS2367: This comparison appears to be unintentional because the types '"distribution" | "planning" | "mobile-collection" | "reports"' and '"general"' have no overlap.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(59,18): error TS2339: Property 'ibge_id' does not exist on type '{ id: string; name: string; uf?: string; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(60,15): error TS2339: Property 'nome' does not exist on type '{ id: string; name: string; uf?: string; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(61,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(62,21): error TS2339: Property 'populacao_estimada' does not exist on type '{ id: string; name: string; uf?: string; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(62,45): error TS2339: Property 'populacao_censo' does not exist on type '{ id: string; name: string; uf?: string; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(73,84): error TS2339: Property 'nome' does not exist on type '{ id: string; name: string; uf?: string; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(103,67): error TS2339: Property 'nome' does not exist on type '{ id: string; name: string; uf?: string; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(195,17): error TS2339: Property 'ibge_id' does not exist on type '{ name: string; zone?: string; interviews?: number; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(198,27): error TS18048: 'municipality' is possibly 'undefined'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(199,28): error TS18048: 'municipality' is possibly 'undefined'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(201,25): error TS2339: Property 'population' does not exist on type '{ name: string; zone?: string; interviews?: number; }'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(207,7): error TS2412: Type '{ id: any; name: string; geo_level: "locality"; parent_city_name: string; parent_state_name: string; zone: string; population: any; }[] | undefined' is not assignable to type 'PlanningLocality[] | undefined' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(337,48): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type '{ id: string; name: string; uf?: string; }'.
+web:typecheck:   Type 'Record<string, unknown>' is missing the following properties from type '{ id: string; name: string; uf?: string; }': id, name
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(340,23): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(340,26): error TS4111: Property 'nome' comes from an index signature, so it must be accessed with ['nome'].
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(340,34): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(340,37): error TS4111: Property 'uf' comes from an index signature, so it must be accessed with ['uf'].
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(341,61): error TS4111: Property 'populacao_estimada' comes from an index signature, so it must be accessed with ['populacao_estimada'].
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(341,96): error TS2554: Expected 0 arguments, but got 1.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(356,38): error TS2322: Type '{ localities: undefined; ibge_id?: number; name: string; uf: string; population?: number; enriched?: { population_census?: number; electorate_total?: number; residences_cnefe?: number; data_quality_score?: number; has_census?: boolean; has_tse?: boolean; has_cnefe?: boolean; sources?: string[]; }; }[]' is not assignable to type 'PlanningMunicipality[]'.
+web:typecheck:   Type '{ localities: undefined; ibge_id?: number; name: string; uf: string; population?: number; enriched?: { population_census?: number; electorate_total?: number; residences_cnefe?: number; data_quality_score?: number; has_census?: boolean; has_tse?: boolean; has_cnefe?: boolean; sources?: string[]; }; }' is not assignable to type 'PlanningMunicipality' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'localities' are incompatible.
+web:typecheck:       Type 'undefined' is not assignable to type 'PlanningLocality[]'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(368,38): error TS2322: Type '{ localities: undefined; ibge_id?: number; name: string; uf: string; population?: number; enriched?: { population_census?: number; electorate_total?: number; residences_cnefe?: number; data_quality_score?: number; has_census?: boolean; has_tse?: boolean; has_cnefe?: boolean; sources?: string[]; }; }[]' is not assignable to type 'PlanningMunicipality[]'.
+web:typecheck:   Type '{ localities: undefined; ibge_id?: number; name: string; uf: string; population?: number; enriched?: { population_census?: number; electorate_total?: number; residences_cnefe?: number; data_quality_score?: number; has_census?: boolean; has_tse?: boolean; has_cnefe?: boolean; sources?: string[]; }; }' is not assignable to type 'PlanningMunicipality' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'localities' are incompatible.
+web:typecheck:       Type 'undefined' is not assignable to type 'PlanningLocality[]'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(397,25): error TS2304: Cannot find name 'item'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(397,36): error TS2304: Cannot find name 'item'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(486,29): error TS2375: Type '{ localities: undefined; ibge_id?: number; name: string; uf: string; population?: number; enriched?: { population_census?: number; electorate_total?: number; residences_cnefe?: number; data_quality_score?: number; has_census?: boolean; has_tse?: boolean; has_cnefe?: boolean; sources?: string[]; }; }' is not assignable to type 'PlanningMunicipality' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localities' are incompatible.
+web:typecheck:     Type 'undefined' is not assignable to type 'PlanningLocality[]'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(611,84): error TS4111: Property 'zone' comes from an index signature, so it must be accessed with ['zone'].
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(612,34): error TS4111: Property 'zone' comes from an index signature, so it must be accessed with ['zone'].
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(615,28): error TS18046: 'loc.population' is of type 'unknown'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(615,32): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(617,32): error TS18046: 'loc.population' is of type 'unknown'.
+web:typecheck: src/components/planning/GeographicBaseSelector.tsx(617,36): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(69,9): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(82,9): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(122,9): error TS2322: Type '{ interviews: number; interviewerId?: string; localityKey?: string; }' is not assignable to type 'InterviewerQuota'.
+web:typecheck:   Property 'interviewerId' is optional in type '{ interviews: number; interviewerId?: string; localityKey?: string; }' but required in type 'InterviewerQuota'.
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(184,9): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(187,13): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(188,11): error TS18048: 'target' is possibly 'undefined'.
+web:typecheck: src/components/planning/InterviewerQuotaAssignment.tsx(371,43): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(5,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(70,24): error TS2339: Property 'availableLocalities' does not exist on type 'DynamicDashboardData'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(70,74): error TS2339: Property 'availableLocalities' does not exist on type 'DynamicDashboardData'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(71,36): error TS2339: Property 'availableLocalities' does not exist on type 'DynamicDashboardData'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(210,27): error TS2345: Argument of type '(row: Record<string, string | number | boolean | null>) => void' is not assignable to parameter of type '(value: CrossTabRow, index: number, array: CrossTabRow[]) => void'.
+web:typecheck:   Types of parameters 'row' and 'value' are incompatible.
+web:typecheck:     Type 'CrossTabRow' is not assignable to type 'Record<string, string | number | boolean | null>'.
+web:typecheck:       'string' index signatures are incompatible.
+web:typecheck:         Type 'string | number | boolean | null | undefined' is not assignable to type 'string | number | boolean | null'.
+web:typecheck:           Type 'undefined' is not assignable to type 'string | number | boolean | null'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(214,23): error TS2339: Property 'values' does not exist on type 'AdvancedCrossTabResult | DynamicAnalysisResult'.
+web:typecheck:   Property 'values' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(217,14): error TS2339: Property 'values' does not exist on type 'AdvancedCrossTabResult | DynamicAnalysisResult'.
+web:typecheck:   Property 'values' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(532,60): error TS4111: Property 'premises' comes from an index signature, so it must be accessed with ['premises'].
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(532,104): error TS4111: Property 'localityIds' comes from an index signature, so it must be accessed with ['localityIds'].
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(571,42): error TS2339: Property 'values' does not exist on type 'AdvancedCrossTabResult | DynamicAnalysisResult'.
+web:typecheck:   Property 'values' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(574,40): error TS2339: Property 'values' does not exist on type 'AdvancedCrossTabResult | DynamicAnalysisResult'.
+web:typecheck:   Property 'values' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(597,26): error TS2339: Property 'values' does not exist on type 'AdvancedCrossTabResult | DynamicAnalysisResult'.
+web:typecheck:   Property 'values' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(599,29): error TS2339: Property 'values' does not exist on type 'AdvancedCrossTabResult | DynamicAnalysisResult'.
+web:typecheck:   Property 'values' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(601,70): error TS4111: Property 'label' comes from an index signature, so it must be accessed with ['label'].
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(602,79): error TS18049: 'row.count' is possibly 'null' or 'undefined'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(602,83): error TS4111: Property 'count' comes from an index signature, so it must be accessed with ['count'].
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(603,97): error TS4111: Property 'percentage' comes from an index signature, so it must be accessed with ['percentage'].
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(610,79): error TS18049: 'row.count' is possibly 'null' or 'undefined'.
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(610,83): error TS4111: Property 'count' comes from an index signature, so it must be accessed with ['count'].
+web:typecheck: src/components/reports/DynamicReportPanel.tsx(611,97): error TS4111: Property 'percentage' comes from an index signature, so it must be accessed with ['percentage'].
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(90,33): error TS4111: Property 'report_type' comes from an index signature, so it must be accessed with ['report_type'].
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(91,19): error TS4111: Property 'report_type' comes from an index signature, so it must be accessed with ['report_type'].
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(93,37): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+web:typecheck:     Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+web:typecheck:   Overload 2 of 4, '(value: string | number): Date', gave the following error.
+web:typecheck:     Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(93,41): error TS4111: Property 'created_at' comes from an index signature, so it must be accessed with ['created_at'].
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(97,15): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(97,24): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(103,31): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+web:typecheck:     Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+web:typecheck:   Overload 2 of 4, '(value: string | number): Date', gave the following error.
+web:typecheck:     Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(103,35): error TS4111: Property 'created_at' comes from an index signature, so it must be accessed with ['created_at'].
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(104,15): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+web:typecheck: src/components/reports/RecentReportsSummary.tsx(104,20): error TS4111: Property 'ai_insights_enabled' comes from an index signature, so it must be accessed with ['ai_insights_enabled'].
+web:typecheck: src/components/reports/ReportGeneratorPanel.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+web:typecheck: src/components/reports/ReportGeneratorPanel.tsx(93,17): error TS4111: Property 'selectedPremises' comes from an index signature, so it must be accessed with ['selectedPremises'].
+web:typecheck: src/components/reports/ReportGeneratorPanel.tsx(98,17): error TS4111: Property 'includeLocalityCross' comes from an index signature, so it must be accessed with ['includeLocalityCross'].
+web:typecheck: src/components/reports/ReportGeneratorPanel.tsx(101,15): error TS4111: Property 'format' comes from an index signature, so it must be accessed with ['format'].
+web:typecheck: src/components/reports/ReportGeneratorPanel.tsx(105,17): error TS4111: Property 'useAIInsights' comes from an index signature, so it must be accessed with ['useAIInsights'].
+web:typecheck: src/components/reports/ReportGeneratorPanel.tsx(123,16): error TS18046: 'err' is of type 'unknown'.
+web:typecheck: src/components/reports/ReportHistoryList.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+web:typecheck: src/components/reports/ReportHistoryList.tsx(44,16): error TS18046: 'e' is of type 'unknown'.
+web:typecheck: src/components/support/ChatWidget.tsx(186,15): error TS7030: Not all code paths return a value.
+web:typecheck: src/components/support/ChatWidget.tsx(213,25): error TS2345: Argument of type '(prev: PendingFile[]) => (PendingFile | { url: string; name: string; type: string; size: number; preview: string | undefined; file: File; })[]' is not assignable to parameter of type 'SetStateAction<PendingFile[]>'.
+web:typecheck:   Type '(prev: PendingFile[]) => (PendingFile | { url: string; name: string; type: string; size: number; preview: string | undefined; file: File; })[]' is not assignable to type '(prevState: PendingFile[]) => PendingFile[]'.
+web:typecheck:     Type '(PendingFile | { url: string; name: string; type: string; size: number; preview: string | undefined; file: File; })[]' is not assignable to type 'PendingFile[]'.
+web:typecheck:       Type 'PendingFile | { url: string; name: string; type: string; size: number; preview: string | undefined; file: File; }' is not assignable to type 'PendingFile' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:         Type '{ url: string; name: string; type: string; size: number; preview: string | undefined; file: File; }' is not assignable to type 'PendingFile' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:           Type '{ url: string; name: string; type: string; size: number; preview: string | undefined; file: File; }' is not assignable to type '{ preview?: string; file: File; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:             Types of property 'preview' are incompatible.
+web:typecheck:               Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:                 Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/__tests__/SurveyWizard-planning-handoff.test.ts(16,5): error TS2353: Object literal may only specify known properties, and 'objective' does not exist in type 'Partial<ResearchPlan>'.
+web:typecheck: src/components/surveys/__tests__/SurveyWizard-planning-handoff.test.ts(47,29): error TS2339: Property 'objective' does not exist on type 'Partial<ResearchPlan>'.
+web:typecheck: src/components/surveys/__tests__/SurveyWizard-planning-handoff.test.ts(48,55): error TS2339: Property 'sample_size' does not exist on type 'Partial<ResearchPlan>'.
+web:typecheck: src/components/surveys/__tests__/SurveyWizard-planning-handoff.test.ts(50,7): error TS2322: Type '{ id: string; name: string; population: number; interviews_required: number; }[]' is not assignable to type 'Locality[]'.
+web:typecheck:   Type '{ id: string; name: string; population: number; interviews_required: number; }' is missing the following properties from type 'Locality': geo_level, zone, population_type
+web:typecheck: src/components/surveys/__tests__/SurveyWizard-planning-handoff.test.ts(64,66): error TS2339: Property 'sample_size' does not exist on type 'Partial<ResearchPlan>'.
+web:typecheck: src/components/surveys/__tests__/SurveyWizard-planning-handoff.test.ts(65,29): error TS2339: Property 'methodology' does not exist on type 'Partial<ResearchPlan>'.
+web:typecheck: src/components/surveys/Step1TechnicalData.tsx(127,26): error TS2375: Type '{ text: string; helpId: string | undefined; }' is not assignable to type '{ text: string; helpId?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'helpId' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/Step2Localities.tsx(161,24): error TS2345: Argument of type '(prev: { state: string; city: string; localityName: string; zone: "urban" | "rural" | "mixed"; geo_level: GeoLevel; }) => { geo_level: GeoLevel | undefined; state: string; city: string; localityName: string; zone: "urban" | ... 1 more ... | "mixed"; }' is not assignable to parameter of type 'SetStateAction<{ state: string; city: string; localityName: string; zone: "urban" | "rural" | "mixed"; geo_level: GeoLevel; }>'.
+web:typecheck:   Type '(prev: { state: string; city: string; localityName: string; zone: "urban" | "rural" | "mixed"; geo_level: GeoLevel; }) => { geo_level: GeoLevel | undefined; state: string; city: string; localityName: string; zone: "urban" | ... 1 more ... | "mixed"; }' is not assignable to type '(prevState: { state: string; city: string; localityName: string; zone: "urban" | "rural" | "mixed"; geo_level: GeoLevel; }) => { state: string; city: string; localityName: string; zone: "urban" | ... 1 more ... | "mixed"; geo_level: GeoLevel; }'.
+web:typecheck:     Call signature return types '{ geo_level: GeoLevel | undefined; state: string; city: string; localityName: string; zone: "urban" | "rural" | "mixed"; }' and '{ state: string; city: string; localityName: string; zone: "urban" | "rural" | "mixed"; geo_level: GeoLevel; }' are incompatible.
+web:typecheck:       The types of 'geo_level' are incompatible between these types.
+web:typecheck:         Type 'GeoLevel | undefined' is not assignable to type 'GeoLevel'.
+web:typecheck:           Type 'undefined' is not assignable to type 'GeoLevel'.
+web:typecheck: src/components/surveys/Step2Localities.tsx(493,38): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/components/surveys/Step2Localities.tsx(872,108): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/components/surveys/Step3Premises.tsx(176,9): error TS2375: Type '{ label: string; value?: string; quota_pct?: number; }' is not assignable to type 'PremiseOption' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Property 'value' is optional in type '{ label: string; value?: string; quota_pct?: number; }' but required in type 'PremiseOption'.
+web:typecheck: src/components/surveys/Step3Premises.tsx(182,9): error TS2322: Type '{ quota_pct: number; label?: string; value?: string; }' is not assignable to type 'PremiseOption'.
+web:typecheck:   Property 'label' is optional in type '{ quota_pct: number; label?: string; value?: string; }' but required in type 'PremiseOption'.
+web:typecheck: src/components/surveys/Step3Premises.tsx(326,18): error TS2345: Argument of type '{ stratification_label: string | undefined; id: string; category: string; label: string; options: PremiseOption[]; is_required: boolean; allow_multiple: boolean; order_index: number; }[]' is not assignable to parameter of type 'Premise[]'.
+web:typecheck:   Type '{ stratification_label: string | undefined; id: string; category: string; label: string; options: PremiseOption[]; is_required: boolean; allow_multiple: boolean; order_index: number; }' is not assignable to type 'Premise' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Types of property 'stratification_label' are incompatible.
+web:typecheck:       Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:         Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/Step3Premises.tsx(373,22): error TS2345: Argument of type '(Premise | { options: { quota_pct: any; label: string; value: string; }[]; stratification_label: string | undefined; id: string; category: string; label: string; is_required: boolean; allow_multiple: boolean; order_index: number; })[]' is not assignable to parameter of type 'Premise[]'.
+web:typecheck:   Type 'Premise | { options: { quota_pct: any; label: string; value: string; }[]; stratification_label: string | undefined; id: string; category: string; label: string; is_required: boolean; allow_multiple: boolean; order_index: number; }' is not assignable to type 'Premise' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:     Type '{ options: { quota_pct: any; label: string; value: string; }[]; stratification_label: string | undefined; id: string; category: string; label: string; is_required: boolean; allow_multiple: boolean; order_index: number; }' is not assignable to type 'Premise' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:       Types of property 'stratification_label' are incompatible.
+web:typecheck:         Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:           Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/Step3Premises.tsx(385,15): error TS2375: Type '{ id: string; category: string; label: string; stratification_label: string | undefined; options: PremiseOption[]; is_required: true; allow_multiple: boolean; order_index: number; }' is not assignable to type 'Premise' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'stratification_label' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/Step3Premises.tsx(399,15): error TS2375: Type '{ id: string; category: string; label: string; stratification_label: string | undefined; options: never[]; is_required: true; allow_multiple: false; order_index: number; }' is not assignable to type 'Premise' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'stratification_label' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/Step4Questions.tsx(258,15): error TS2375: Type '{ id: string; survey_id: string; question_type: QuestionType; question_text: string; is_required: boolean; order_index: number; created_at: string; updated_at: string; options: { ...; }[] | undefined; }' is not assignable to type 'Question' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'options' are incompatible.
+web:typecheck:     Type '{ id: string; label: string; value: string; order: number; }[] | undefined' is not assignable to type 'QuestionOption[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'QuestionOption[]'.
+web:typecheck: src/components/surveys/Step4Questions.tsx(317,9): error TS2322: Type '{ label: string; id?: string; value?: string; order?: number; }' is not assignable to type 'QuestionOption'.
+web:typecheck:   Property 'id' is optional in type '{ label: string; id?: string; value?: string; order?: number; }' but required in type 'QuestionOption'.
+web:typecheck: src/components/surveys/Step4Questions.tsx(325,51): error TS2345: Argument of type 'Question | undefined' is not assignable to parameter of type 'Question'.
+web:typecheck:   Type 'undefined' is not assignable to type 'Question'.
+web:typecheck: src/components/surveys/Step7Routes.tsx(169,26): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/Step7Routes.tsx(169,39): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/SurveyWizard.tsx(251,38): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(252,40): error TS4111: Property 'name' comes from an index signature, so it must be accessed with ['name'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(253,34): error TS4111: Property 'zone' comes from an index signature, so it must be accessed with ['zone'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(254,46): error TS4111: Property 'population' comes from an index signature, so it must be accessed with ['population'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(255,45): error TS4111: Property 'population_type' comes from an index signature, so it must be accessed with ['population_type'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(256,55): error TS4111: Property 'interviews_required' comes from an index signature, so it must be accessed with ['interviews_required'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(257,53): error TS4111: Property 'interviews_weight' comes from an index signature, so it must be accessed with ['interviews_weight'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(258,39): error TS4111: Property 'geo_level' comes from an index signature, so it must be accessed with ['geo_level'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(259,46): error TS4111: Property 'parent_state_name' comes from an index signature, so it must be accessed with ['parent_state_name'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(259,75): error TS4111: Property 'parent_state_name' comes from an index signature, so it must be accessed with ['parent_state_name'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(260,45): error TS4111: Property 'parent_city_name' comes from an index signature, so it must be accessed with ['parent_city_name'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(260,73): error TS4111: Property 'parent_city_name' comes from an index signature, so it must be accessed with ['parent_city_name'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(318,119): error TS4111: Property 'interviewerId' comes from an index signature, so it must be accessed with ['interviewerId'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(318,138): error TS4111: Property 'userId' comes from an index signature, so it must be accessed with ['userId'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(321,25): error TS2345: Argument of type '(prev: WizardData) => { tech: { title: string; objective: string; methodology: string; total_interviews: number; description: string; research_category: "" | ResearchCategory; ... 33 more ...; specific_public_description: string; }; ... 5 more ...; questions: Question[]; }' is not assignable to parameter of type 'SetStateAction<WizardData>'.
+web:typecheck:   Type '(prev: WizardData) => { tech: { title: string; objective: string; methodology: string; total_interviews: number; description: string; research_category: "" | ResearchCategory; ... 33 more ...; specific_public_description: string; }; ... 5 more ...; questions: Question[]; }' is not assignable to type '(prevState: WizardData) => WizardData'.
+web:typecheck:     Call signature return types '{ tech: { title: string; objective: string; methodology: string; total_interviews: number; description: string; research_category: "" | ResearchCategory; survey_type: string; ... 32 more ...; specific_public_description: string; }; ... 5 more ...; questions: Question[]; }' and 'WizardData' are incompatible.
+web:typecheck:       The types of 'localities' are incompatible between these types.
+web:typecheck:         Type '{ id: string; name: string; zone?: string; interviews_required?: number; }[]' is not assignable to type 'Locality[]'.
+web:typecheck:           Type '{ id: string; name: string; zone?: string; interviews_required?: number; }' is missing the following properties from type 'Locality': geo_level, population, population_type
+web:typecheck: src/components/surveys/SurveyWizard.tsx(396,39): error TS2448: Block-scoped variable 'persistDraft' used before its declaration.
+web:typecheck: src/components/surveys/SurveyWizard.tsx(396,39): error TS2454: Variable 'persistDraft' is used before being assigned.
+web:typecheck: src/components/surveys/SurveyWizard.tsx(608,42): error TS4111: Property 'interviewerId' comes from an index signature, so it must be accessed with ['interviewerId'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(609,36): error TS4111: Property 'localityKey' comes from an index signature, so it must be accessed with ['localityKey'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(610,33): error TS4111: Property 'interviews' comes from an index signature, so it must be accessed with ['interviews'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(633,109): error TS4111: Property 'interviewerId' comes from an index signature, so it must be accessed with ['interviewerId'].
+web:typecheck: src/components/surveys/SurveyWizard.tsx(925,30): error TS2375: Type '{ surveyId: string | undefined; surveyTitle: string; questions: Question[]; premises: Premise[]; }' is not assignable to type 'Props' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'surveyId' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/SurveyWizard.tsx(933,30): error TS2375: Type '{ surveyId: string | undefined; initialTeamUserIds: string[] | undefined; }' is not assignable to type 'Props' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'surveyId' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/SurveyWizard.tsx(939,30): error TS2375: Type '{ surveyId: string | undefined; localities: Locality[]; }' is not assignable to type 'Props' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'surveyId' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/components/surveys/SurveyWizard.tsx(945,30): error TS2375: Type '{ surveyId: string | undefined; }' is not assignable to type 'Props' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'surveyId' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/lib/__tests__/mobile-auth-context.test.ts(24,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'NextRequest'.
+web:typecheck: src/lib/__tests__/mobile-auth-context.test.ts(29,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'NextRequest'.
+web:typecheck: src/lib/__tests__/mobile-auth-context.test.ts(34,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'NextRequest'.
+web:typecheck: src/lib/api-middleware.ts(122,29): error TS4111: Property 'correlationId' comes from an index signature, so it must be accessed with ['correlationId'].
+web:typecheck: src/lib/api-middleware.ts(139,34): error TS2379: Argument of type '{ request: NextRequest; errorCode: string; errorMessage: string; tenantId: string | null | undefined; userId: string | null | undefined; httpStatusCode: number; metadata: Record<...> | undefined; correlationId: string | undefined; }' is not assignable to parameter of type 'CaptureSystemErrorInput' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'tenantId' are incompatible.
+web:typecheck:     Type 'string | null | undefined' is not assignable to type 'string | null'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string | null'.
+web:typecheck: src/lib/api-middleware.ts(164,45): error TS2379: Argument of type '{ request: NextRequest; errorCode: string; error: unknown; tenantId: string | null | undefined; userId: string | null | undefined; httpStatusCode: number; metadata: Record<string, unknown> | undefined; }' is not assignable to parameter of type 'CaptureSystemErrorInput' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'tenantId' are incompatible.
+web:typecheck:     Type 'string | null | undefined' is not assignable to type 'string | null'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string | null'.
+web:typecheck: src/lib/api-middleware.ts(188,29): error TS4111: Property 'correlationId' comes from an index signature, so it must be accessed with ['correlationId'].
+web:typecheck: src/lib/help-topics.ts(208,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(218,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(228,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(238,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(248,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(258,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(268,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(278,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(289,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(299,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(310,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(320,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(335,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(345,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(355,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(365,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(375,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(385,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(395,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(405,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(415,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(425,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(435,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(445,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(456,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(468,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(480,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(491,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(502,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/help-topics.ts(514,5): error TS2741: Property 'category' is missing in type '{ id: string; title: string; short: string; content: string[]; }' but required in type 'HelpTopic'.
+web:typecheck: src/lib/mobile/token.ts(67,9): error TS18048: 'encodedSignature' is possibly 'undefined'.
+web:typecheck: src/lib/mobile/token.ts(67,81): error TS18048: 'encodedSignature' is possibly 'undefined'.
+web:typecheck: src/lib/mobile/token.ts(74,40): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/lib/monitoring/error-codes.ts(273,5): error TS2322: Type 'ErrorCodeDefinition | undefined' is not assignable to type 'ErrorCodeDefinition'.
+web:typecheck:   Type 'undefined' is not assignable to type 'ErrorCodeDefinition'.
+web:typecheck: src/lib/monitoring/error-codes.ts(273,59): error TS4111: Property 'UNKNOWN_ERROR' comes from an index signature, so it must be accessed with ['UNKNOWN_ERROR'].
+web:typecheck: src/lib/monitoring/error-monitor.ts(101,65): error TS4111: Property 'target' comes from an index signature, so it must be accessed with ['target'].
+web:typecheck: src/lib/planning/__tests__/planning-bridge-f6.test.ts(9,52): error TS2307: Cannot find module '../planning-bridge' or its corresponding type declarations.
+web:typecheck: src/lib/planning/__tests__/planning-bridge-f6.test.ts(30,7): error TS2322: Type '{ id: string; name: string; population: number; interviews_required: number; }[]' is not assignable to type 'Locality[]'.
+web:typecheck:   Type '{ id: string; name: string; population: number; interviews_required: number; }' is missing the following properties from type 'Locality': geo_level, zone, population_type
+web:typecheck: src/lib/planning/tse-stratification.ts(182,25): error TS18048: 'profile' is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(185,31): error TS18048: 'profile' is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(186,33): error TS18048: 'profile' is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(188,9): error TS18048: 'profile' is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(288,44): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(289,44): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(293,13): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(293,13): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:   Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/lib/planning/tse-stratification.ts(295,23): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(296,36): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(296,36): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+web:typecheck:   Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/lib/planning/tse-stratification.ts(296,50): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(296,64): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/planning/tse-stratification.ts(299,5): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:   Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/lib/planning/tse-stratification.ts(299,12): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/__tests__/AdvancedReportAggregationService.test.ts(28,7): error TS2353: Object literal may only specify known properties, and 'totalResponses' does not exist in type 'Partial<ReportSurveyData>'.
+web:typecheck: src/lib/reports/__tests__/AdvancedReportAggregationService.test.ts(38,21): error TS2339: Property 'totalResponses' does not exist on type 'Partial<ReportSurveyData>'.
+web:typecheck: src/lib/reports/__tests__/AdvancedReportAggregationService.test.ts(39,35): error TS2551: Property 'distributions' does not exist on type 'Partial<ReportSurveyData>'. Did you mean 'distribution'?
+web:typecheck: src/lib/reports/__tests__/AdvancedReportAggregationService.test.ts(44,7): error TS2353: Object literal may only specify known properties, and 'questionId' does not exist in type 'AdvancedCrossTabResult'.
+web:typecheck: src/lib/reports/__tests__/AdvancedReportAggregationService.test.ts(53,21): error TS2339: Property 'filtersApplied' does not exist on type 'AdvancedCrossTabResult'.
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(21,3): error TS2305: Module '"../types"' has no exported member 'ResearchPlan'.
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(36,7): error TS2322: Type '[string, string]' is not assignable to type 'AnswerJsonValue'.
+web:typecheck:   Type '[string, string]' is not assignable to type 'Record<string, unknown>'.
+web:typecheck:     Index signature for type 'string' is missing in type '[string, string]'.
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(46,7): error TS2353: Object literal may only specify known properties, and 'value' does not exist in type 'DistributionItem'.
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(50,24): error TS2339: Property 'value' does not exist on type 'DistributionItem'.
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(60,16): error TS4111: Property 'variable' comes from an index signature, so it must be accessed with ['variable'].
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(61,16): error TS4111: Property 'total' comes from an index signature, so it must be accessed with ['total'].
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(71,16): error TS4111: Property 'sampleSize' comes from an index signature, so it must be accessed with ['sampleSize'].
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(76,7): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'GeneratedInsight'.
+web:typecheck: src/lib/reports/__tests__/report-domain-contracts.test.ts(89,7): error TS2353: Object literal may only specify known properties, and 'totalResponses' does not exist in type 'Partial<ReportSurveyData>'.
+web:typecheck: src/lib/reports/__tests__/report-generators-contract.test.ts(36,5): error TS2353: Object literal may only specify known properties, and 'totalResponses' does not exist in type 'Partial<ReportSurveyData>'.
+web:typecheck: src/lib/reports/__tests__/report-generators-contract.test.ts(50,17): error TS2339: Property 'totalResponses' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/__tests__/report-generators-contract.test.ts(55,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'GeneratedInsight'.
+web:typecheck: src/lib/reports/__tests__/report-generators-contract.test.ts(58,12): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/__tests__/ReportJobService.test.ts(29,7): error TS2353: Object literal may only specify known properties, and 'totalResponses' does not exist in type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/__tests__/ReportJobService.test.ts(56,17): error TS2339: Property 'totalResponses' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/__tests__/ReportJobService.test.ts(57,17): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/__tests__/ReportJobService.test.ts(62,7): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'GeneratedInsight'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(142,11): error TS2451: Cannot redeclare block-scoped variable 'values'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(146,33): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(148,23): error TS18048: 'b.count' is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(148,33): error TS18048: 'a.count' is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(150,11): error TS2322: Type '{ label: string; count: number | undefined; percentage: number; }[]' is not assignable to type 'DistributionItem[]'.
+web:typecheck:   Type '{ label: string; count: number | undefined; percentage: number; }' is not assignable to type 'DistributionItem'.
+web:typecheck:     Types of property 'count' are incompatible.
+web:typecheck:       Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:         Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(150,11): error TS2451: Cannot redeclare block-scoped variable 'values'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(154,33): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(156,23): error TS18048: 'b.count' is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(156,33): error TS18048: 'a.count' is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(160,7): error TS2322: Type '{ label: string; count: number | undefined; percentage: number; }[]' is not assignable to type 'DistributionItem[]'.
+web:typecheck:   Type '{ label: string; count: number | undefined; percentage: number; }' is not assignable to type 'DistributionItem'.
+web:typecheck:     Types of property 'count' are incompatible.
+web:typecheck:       Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:         Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(259,7): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(268,25): error TS2538: Type 'undefined' cannot be used as an index type.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(291,7): error TS2375: Type '{ executionTimeMs: number; warning: string | undefined; }' is not assignable to type '{ cacheKey?: string; executionTimeMs?: number; warning?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'warning' are incompatible.
+web:typecheck:     Type 'string | undefined' is not assignable to type 'string'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(373,11): error TS2322: Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:   Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/AdvancedReportAggregationService.ts(398,7): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(79,11): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type '{ width: string; height: string; }' is not assignable to parameter of type 'Attributes & Props & RefAttributes<HTMLDivElement | { current: HTMLDivElement; }>'.
+web:typecheck:       Property 'children' is missing in type '{ width: string; height: string; }' but required in type 'Props'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(83,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof XAxis' is not assignable to parameter of type 'string | ComponentClass<Props, any> | FunctionComponent<Props>'.
+web:typecheck:       Type 'typeof XAxis' is not assignable to type 'ComponentClass<Props, any>'.
+web:typecheck:         The types of 'defaultProps.type' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type '"number" | "category"'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(84,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof YAxis' is not assignable to parameter of type 'string | ComponentClass<Props, any> | FunctionComponent<Props>'.
+web:typecheck:       Type 'typeof YAxis' is not assignable to type 'ComponentClass<Props, any>'.
+web:typecheck:         The types of 'defaultProps.type' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type '"number" | "category"'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(85,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof Tooltip' is not assignable to parameter of type 'string | ComponentClass<TooltipProps<ValueType, NameType>, any> | FunctionComponent<TooltipProps<ValueType, NameType>>'.
+web:typecheck:       Type 'typeof Tooltip' is not assignable to type 'ComponentClass<TooltipProps<ValueType, NameType>, any>'.
+web:typecheck:         The types of 'defaultProps.animationEasing' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type 'AnimationTiming'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(86,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof Legend' is not assignable to parameter of type 'string | ComponentClass<Props, any> | FunctionComponent<Props>'.
+web:typecheck:       Type 'typeof Legend' is not assignable to type 'ComponentClass<Props, any>'.
+web:typecheck:         The types of 'defaultProps.layout' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type 'LayoutType'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(87,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof Bar' is not assignable to parameter of type 'string | ComponentClass<Props, any> | FunctionComponent<Props>'.
+web:typecheck:       Type 'typeof Bar' is not assignable to type 'ComponentClass<Props, any>'.
+web:typecheck:         The types of 'defaultProps.layout' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type '"horizontal" | "vertical"'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(133,11): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type '{ width: string; height: string; }' is not assignable to parameter of type 'Attributes & Props & RefAttributes<HTMLDivElement | { current: HTMLDivElement; }>'.
+web:typecheck:       Property 'children' is missing in type '{ width: string; height: string; }' but required in type 'Props'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(138,15): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof Pie' is not assignable to parameter of type 'string | ComponentClass<Props, any> | FunctionComponent<Props>'.
+web:typecheck:       Type 'typeof Pie' is not assignable to type 'ComponentClass<Props, any>'.
+web:typecheck:         The types of 'defaultProps.legendType' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type 'LegendType'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(144,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof Tooltip' is not assignable to parameter of type 'string | ComponentClass<TooltipProps<ValueType, NameType>, any> | FunctionComponent<TooltipProps<ValueType, NameType>>'.
+web:typecheck:       Type 'typeof Tooltip' is not assignable to type 'ComponentClass<TooltipProps<ValueType, NameType>, any>'.
+web:typecheck:         The types of 'defaultProps.animationEasing' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type 'AnimationTiming'.
+web:typecheck: src/lib/reports/ChartImageGenerator.ts(145,27): error TS2769: No overload matches this call.
+web:typecheck:   The last overload gave the following error.
+web:typecheck:     Argument of type 'typeof Legend' is not assignable to parameter of type 'string | ComponentClass<Props, any> | FunctionComponent<Props>'.
+web:typecheck:       Type 'typeof Legend' is not assignable to type 'ComponentClass<Props, any>'.
+web:typecheck:         The types of 'defaultProps.layout' are incompatible between these types.
+web:typecheck:           Type 'string' is not assignable to type 'LayoutType'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(148,9): error TS2304: Cannot find name 'tenantLogoUrl'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(187,54): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(193,108): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(194,120): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(195,104): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(200,49): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(206,59): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(249,37): error TS2345: Argument of type '(row: QuotasSummaryItem) => TableRow' is not assignable to parameter of type '(value: { locality: string; planned: number | undefined; realized: number; percentage: number; }, index: number, array: { locality: string; planned: number | undefined; realized: number; percentage: number; }[]) => TableRow'.
+web:typecheck:   Types of parameters 'row' and 'value' are incompatible.
+web:typecheck:     Type '{ locality: string; planned: number | undefined; realized: number; percentage: number; }' is missing the following properties from type 'QuotasSummaryItem': locality_id, quota_total, completed
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(251,30): error TS2339: Property 'locality' does not exist on type 'QuotasSummaryItem'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(251,44): error TS2339: Property 'planned' does not exist on type 'QuotasSummaryItem'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(251,57): error TS2339: Property 'realized' does not exist on type 'QuotasSummaryItem'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(261,23): error TS2345: Argument of type 'Table' is not assignable to parameter of type 'Paragraph'.
+web:typecheck:   Type 'Table' is missing the following properties from type 'Paragraph': properties, addRunToFront
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(303,17): error TS2339: Property 'preferred_visualization' does not exist on type '{ id: string; question_text: string; question_type: string; options?: unknown; order_index?: number; }'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(340,121): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(380,119): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(408,17): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(437,31): error TS2345: Argument of type 'Table' is not assignable to parameter of type 'Paragraph'.
+web:typecheck:   Type 'Table' is missing the following properties from type 'Paragraph': properties, addRunToFront
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(460,60): error TS2339: Property 'zone' does not exist on type '{ id: string; name: string; }'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(460,74): error TS2339: Property 'interviews_required' does not exist on type '{ id: string; name: string; }'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(504,119): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(508,120): error TS2339: Property 'preferred_visualization' does not exist on type '{ id: string; question_text: string; question_type: string; options?: unknown; order_index?: number; }'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(528,200): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(538,65): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(550,47): error TS2339: Property 'insights' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(551,34): error TS2339: Property 'aiUsage' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(651,13): error TS2353: Object literal may only specify known properties, and 'styles' does not exist in type 'IDocumentDefaultsOptions'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(747,37): error TS2551: Property 'current' does not exist on type '{ readonly CURRENT: "CURRENT"; readonly TOTAL_PAGES: "TOTAL_PAGES"; readonly TOTAL_PAGES_IN_SECTION: "TOTAL_PAGES_IN_SECTION"; readonly CURRENT_SECTION: "SECTION"; }'. Did you mean 'CURRENT'?
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(783,19): error TS18048: 'planned' is possibly 'undefined'.
+web:typecheck: src/lib/reports/DocxReportGenerator.ts(783,56): error TS18048: 'planned' is possibly 'undefined'.
+web:typecheck: src/lib/reports/index.ts(20,38): error TS2307: Cannot find module './RecentReportsSummary' or its corresponding type declarations.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(53,22): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ align: string; italic: boolean; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'italic' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(79,119): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(81,26): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(110,26): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ italic: boolean; color: string; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'italic' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(123,119): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(125,26): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(134,15): error TS2379: Argument of type '{ localityIds: string[] | undefined; premises: Record<string, string[]> | undefined; onlyComplete: boolean; }' is not assignable to parameter of type 'ReportFilters' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'localityIds' are incompatible.
+web:typecheck:     Type 'string[] | undefined' is not assignable to type 'string[]'.
+web:typecheck:       Type 'undefined' is not assignable to type 'string[]'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(155,36): error TS2339: Property 'insights' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(156,32): error TS2339: Property 'aiUsage' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(166,52): error TS2339: Property 'planning' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(176,23): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ italic: boolean; color: string; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'italic' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(178,23): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ italic: boolean; color: string; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'italic' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(185,23): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ italic: boolean; color: string; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'italic' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(190,24): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(195,26): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ bold: boolean; color: string; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/PdfReportGenerator.ts(201,53): error TS2769: No overload matches this call.
+web:typecheck:   Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Argument of type '{ color: string; }' is not assignable to parameter of type 'number'.
+web:typecheck:   Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+web:typecheck:     Object literal may only specify known properties, and 'color' does not exist in type 'TextOptions'.
+web:typecheck: src/lib/reports/ReportAggregationService.ts(121,7): error TS2532: Object is possibly 'undefined'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(186,33): error TS2345: Argument of type '(ans: ResponseAnswerRow) => void' is not assignable to parameter of type '(value: { answer_text: any; answer_json: any; }, index: number, array: { answer_text: any; answer_json: any; }[]) => void'.
+web:typecheck:   Types of parameters 'ans' and 'value' are incompatible.
+web:typecheck:     Type '{ answer_text: any; answer_json: any; }' is missing the following properties from type 'ResponseAnswerRow': response_id, question_id, created_at
+web:typecheck: src/lib/reports/ReportInsightsService.ts(189,11): error TS2322: Type '{}' is not assignable to type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(203,9): error TS2739: Type '{ values: { label: string; count: number; percentage: number; }[]; }' is missing the following properties from type 'FilteredDistributionResult': labels, total, appliedFilters
+web:typecheck: src/lib/reports/ReportInsightsService.ts(251,35): error TS2345: Argument of type '(ans: ResponseAnswerRow) => void' is not assignable to parameter of type '(value: { answer_text: any; answer_json: any; }, index: number, array: { answer_text: any; answer_json: any; }[]) => void'.
+web:typecheck:   Types of parameters 'ans' and 'value' are incompatible.
+web:typecheck:     Type '{ answer_text: any; answer_json: any; }' is missing the following properties from type 'ResponseAnswerRow': response_id, question_id, created_at
+web:typecheck: src/lib/reports/ReportInsightsService.ts(254,13): error TS2322: Type '{}' is not assignable to type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(267,48): error TS2379: Argument of type '{ surveyId: string; questionId: string; distribution: { values: { label: string; count: number; percentage: number; }[]; }; planningContext: Record<string, unknown> | undefined; }' is not assignable to parameter of type '{ surveyId: string; questionId: string; distribution: { values: { label: string; count: number; percentage: number; }[]; }; planningContext?: Record<string, unknown>; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'planningContext' are incompatible.
+web:typecheck:     Type 'Record<string, unknown> | undefined' is not assignable to type 'Record<string, unknown>'.
+web:typecheck:       Type 'undefined' is not assignable to type 'Record<string, unknown>'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(276,25): error TS2339: Property 'usage' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(277,38): error TS2339: Property 'usage' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(278,35): error TS2339: Property 'model' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(284,32): error TS2339: Property 'summary' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(285,36): error TS2339: Property 'keyFindings' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(286,46): error TS2339: Property 'strategicImplications' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(287,35): error TS2339: Property 'confidence' does not exist on type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(296,11): error TS2739: Type '{ values: never[]; }' is missing the following properties from type 'FilteredDistributionResult': labels, total, appliedFilters
+web:typecheck: src/lib/reports/ReportInsightsService.ts(307,7): error TS2375: Type '{ enabled: true; modelUsed: string; tokensUsed: number | undefined; costUsd: number | undefined; source: "ai" | "partial"; questionsProcessed: number; }' is not assignable to type 'AIUsageMetadata' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+web:typecheck:   Types of property 'tokensUsed' are incompatible.
+web:typecheck:     Type 'number | undefined' is not assignable to type 'number'.
+web:typecheck:       Type 'undefined' is not assignable to type 'number'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(362,5): error TS2322: Type '{ usage: any; model: string; insights: GeneratedInsight[]; }' is not assignable to type 'string'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(369,59): error TS2304: Cannot find name 'GeneratedInsight'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(382,7): error TS2353: Object literal may only specify known properties, and 'summary' does not exist in type '{ insights: GeneratedInsight[]; usage: Partial<AIUsageMetadata>; }'.
+web:typecheck: src/lib/reports/ReportInsightsService.ts(403,26): error TS4111: Property 'research_objective' comes from an index signature, so it must be accessed with ['research_objective'].
+web:typecheck: src/lib/reports/ReportInsightsService.ts(404,66): error TS4111: Property 'research_objective' comes from an index signature, so it must be accessed with ['research_objective'].
+web:typecheck: src/lib/reports/ReportInsightsService.ts(406,26): error TS4111: Property 'target_audience' comes from an index signature, so it must be accessed with ['target_audience'].
+web:typecheck: src/lib/reports/ReportInsightsService.ts(407,58): error TS4111: Property 'target_audience' comes from an index signature, so it must be accessed with ['target_audience'].
+web:typecheck: src/lib/reports/ReportJobService.ts(139,20): error TS2339: Property 'insights' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/ReportJobService.ts(140,20): error TS2339: Property 'aiUsage' does not exist on type 'ReportSurveyData'.
+web:typecheck: src/lib/reports/ReportJobService.ts(188,23): error TS4111: Property 'ai_insights_enabled' comes from an index signature, so it must be accessed with ['ai_insights_enabled'].
+web:typecheck: src/lib/reports/ReportJobService.ts(189,23): error TS4111: Property 'ai_model_used' comes from an index signature, so it must be accessed with ['ai_model_used'].
+web:typecheck: src/lib/reports/ReportJobService.ts(190,23): error TS4111: Property 'ai_tokens_used' comes from an index signature, so it must be accessed with ['ai_tokens_used'].
+web:typecheck: src/lib/reports/ReportJobService.ts(191,23): error TS4111: Property 'ai_cost_usd' comes from an index signature, so it must be accessed with ['ai_cost_usd'].
+web:typecheck: src/lib/reports/ReportJobService.ts(192,23): error TS4111: Property 'ai_generation_time_ms' comes from an index signature, so it must be accessed with ['ai_generation_time_ms'].
+web:typecheck: src/lib/reports/ReportJobService.ts(193,23): error TS4111: Property 'insights_generated_at' comes from an index signature, so it must be accessed with ['insights_generated_at'].
+web:typecheck: src/lib/reports/ReportJobService.ts(216,26): error TS18046: 'error' is of type 'unknown'.
+web:typecheck: src/lib/reports/ReportJobService.ts(224,16): error TS18046: 'error' is of type 'unknown'.
+web:typecheck: src/lib/reports/ReportJobService.ts(303,28): error TS4111: Property 'filters' comes from an index signature, so it must be accessed with ['filters'].
+web:typecheck: src/lib/reports/ReportJobService.ts(304,27): error TS4111: Property 'includeLocalityCross' comes from an index signature, so it must be accessed with ['includeLocalityCross'].
+web:typecheck: src/lib/reports/ReportJobService.ts(310,24): error TS4111: Property 'tenantId' comes from an index signature, so it must be accessed with ['tenantId'].
+web:typecheck: src/lib/surveys/auth-context.ts(15,24): error TS2339: Property 'auth' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: src/lib/surveys/auth-context.ts(22,10): error TS2339: Property 'from' does not exist on type 'Promise<SupabaseClient<any, "public", any, any, any>>'.
+web:typecheck: npm error Lifecycle script `typecheck` failed with error:
+web:typecheck: npm error code 1
+web:typecheck: npm error path C:\DEV\Sistema_Pesquisa\political-research-platform\apps\web
+web:typecheck: npm error workspace web@0.1.0
+web:typecheck: npm error location C:\DEV\Sistema_Pesquisa\political-research-platform\apps\web
+web:typecheck: npm error command failed
+web:typecheck: npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsc --noEmit
+web:typecheck: ERROR: command finished with error: command 
+(C:\DEV\Sistema_Pesquisa\political-research-platform\apps\web) C:\Users\alber\AppData\Roaming\npm\npm.cmd run 
+typecheck exited (1)
+web#typecheck: command (C:\DEV\Sistema_Pesquisa\political-research-platform\apps\web) 
+C:\Users\alber\AppData\Roaming\npm\npm.cmd run typecheck exited (1)
+
+ Tasks:    6 successful, 8 total
+Cached:    5 cached, 8 total
+  Time:    3.471s 
+Failed:    web#typecheck
+
+ ERROR  run failed: command  exited (1)
