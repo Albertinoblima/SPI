@@ -2,8 +2,7 @@
 import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
-import { checkRateLimitDistributed } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient, checkRateLimitDistributed } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
@@ -171,4 +170,3 @@ export async function POST(request: NextRequest) {
         });
     }
 }
-

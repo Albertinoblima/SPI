@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 export interface SurveyAuthContext {
     userId: string;
@@ -47,4 +47,3 @@ export async function surveyBelongsToTenant(surveyId: string, tenantId: string) 
 
     return survey ?? null;
 }
-

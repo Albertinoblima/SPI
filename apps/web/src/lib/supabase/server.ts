@@ -5,4 +5,4 @@
  * 
  * @see packages/shared-utils/src/supabase/server-client.ts
  */
-export { createSupabaseServerClient as createClient, createSupabaseServerClient } from '@political-research/shared-utils/src/supabase/server-client';
+export { createSupabaseServerClient as createClient } from '@political-research/shared-utils/src/supabase/server-client';

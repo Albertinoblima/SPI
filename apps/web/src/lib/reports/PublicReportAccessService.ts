@@ -9,7 +9,7 @@
  * - Mantém modelo híbrido: token + credenciais para protected
  */
 
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import bcrypt from 'bcryptjs';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 

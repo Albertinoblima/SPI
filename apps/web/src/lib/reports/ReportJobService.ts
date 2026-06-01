@@ -17,7 +17,7 @@
  * - UI de acompanhamento de geração
  */
 
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { docxReportGenerator } from './DocxReportGenerator';
 import { pdfReportGenerator } from './PdfReportGenerator';
 import { advancedReportAggregationService } from './AdvancedReportAggregationService';

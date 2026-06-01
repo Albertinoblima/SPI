@@ -2,7 +2,7 @@
 // POST /api/team - Cria novo membro da equipe
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
@@ -166,4 +166,3 @@ export async function POST(request: NextRequest) {
         });
     }
 }
-

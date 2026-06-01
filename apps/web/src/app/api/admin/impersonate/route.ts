@@ -52,8 +52,7 @@ import {
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
 import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
-import { checkRateLimit, adminRateLimitKey, logAdminAction } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient, checkRateLimit, adminRateLimitKey, logAdminAction } from '@political-research/shared-utils';
 
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
@@ -192,4 +191,3 @@ export async function POST(request: NextRequest) {
         });
     }
 }
-

@@ -11,7 +11,7 @@
  * - Por enquanto: implementação stub + estrutura para quando ativarmos a IA.
  */
 
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import type {
   GeneratedInsightsResult,
   GeneratedInsight,
@@ -487,4 +487,3 @@ Implicação estratégica: [1 frase direta]`;
 }
 
 export const reportInsightsService = new ReportInsightsService();
-

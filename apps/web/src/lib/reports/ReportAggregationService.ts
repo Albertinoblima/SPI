@@ -9,7 +9,7 @@
  * - Manter toda lógica de agregação aqui para ser reutilizada tanto pelo .docx quanto pelo Dashboard.
  */
 
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 interface QuestionOption {
   value: string;

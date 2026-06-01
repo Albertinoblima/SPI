@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { issueMobileTokenPair } from '@/lib/mobile/token';
 import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
@@ -76,4 +76,3 @@ export async function POST(request: NextRequest) {
         });
     }
 }
-

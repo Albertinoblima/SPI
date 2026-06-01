@@ -35,7 +35,7 @@ import { reportAggregationService } from './ReportAggregationService';
 import { advancedReportAggregationService } from './AdvancedReportAggregationService';
 import { chartImageGenerator } from './ChartImageGenerator';
 import { reportInsightsService } from './ReportInsightsService';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 /**
  * DocxReportGenerator - Versão avançada
