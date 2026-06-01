@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient, checkRateLimitDistributed } from '@political-research/shared-utils';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
 import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
@@ -25,6 +25,12 @@ function sanitizeSvg(svgBuffer: Buffer): Buffer {
         .replace(/\s+xlink:href\s*=\s*(["'])javascript:.*?\1/gi, '');
 
     return Buffer.from(sanitized, 'utf8');
+}
+
+function getClientIp(request: NextRequest): string {
+    return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || request.headers.get('x-real-ip')?.trim()
+        || 'unknown';
 }
 
 async function getUserContext() {
@@ -73,6 +79,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
+    const limit = await checkRateLimitDistributed(
+        `company-assets-upload:${getClientIp(request)}`,
+        { windowMs: 10 * 60 * 1000, maxRequests: 20 }
+    );
+
+    if (!limit.allowed) {
+        const response = apiError('Muitas tentativas de upload de assets. Aguarde antes de tentar novamente.', 429, correlationId);
+        response.headers.set('Retry-After', String(limit.retryAfterSeconds));
+        return response;
+    }
+
     try {
         const ctx = await getUserContext();
         if (!ctx) return apiError('Não autenticado', 401, correlationId);

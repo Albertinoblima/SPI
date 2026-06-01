@@ -10,6 +10,7 @@ import {
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
 import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
+import { checkRateLimitDistributed } from '@political-research/shared-utils';
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -40,8 +41,25 @@ function createAuthClient() {
     );
 }
 
+function getClientIp(request: NextRequest): string {
+    return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || request.headers.get('x-real-ip')?.trim()
+        || 'unknown';
+}
+
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
+    const limit = await checkRateLimitDistributed(
+        `support-upload:${getClientIp(request)}`,
+        { windowMs: 10 * 60 * 1000, maxRequests: 30 }
+    );
+
+    if (!limit.allowed) {
+        const response = apiError('Muitas tentativas de upload. Aguarde antes de tentar novamente.', 429, correlationId);
+        response.headers.set('Retry-After', String(limit.retryAfterSeconds));
+        return response;
+    }
+
     const supabase = createAuthClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return apiError('Não autenticado', 401, correlationId);

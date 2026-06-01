@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient, checkRateLimitDistributed } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
@@ -15,8 +15,25 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // aceita até 10MB para redimensionar
 const MAX_DIMENSION = 512; // px — redimensiona para caber em 512×512
 
+function getClientIp(request: NextRequest): string {
+    return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || request.headers.get('x-real-ip')?.trim()
+        || 'unknown';
+}
+
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
+    const limit = await checkRateLimitDistributed(
+        `company-logo-upload:${getClientIp(request)}`,
+        { windowMs: 10 * 60 * 1000, maxRequests: 20 }
+    );
+
+    if (!limit.allowed) {
+        const response = apiError('Muitas tentativas de upload de logo. Aguarde antes de tentar novamente.', 429, correlationId);
+        response.headers.set('Retry-After', String(limit.retryAfterSeconds));
+        return response;
+    }
+
     try {
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
