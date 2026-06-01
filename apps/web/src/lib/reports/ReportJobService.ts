@@ -378,8 +378,8 @@ export class ReportJobService {
       .eq('tenant_id', tenantId)
       .eq('ai_insights_enabled', true);
 
-    const totalCost = (data || []).reduce((sum, r) => sum + (r.ai_cost_usd || 0), 0);
-    const totalTokens = (data || []).reduce((sum, r) => sum + (r.ai_tokens_used || 0), 0);
+    const totalCost = (data || []).reduce((sum: number, r: any) => sum + (r.ai_cost_usd || 0), 0);
+    const totalTokens = (data || []).reduce((sum: number, r: any) => sum + (r.ai_tokens_used || 0), 0);
 
     return {
       totalJobsWithAI: data?.length || 0,

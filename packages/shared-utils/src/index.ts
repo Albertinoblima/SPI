@@ -23,6 +23,11 @@ export {
 
 export * from './planning';
 
+// Supabase Clients (centralized - use these instead of duplicating creation logic)
+export {
+  createSupabaseServerClient,
+} from './supabase/server-client';
+
 // Security utilities (Fase 2)
 export {
   checkRateLimit,
@@ -33,8 +38,7 @@ export type { RateLimitResult } from './security/rate-limiter';
 export { logAdminAction } from './security/audit';
 export { checkIdempotency, storeIdempotencyResult } from './security/idempotency';
 
-// Note: Server-only Supabase clients are NOT re-exported from the main barrel
-// to avoid pulling next/headers into client bundles.
-// Import directly:
-// import { createSupabaseServerClient } from '@political-research/shared-utils/supabase/server-client';
-// (or from the web's @/lib/supabase/server re-export for convenience)
+export {
+  createSupabaseAdminClient,
+  createAuditedSupabaseAdminClient,
+} from './supabase/admin-client';
