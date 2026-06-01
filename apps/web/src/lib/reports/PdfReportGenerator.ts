@@ -15,7 +15,7 @@ import PDFDocument from 'pdfkit';
 import { advancedReportAggregationService } from './AdvancedReportAggregationService';
 import { chartImageGenerator } from './ChartImageGenerator';
 import { reportInsightsService } from './ReportInsightsService';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 import type { ReportConfiguration, ReportSurveyData, InternalReportConfig, GeneratedInsight, CrossTabRow, DistributionItem, PlanningContext } from './types';
 
 export class PdfReportGenerator {

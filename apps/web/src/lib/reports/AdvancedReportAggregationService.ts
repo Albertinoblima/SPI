@@ -16,7 +16,7 @@
  * - Relatório Consolidado (mesmo + contexto para IA)
  */
 
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 import type {
   ReportFilters,
   FilteredDistributionResult,

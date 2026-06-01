@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { NextRequest } from 'next/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 
 type AuthAuditEventInput = {
     action: string;

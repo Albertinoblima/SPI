@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 import { verifyMobileAccessToken } from '@/lib/mobile/token';
 
 export interface MobileAuthContext {
@@ -60,3 +60,4 @@ export async function getMobileAuthContext(request: NextRequest): Promise<Mobile
         role: profile.role,
     };
 }
+

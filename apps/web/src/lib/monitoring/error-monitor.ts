@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 import {
     ErrorSeverity,
     getErrorCodeDefinition,
@@ -169,3 +169,4 @@ export async function captureSystemError(input: CaptureSystemErrorInput): Promis
         return { correlationId };
     }
 }
+

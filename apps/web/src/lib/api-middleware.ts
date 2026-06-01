@@ -1,6 +1,6 @@
 // Middleware para verificar se usuário é system_admin
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@political-research/shared-utils';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
 export async function requireSystemAdmin(request: NextRequest) {

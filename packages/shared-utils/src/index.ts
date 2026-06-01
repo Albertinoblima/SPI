@@ -23,11 +23,6 @@ export {
 
 export * from './planning';
 
-// Supabase Clients (centralized - use these instead of duplicating creation logic)
-export {
-  createSupabaseServerClient,
-} from './supabase/server-client';
-
 // Security utilities (Fase 2)
 export {
   checkRateLimit,
@@ -38,6 +33,8 @@ export type { RateLimitResult } from './security/rate-limiter';
 export { logAdminAction } from './security/audit';
 export { checkIdempotency, storeIdempotencyResult } from './security/idempotency';
 
+// Server-only client (with next/headers) is NOT exported from barrel to avoid client bundle issues.
+// Use direct subpath or web re-export.
 export {
   createSupabaseAdminClient,
   createAuditedSupabaseAdminClient,

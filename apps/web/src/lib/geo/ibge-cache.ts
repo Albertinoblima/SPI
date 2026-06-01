@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -172,3 +172,4 @@ export async function getOrRefreshGeoCache<T>(options: CacheOptions<T>): Promise
         throw error;
     }
 }
+

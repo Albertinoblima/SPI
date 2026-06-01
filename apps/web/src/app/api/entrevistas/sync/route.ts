@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAuditedSupabaseAdminClient, checkRateLimit, adminRateLimitKey } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
+import { checkRateLimit, adminRateLimitKey } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
 import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
@@ -137,3 +138,4 @@ export async function POST(request: NextRequest) {
         });
     }
 }
+

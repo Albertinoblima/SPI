@@ -1,6 +1,6 @@
 // POST /api/auth/register - Registro completo de empresa + admin
 import { NextRequest } from 'next/server';
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 import {
     apiError,
     apiSuccess,
@@ -126,3 +126,4 @@ export async function POST(request: NextRequest) {
         });
     }
 }
+

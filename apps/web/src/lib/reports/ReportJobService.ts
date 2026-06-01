@@ -17,7 +17,7 @@
  * - UI de acompanhamento de geração
  */
 
-import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils/src/supabase/admin-client';
 import { docxReportGenerator } from './DocxReportGenerator';
 import { pdfReportGenerator } from './PdfReportGenerator';
 import { advancedReportAggregationService } from './AdvancedReportAggregationService';
@@ -378,8 +378,8 @@ export class ReportJobService {
       .eq('tenant_id', tenantId)
       .eq('ai_insights_enabled', true);
 
-    const totalCost = (data || []).reduce((sum: number, r: any) => sum + (r.ai_cost_usd || 0), 0);
-    const totalTokens = (data || []).reduce((sum: number, r: any) => sum + (r.ai_tokens_used || 0), 0);
+    const totalCost = (data || []).reduce((sum, r) => sum + (r.ai_cost_usd || 0), 0);
+    const totalTokens = (data || []).reduce((sum, r) => sum + (r.ai_tokens_used || 0), 0);
 
     return {
       totalJobsWithAI: data?.length || 0,
