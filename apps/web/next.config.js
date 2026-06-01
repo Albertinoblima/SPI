@@ -15,7 +15,7 @@ const contentSecurityPolicyReportOnly = [
 const nextConfig = {
     experimental: {
         // Next 14 ainda expõe esta opção sob experimental.
-        serverComponentsExternalPackages: ['pdfkit', 'docx'],
+        serverComponentsExternalPackages: ['pdfkit', 'docx', '@political-research/shared-utils'],
     },
     images: {
         remotePatterns: [
