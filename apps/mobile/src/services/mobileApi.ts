@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import type { Survey, User } from '@political-research/shared-types';
 
-const API_BASE_URL = (process.env.EXPO_PUBLIC_WEB_API_URL ?? '').trim().replace(/\/$/, '');
+const API_BASE_URL = (process.env['EXPO_PUBLIC_WEB_API_URL'] ?? '').trim().replace(/\/$/, '');
 
 const ACCESS_TOKEN_KEY = 'mobile_access_token';
 const REFRESH_TOKEN_KEY = 'mobile_refresh_token';
@@ -139,7 +139,7 @@ export async function getValidSession(): Promise<MobileSession | null> {
     return session;
 }
 
-async function requestWithAuth(path: string, init?: RequestInit): Promise<any> {
+async function requestWithAuth<T = unknown>(path: string, init?: RequestInit): Promise<T> {
     ensureApiBaseUrl();
 
     const session = await getValidSession();
@@ -161,7 +161,7 @@ async function requestWithAuth(path: string, init?: RequestInit): Promise<any> {
         throw new Error(json?.error ?? 'Falha na requisição mobile');
     }
 
-    return json?.data;
+    return json?.data as T;
 }
 
 export async function fetchAssignedSurveys(): Promise<Survey[]> {

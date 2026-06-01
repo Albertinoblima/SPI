@@ -61,38 +61,43 @@ serve(async (req: Request) => {
         const payload: SyncPayload = await req.json();
         const results = { synced: 0, failed: 0, errors: [] as string[] };
 
+        // Process items with per-item error isolation (improved resilience)
         for (const response of payload.responses) {
-            const { answers, ...responseData } = response;
-            const { data: upserted, error } = await supabase.from('responses').upsert({
-                ...responseData,
-                interviewer_id: user.id,
-                sync_status: 'synced',
-            }, {
-                onConflict: 'local_id',
-            }).select('id').single();
+            try {
+                const { answers, ...responseData } = response;
 
-            if (!error && upserted && answers.length > 0) {
-                await supabase.from('response_answers').upsert(
-                    answers.map(a => ({ ...a, response_id: upserted.id })),
-                    { onConflict: 'response_id,question_id' },
-                );
-            }
+                const { data: upserted, error } = await supabase.from('responses').upsert({
+                    ...responseData,
+                    interviewer_id: user.id,
+                    sync_status: 'synced',
+                }, {
+                    onConflict: 'local_id',
+                }).select('id').single();
 
-            if (error) {
-                results.failed++;
-                results.errors.push(`${response.local_id}: ${error.message}`);
-            } else {
+                if (error) throw error;
+
+                if (upserted && Array.isArray(answers) && answers.length > 0) {
+                    await supabase.from('response_answers').upsert(
+                        answers.map(a => ({ ...a, response_id: upserted.id })),
+                        { onConflict: 'response_id,question_id' },
+                    );
+                }
+
                 results.synced++;
 
-                // Log sync
+                // Log sync (fixed tenant reference - using proper field when available)
                 await supabase.from('sync_log').insert({
                     user_id: user.id,
-                    tenant_id: response.survey_id, // Will be resolved via FK
+                    tenant_id: responseData.tenant_id ?? response.survey_id,
                     action: 'push',
                     entity_type: 'response',
                     entity_id: response.id,
                     status: 'success',
                 });
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                results.failed++;
+                results.errors.push(`${response.local_id}: ${message || 'unknown error'}`);
             }
         }
 

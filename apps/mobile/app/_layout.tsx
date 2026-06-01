@@ -3,6 +3,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { initializeAuthSession, useAuthStore } from '@/store/authStore';
+import { initializeDatabase } from '@/database/db';
+import { SyncEngine } from '@/services/sync/SyncEngine';
 
 export default function RootLayout() {
     const router = useRouter();
@@ -13,6 +15,14 @@ export default function RootLayout() {
     useEffect(() => {
         let unsubscribe: undefined | (() => void);
         let isMounted = true;
+
+        // Initialize local offline database early (critical for SyncEngine)
+        initializeDatabase().catch((err) => {
+            console.warn('[RootLayout] Failed to initialize local database:', err);
+        });
+
+        // Start the SyncEngine (background sync, network listener, etc.)
+        SyncEngine.getInstance().start();
 
         initializeAuthSession().then((cleanup) => {
             if (isMounted) {

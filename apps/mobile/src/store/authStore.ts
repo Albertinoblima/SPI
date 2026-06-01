@@ -33,8 +33,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             const session = await loginMobile(credentials.email, credentials.password);
             set({ session, user: session.user as User });
-        } catch (error: any) {
-            throw new Error(normalizeMobileAuthErrorMessage(error?.message));
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(normalizeMobileAuthErrorMessage(message));
         }
     },
 

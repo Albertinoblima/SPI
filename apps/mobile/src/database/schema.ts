@@ -172,6 +172,7 @@ export const sync_queue = sqliteTable('sync_queue', {
     payload: text('payload').notNull(),
 
     // Retry logic
+    status: text('status').default('pending'), // 'pending' | 'syncing' | 'synced' | 'error'
     retry_count: integer('retry_count').default(0),
     max_retries: integer('max_retries').default(5),
     next_retry_at: text('next_retry_at'),

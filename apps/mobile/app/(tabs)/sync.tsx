@@ -41,7 +41,7 @@ export default function SyncScreen() {
                 renderItem={({ item }) => (
                     <View style={styles.queueItem}>
                         <View>
-                            <Text style={styles.queueItemTitle}>{item.type}</Text>
+                            <Text style={styles.queueItemTitle}>{item.entity_type}</Text>
                             <Text style={styles.queueItemDate}>{item.created_at}</Text>
                         </View>
                         <View style={[styles.queueItemStatus, styles[`status_${item.status}`]]}>

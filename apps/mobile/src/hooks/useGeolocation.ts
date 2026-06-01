@@ -138,13 +138,14 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
             }));
 
             return geoData;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to get location:', error);
 
+            const err = error as { code?: string };
             let errorMessage = 'Erro ao obter localização';
-            if (error.code === 'E_LOCATION_UNAVAILABLE') {
+            if (err.code === 'E_LOCATION_UNAVAILABLE') {
                 errorMessage = 'Localização indisponível. Verifique se o GPS está ativado.';
-            } else if (error.code === 'E_LOCATION_TIMEOUT') {
+            } else if (err.code === 'E_LOCATION_TIMEOUT') {
                 errorMessage = 'Tempo esgotado ao buscar localização.';
             }
 
@@ -176,6 +177,10 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
             }
 
             const addr = addresses[0];
+            if (!addr) {
+                return null;
+            }
+
             const addressData: AddressData = {
                 street: addr.street || undefined,
                 city: addr.city || addr.subregion || undefined,
@@ -183,7 +188,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
                 country: addr.country || undefined,
                 postalCode: addr.postalCode || undefined,
                 formattedAddress: formatAddress(addr),
-            };
+            } as AddressData;
 
             setState(prev => ({
                 ...prev,
@@ -263,7 +268,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
                 return;
             }
             if (data) {
-                const { locations } = data as any;
+                const { locations } = data as { locations?: unknown[] };
                 console.log('Background location update:', locations);
                 // Aqui você pode salvar no SQLite para análise posterior
             }

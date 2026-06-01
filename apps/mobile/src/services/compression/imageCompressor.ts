@@ -55,20 +55,23 @@ export class ImageCompressor {
                 originalSize = fileInfo.size;
             }
 
-            // 2. Primeira compressão com resize
+            // 2. Primeira compressão com resize (sempre com valores numéricos)
+            const resizeWidth = opts.maxWidth ?? this.DEFAULT_OPTIONS.maxWidth!;
+            const resizeHeight = opts.maxHeight ?? this.DEFAULT_OPTIONS.maxHeight!;
+
             let compressed = await ImageManipulator.manipulateAsync(
                 imageUri,
                 [
                     {
                         resize: {
-                            width: opts.maxWidth,
-                            height: opts.maxHeight,
+                            width: resizeWidth,
+                            height: resizeHeight,
                         },
                     },
                 ],
                 {
-                    compress: opts.quality,
-                    format: opts.format === 'png'
+                    compress: opts.quality ?? this.DEFAULT_OPTIONS.quality!,
+                    format: (opts.format ?? this.DEFAULT_OPTIONS.format) === 'png'
                         ? ImageManipulator.SaveFormat.PNG
                         : ImageManipulator.SaveFormat.JPEG,
                 }
@@ -166,7 +169,7 @@ export class ImageCompressor {
                 quality: 0.8, // Pré-compressão no picker
             });
 
-            if (result.canceled) {
+            if (result.canceled || !result.assets?.[0]) {
                 return null;
             }
 
@@ -201,7 +204,7 @@ export class ImageCompressor {
                 quality: 0.8,
             });
 
-            if (result.canceled) {
+            if (result.canceled || !result.assets?.[0]) {
                 return null;
             }
 

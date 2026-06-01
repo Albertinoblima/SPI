@@ -208,7 +208,7 @@ export default function ResponseScreen() {
 
                     <QuestionRenderer
                         question={currentQuestion}
-                        answer={answers[currentQuestion.id]}
+                        {...(answers[currentQuestion.id] ? { answer: answers[currentQuestion.id] } : {})}
                         onAnswer={(answer) => handleAnswer(currentQuestion.id, answer)}
                     />
 

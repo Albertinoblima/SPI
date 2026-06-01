@@ -13,7 +13,7 @@ interface SyncState {
     loadQueue: () => Promise<void>;
 }
 
-const syncEngine = new SyncEngine();
+const syncEngine = SyncEngine.getInstance();
 
 export const useSyncStore = create<SyncState>((set, get) => ({
     syncQueue: [],

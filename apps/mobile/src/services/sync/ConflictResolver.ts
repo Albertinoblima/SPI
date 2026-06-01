@@ -11,9 +11,9 @@ export class ConflictResolver {
      * Resolve conflicts using "last write wins" strategy
      * comparing timestamps
      */
-    resolve(localData: any, remoteData: any): ConflictResult {
-        const localTimestamp = new Date(localData.updated_at).getTime();
-        const remoteTimestamp = new Date(remoteData.updated_at).getTime();
+    resolve(localData: Record<string, unknown>, remoteData: Record<string, unknown>): ConflictResult {
+        const localTimestamp = new Date(String(localData.updated_at ?? '')).getTime();
+        const remoteTimestamp = new Date(String(remoteData.updated_at ?? '')).getTime();
 
         if (localTimestamp >= remoteTimestamp) {
             return { resolved: true, winner: 'local' };
@@ -25,7 +25,7 @@ export class ConflictResolver {
     /**
      * For responses, local always wins since they are new data
      */
-    resolveResponse(localData: any, remoteData: any): ConflictResult {
+    resolveResponse(localData: Record<string, unknown>, remoteData: Record<string, unknown>): ConflictResult {
         return { resolved: true, winner: 'local', mergedData: localData };
     }
 }
