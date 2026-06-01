@@ -13,8 +13,10 @@ const contentSecurityPolicyReportOnly = [
 ].join('; ');
 
 const nextConfig = {
-    // Evitar que pdfkit/docx sejam empacotados pelo webpack (precisam de acesso ao fs em runtime)
-    serverExternalPackages: ['pdfkit', 'docx'],
+    experimental: {
+        // Next 14 ainda expõe esta opção sob experimental.
+        serverComponentsExternalPackages: ['pdfkit', 'docx'],
+    },
     images: {
         remotePatterns: [
             {

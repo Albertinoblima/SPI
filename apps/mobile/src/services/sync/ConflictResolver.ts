@@ -12,8 +12,8 @@ export class ConflictResolver {
      * comparing timestamps
      */
     resolve(localData: Record<string, unknown>, remoteData: Record<string, unknown>): ConflictResult {
-        const localTimestamp = new Date(String(localData.updated_at ?? '')).getTime();
-        const remoteTimestamp = new Date(String(remoteData.updated_at ?? '')).getTime();
+        const localTimestamp = new Date(String(localData['updated_at'] ?? '')).getTime();
+        const remoteTimestamp = new Date(String(remoteData['updated_at'] ?? '')).getTime();
 
         if (localTimestamp >= remoteTimestamp) {
             return { resolved: true, winner: 'local' };

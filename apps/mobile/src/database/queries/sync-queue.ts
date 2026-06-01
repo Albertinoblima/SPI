@@ -94,8 +94,8 @@ export class SQLiteSyncQueueRepository implements SyncQueueRepository {
 
         const result = await baseQuery;
 
-        const filtered = entityType 
-            ? result.filter((r) => (r as Record<string, unknown>).entity_type === entityType)
+        const filtered = entityType
+            ? result.filter((r) => r.entity_type === entityType)
             : result;
 
         return filtered as SyncQueueItem[];

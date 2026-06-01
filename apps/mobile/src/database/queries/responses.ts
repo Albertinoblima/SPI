@@ -5,6 +5,9 @@ import { responses, response_answers } from '../schema';
 import type { SurveyResponse, CreateResponseDTO, ResponseAnswer } from '@political-research/shared-types';
 import { generateLocalId } from '@political-research/shared-utils';
 
+type ResponseRow = typeof responses.$inferSelect;
+type ResponseAnswerRow = typeof response_answers.$inferSelect;
+
 export interface ResponseRepository {
     create(dto: CreateResponseDTO, interviewerId: string, tenantId: string): Promise<SurveyResponse>;
     getById(id: string): Promise<SurveyResponse | null>;
@@ -51,13 +54,13 @@ export class SQLiteResponseRepository implements ResponseRepository {
         await this.db.insert(responses).values(responseRecord);
 
         if (dto.answers && dto.answers.length > 0) {
-            const answerRecords = dto.answers.map((answer: Record<string, unknown>) => ({
+            const answerRecords = dto.answers.map((answer: CreateResponseDTO['answers'][number]) => ({
                 id: generateLocalId(),
                 response_id: localId,
                 question_id: String(answer.question_id ?? ''),
-                answer_text: (answer.answer_text as string | null) ?? null,
-                answer_number: (answer.answer_number as number | null) ?? null,
-                answer_date: (answer.answer_date as string | null) ?? null,
+                answer_text: answer.answer_text ?? null,
+                answer_number: answer.answer_number ?? null,
+                answer_date: answer.answer_date ?? null,
                 answer_json: answer.answer_json ? JSON.stringify(answer.answer_json) : null,
                 created_at: now,
                 updated_at: now,
@@ -71,10 +74,11 @@ export class SQLiteResponseRepository implements ResponseRepository {
 
     async getById(id: string): Promise<SurveyResponse | null> {
         const result = await this.db.select().from(responses).where(eq(responses.id, id)).limit(1);
-        if (result.length === 0) return null;
+        const row = result[0];
+        if (!row) return null;
 
         const answers = await this.getAnswersForResponse(id);
-        return this.mapToSurveyResponse(result[0], answers);
+        return this.mapToSurveyResponse(row, answers);
     }
 
     async getBySurveyId(surveyId: string): Promise<SurveyResponse[]> {
@@ -85,7 +89,7 @@ export class SQLiteResponseRepository implements ResponseRepository {
             .orderBy(desc(responses.created_at));
 
         return Promise.all(
-            result.map(async (r) => {
+            result.map(async (r: ResponseRow) => {
                 const answers = await this.getAnswersForResponse(r.id);
                 return this.mapToSurveyResponse(r, answers);
             })
@@ -101,7 +105,7 @@ export class SQLiteResponseRepository implements ResponseRepository {
             .limit(limit);
 
         return Promise.all(
-            result.map(async (r) => {
+            result.map(async (r: ResponseRow) => {
                 const answers = await this.getAnswersForResponse(r.id);
                 return this.mapToSurveyResponse(r, answers);
             })
@@ -138,43 +142,50 @@ export class SQLiteResponseRepository implements ResponseRepository {
             .where(eq(responses.id, localId));
     }
 
-    private async getAnswersForResponse(responseId: string) {
+    private async getAnswersForResponse(responseId: string): Promise<ResponseAnswer[]> {
         const result = await this.db.select().from(response_answers).where(eq(response_answers.response_id, responseId));
-        return result.map((a) => ({
-            ...a,
-            answer_json: a.answer_json ? JSON.parse(a.answer_json) : undefined,
+        return result.map((answer: ResponseAnswerRow) => ({
+            id: answer.id,
+            response_id: answer.response_id,
+            question_id: answer.question_id,
+            ...(answer.answer_text !== null ? { answer_text: answer.answer_text } : {}),
+            ...(answer.answer_number !== null ? { answer_number: answer.answer_number } : {}),
+            ...(answer.answer_date !== null ? { answer_date: answer.answer_date } : {}),
+            ...(answer.answer_json ? { answer_json: JSON.parse(answer.answer_json) } : {}),
+            created_at: answer.created_at ?? new Date().toISOString(),
         }));
     }
 
-    private mapToSurveyResponse(row: Record<string, unknown>, answers: unknown[]): SurveyResponse {
+    private mapToSurveyResponse(row: ResponseRow, answers: ResponseAnswer[]): SurveyResponse {
         const result: SurveyResponse = {
-            id: String(row.id ?? ''),
-            survey_id: String(row.survey_id ?? ''),
-            interviewer_id: String(row.interviewer_id ?? ''),
-            tenant_id: String(row.tenant_id ?? ''),
-            respondent_name: (row.respondent_name as string | undefined) ?? undefined,
-            respondent_phone: (row.respondent_phone as string | undefined) ?? undefined,
-            respondent_document: undefined,
-            location: row.location_lat
+            id: row.id,
+            survey_id: row.survey_id,
+            interviewer_id: row.interviewer_id,
+            tenant_id: row.tenant_id,
+            ...(row.respondent_name !== null ? { respondent_name: row.respondent_name } : {}),
+            ...(row.respondent_phone !== null ? { respondent_phone: row.respondent_phone } : {}),
+            ...((row.location_lat !== null && row.location_lng !== null)
                 ? {
-                      latitude: Number(row.location_lat),
-                      longitude: Number(row.location_lng),
-                      accuracy: (row.location_accuracy as number | undefined) ?? undefined,
-                      timestamp: String(row.created_at ?? ''),
-                  }
-                : undefined,
-            address_street: (row.address_street as string | undefined) ?? undefined,
-            address_city: (row.address_city as string | undefined) ?? undefined,
-            address_state: (row.address_state as string | undefined) ?? undefined,
-            started_at: String(row.created_at ?? ''),
-            completed_at: (row.completed_at as string | undefined) ?? undefined,
+                    location: {
+                        latitude: Number(row.location_lat),
+                        longitude: Number(row.location_lng),
+                        accuracy: Number(row.location_accuracy ?? 0),
+                        timestamp: row.created_at ?? new Date().toISOString(),
+                    },
+                }
+                : {}),
+            ...(row.address_street !== null ? { address_street: row.address_street } : {}),
+            ...(row.address_city !== null ? { address_city: row.address_city } : {}),
+            ...(row.address_state !== null ? { address_state: row.address_state } : {}),
+            started_at: row.created_at ?? new Date().toISOString(),
+            ...(row.completed_at !== null ? { completed_at: row.completed_at } : {}),
             sync_status: row.synced ? 'synced' : 'pending',
-            device_id: String(row.device_id ?? 'unknown'),
-            local_id: String(row.id ?? ''),
-            sync_version: ((row.sync_attempts as number | undefined) || 0) + 1,
-            answers: answers as ResponseAnswer[], // local rows map to ResponseAnswer shape (parsed JSON)
-            created_at: String(row.created_at ?? ''),
-            updated_at: String(row.updated_at ?? ''),
+            ...(row.device_id ? { device_id: row.device_id } : {}),
+            local_id: row.id,
+            sync_version: (row.sync_attempts ?? 0) + 1,
+            ...(answers.length > 0 ? { answers } : {}),
+            created_at: row.created_at ?? new Date().toISOString(),
+            updated_at: row.updated_at ?? new Date().toISOString(),
         };
         return result;
     }

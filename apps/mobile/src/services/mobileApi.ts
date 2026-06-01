@@ -17,6 +17,17 @@ export interface MobileSession {
     user: User;
 }
 
+interface AssignedSurveysPayload {
+    surveys?: Survey[];
+}
+
+interface SurveyBundlePayload {
+    survey: Survey;
+    role: string;
+    routes: unknown[];
+    quotas: unknown[];
+}
+
 function ensureApiBaseUrl() {
     if (!API_BASE_URL) {
         throw new Error('Defina EXPO_PUBLIC_WEB_API_URL no .env do mobile para habilitar autenticação e coleta.');
@@ -165,7 +176,7 @@ async function requestWithAuth<T = unknown>(path: string, init?: RequestInit): P
 }
 
 export async function fetchAssignedSurveys(): Promise<Survey[]> {
-    const data = await requestWithAuth('/api/mobile/pesquisas', { method: 'GET' });
+    const data = await requestWithAuth<AssignedSurveysPayload>('/api/mobile/pesquisas', { method: 'GET' });
     return (data?.surveys ?? []) as Survey[];
 }
 
@@ -175,5 +186,5 @@ export async function fetchSurveyBundle(surveyId: string): Promise<{
     routes: unknown[];
     quotas: unknown[];
 }> {
-    return requestWithAuth(`/api/mobile/pesquisa/${surveyId}`, { method: 'GET' });
+    return requestWithAuth<SurveyBundlePayload>(`/api/mobile/pesquisa/${surveyId}`, { method: 'GET' });
 }
