@@ -116,7 +116,7 @@ function getSurveyHref(survey: Survey) {
 }
 
 function StatCard({ icon: Icon, label, value, sub, color }: {
-    icon: React.FC<{ className?: string }>;
+    icon: React.ElementType;
     label: string;
     value: number | string;
     sub?: string;

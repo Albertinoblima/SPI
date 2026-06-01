@@ -21,6 +21,7 @@ import {
     handleApiUnhandledError,
     requireTenantAdmin,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 import { normalizeGeoText, resolveStateCode } from '@/lib/geo/br-reference';
 
 interface MunicipalityProfileResponse {
@@ -64,6 +65,7 @@ interface MunicipalityProfileResponse {
 }
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireTenantAdmin(request);
     if (!auth.isAuthorized) {
         return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
@@ -74,12 +76,12 @@ export async function GET(request: NextRequest) {
         const cityParam = request.nextUrl.searchParams.get('city')?.trim() ?? '';
 
         if (!stateParam || !cityParam) {
-            return apiError('Parâmetros obrigatórios: state e city', 400);
+            return apiError('Parâmetros obrigatórios: state e city', 400, correlationId);
         }
 
         const stateCode = resolveStateCode(stateParam);
         if (!stateCode) {
-            return apiError(`Estado não reconhecido: "${stateParam}"`, 400);
+            return apiError(`Estado não reconhecido: "${stateParam}"`, 400, correlationId);
         }
 
         const normalizedCity = normalizeGeoText(cityParam);
@@ -122,7 +124,7 @@ export async function GET(request: NextRequest) {
             .select('id')
             .eq('municipio_id', ibgeId);
 
-        const localityIds = (localityIdsData ?? []).map((l: any) => l.id);
+        const localityIds = (localityIdsData ?? []).map((l: Record<string, unknown>) => l['id']);
 
         // 2. Buscar dados demográficos municipais (Censo) - paralelo
         const [censusRes, viewRes, residencesRes, ingestionRes] = await Promise.all([
@@ -170,7 +172,7 @@ export async function GET(request: NextRequest) {
 
         const cnefeFromView = view?.residencias_cnefe ?? 0;
         const cnefeFromDirect = Array.isArray(residencesRes.data)
-            ? residencesRes.data.reduce((sum: number, r: any) => sum + (r.quantidade_residencias || 0), 0)
+            ? residencesRes.data.reduce((sum: number, r: Record<string, unknown>) => sum + (((r['quantidade_residencias'] as number) || 0) as number), 0)
             : 0;
         const hasCnefe = cnefeFromView > 0 || cnefeFromDirect > 0;
 

@@ -115,9 +115,9 @@ function MetricCard({
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function MunicipioDetalhePage() {
-    const params = useParams();
+    const params = useParams<{ id: string }>();
     const router = useRouter();
-    const id = params?.id as string;
+    const id = params?.id;
 
     const [municipio, setMunicipio] = useState<MunicipioResumo | null>(null);
     const [localidades, setLocalidades] = useState<Localidade[]>([]);
@@ -248,9 +248,9 @@ export default function MunicipioDetalhePage() {
                     <MetricCard
                         icon={Users} label="Eleitores (TSE)"
                         value={fmt(municipio.total_eleitores)}
-                        sub={municipio.percentual_eleitores != null
-                            ? `${municipio.percentual_eleitores.toFixed(1)}% da pop.`
-                            : undefined}
+                        {...(municipio.percentual_eleitores != null
+                            ? { sub: `${municipio.percentual_eleitores.toFixed(1)}% da pop.` }
+                            : {})}
                         color="text-purple-600"
                     />
                     <MetricCard

@@ -8,10 +8,12 @@ import {
     handleApiUnhandledError,
     trackedApiError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
-    if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
+    if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
 
     try {
         const incidentThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -69,21 +71,22 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
-    if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
+    if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
 
     try {
         const body = await request.json();
         const { title, message, target_type, tenant_id } = body;
 
         if (!title?.trim() || !message?.trim()) {
-            return apiError('Título e mensagem são obrigatórios', 400);
+            return apiError('Título e mensagem são obrigatórios', 400, correlationId);
         }
         if (!['all', 'tenant'].includes(target_type)) {
-            return apiError('target_type inválido', 400);
+            return apiError('target_type inválido', 400, correlationId);
         }
         if (target_type === 'tenant' && !tenant_id) {
-            return apiError('tenant_id obrigatório para target_type=tenant', 400);
+            return apiError('tenant_id obrigatório para target_type=tenant', 400, correlationId);
         }
 
         const { data: adminUser } = await auth.supabase.auth.getUser();

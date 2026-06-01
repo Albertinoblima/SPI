@@ -2,8 +2,9 @@ import { NextRequest } from 'next/server';
 import PDFDocument from 'pdfkit';
 import { Document, Packer, Paragraph, HeadingLevel } from 'docx';
 import { apiError, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient, checkRateLimit, adminRateLimitKey } from '@political-research/shared-utils';
 import { getSurveyAuthContext, surveyBelongsToTenant } from '@/lib/surveys/auth-context';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
@@ -96,19 +97,26 @@ async function createDocx(rows: DistributionRow[], surveyTitle: string) {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getSurveyAuthContext();
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
+
+        // Fase 2: Rate limit on sensitive distribution download
+        const rateKey = adminRateLimitKey(ctx.userId || 'unknown', 'distribution-download');
+        if (!checkRateLimit(rateKey, { windowMs: 60_000, maxRequests: 10 })) {
+            return apiError('Limite de downloads excedido. Tente novamente em breve.', 429, correlationId);
+        }
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
-        if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada', 404, correlationId);
 
         const format = request.nextUrl.searchParams.get('format')?.toLowerCase();
         if (format !== 'pdf' && format !== 'docx') {
-            return apiError('Formato invalido. Use format=pdf ou format=docx', 400);
+            return apiError('Formato invalido. Use format=pdf ou format=docx', 400, correlationId);
         }
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('distribution-download');
         const { data: rows, error } = await admin
             .from('survey_distribution_quotas')
             .select('interviewer_id, locality_id, zone, gender, age_group, quota_total, users(full_name), survey_localities(name)')
@@ -116,8 +124,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', ctx.tenantId)
             .order('interviewer_id', { ascending: true });
 
-        if (error) return apiError(`Falha ao montar controle: ${error.message}`, 500);
-        if (!rows || rows.length === 0) return apiError('Nao ha distribuicao para gerar documento', 400);
+        if (error) return apiError(`Falha ao montar controle: ${error.message}`, 500, correlationId);
+        if (!rows || rows.length === 0) return apiError('Nao ha distribuicao para gerar documento', 400, correlationId);
 
         if (format === 'pdf') {
             const pdfBuffer = await createPdf(rows as DistributionRow[], survey.title);

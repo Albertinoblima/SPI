@@ -7,6 +7,19 @@ import { HelpCircle } from 'lucide-react';
 import { HelpAssistant } from '@/components/help/HelpAssistant';
 import { reportClientError } from '@/lib/monitoring/reportClientError';
 
+interface AvailableCrossingQuestion {
+  id: string;
+  text: string;
+  type?: string;
+}
+
+interface PublicReportAnalyticsData {
+  totalResponses?: number;
+  lastUpdated?: string | number;
+  availableCrossings?: AvailableCrossingQuestion[];
+  [key: string]: unknown;
+}
+
 /**
  * Protected Dynamic Report Page
  * 
@@ -25,7 +38,7 @@ export default function PublicDynamicReportPage() {
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [error, setError] = useState('');
-  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null);
+  const [reportData, setReportData] = useState<PublicReportAnalyticsData | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   // Estado para cruzamento dinâmico real (mover para o topo)
   const [cross1, setCross1] = useState('');
@@ -61,7 +74,7 @@ export default function PublicDynamicReportPage() {
     try {
       const res = await fetch(`/api/reports/public/${params.shareToken}/analytics`);
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as PublicReportAnalyticsData;
         setReportData(data);
       } else if (res.status === 410) {
         setError('Este link de relatório expirou. Solicite um novo compartilhamento.');
@@ -121,7 +134,9 @@ export default function PublicDynamicReportPage() {
     );
   }
 
-  const availableQs = reportData?.availableCrossings || [];
+  const availableQs: AvailableCrossingQuestion[] = Array.isArray(reportData?.availableCrossings)
+    ? reportData.availableCrossings
+    : [];
 
   const loadCrossTab = async () => {
     if (!cross1 || !cross2) return;
@@ -193,7 +208,7 @@ export default function PublicDynamicReportPage() {
             <div>
               <div className="text-4xl font-bold text-emerald-600 mb-1">{reportData.totalResponses || 0}</div>
               <div className="text-sm text-slate-500 mb-4">entrevistas realizadas</div>
-              <div className="text-xs text-slate-400">Atualizado: {new Date(reportData.lastUpdated || Date.now()).toLocaleString('pt-BR')}</div>
+              <div className="text-xs text-slate-400">Atualizado: {new Date(reportData.lastUpdated ?? Date.now()).toLocaleString('pt-BR')}</div>
             </div>
           ) : (
             <p className="text-sm text-slate-500">Carregando...</p>
@@ -217,7 +232,7 @@ export default function PublicDynamicReportPage() {
                 className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]"
               >
                 <option value="">Selecione a primeira variável...</option>
-                {availableQs.map((q: Record<string, unknown>) => (
+                {availableQs.map((q) => (
                   <option key={q.id} value={q.id}>{q.text}</option>
                 ))}
               </select>
@@ -229,7 +244,7 @@ export default function PublicDynamicReportPage() {
                 className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]"
               >
                 <option value="">Selecione a segunda variável...</option>
-                {availableQs.map((q: Record<string, unknown>) => (
+                {availableQs.map((q) => (
                   <option key={q.id} value={q.id}>{q.text}</option>
                 ))}
               </select>
@@ -286,7 +301,7 @@ export default function PublicDynamicReportPage() {
             <h3 className="font-semibold mb-3">Perguntas disponíveis para cruzamento</h3>
             {availableQs.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 text-sm">
-                {availableQs.slice(0, 8).map((q: Record<string, unknown>, idx: number) => (
+                {availableQs.slice(0, 8).map((q, idx: number) => (
                   <div key={idx} className="py-1 text-slate-700">• {q.text} <span className="text-slate-400">({q.type})</span></div>
                 ))}
               </div>

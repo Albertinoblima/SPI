@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
 import { Trash2, GripVertical, Plus, Eye, Save } from 'lucide-react';
 import type { Question, QuestionType } from '@political-research/shared-types';
+import { RecentReportsSummary } from '@/components/reports/RecentReportsSummary';
 
 interface SurveyState {
     title: string;
@@ -94,6 +95,7 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
 
         const items = Array.from(survey.questions);
         const [reorderedItem] = items.splice(result.source.index, 1);
+        if (!reorderedItem) return;
         items.splice(result.destination.index, 0, reorderedItem);
 
         const reindexed = items.map((q, i) => ({ ...q, order_index: i }));
@@ -123,7 +125,9 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
         const question = survey.questions.find(q => q.id === questionId);
         if (question?.options) {
             const newOptions = [...question.options];
-            newOptions[optionIndex] = { ...newOptions[optionIndex], label };
+            const currentOption = newOptions[optionIndex];
+            if (!currentOption) return;
+            newOptions[optionIndex] = { ...currentOption, label };
             updateQuestion(questionId, { options: newOptions });
         }
     };
@@ -163,7 +167,7 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
                         rows={2}
                     />
 
-                    <div className="flex gap-3 mt-4">
+                    <div className="flex gap-3 mt-4 flex-wrap items-center">
                         <button
                             onClick={saveSurvey}
                             disabled={saving}
@@ -179,7 +183,29 @@ export function SurveyBuilder({ initialTitle, initialDescription, initialQuestio
                             <Eye size={18} />
                             Preview
                         </button>
+
+                        {/* Reports Section - Professional entry points */}
+                        <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
+                            <span className="text-xs text-gray-500 font-medium mr-1">Relatórios:</span>
+                            <a
+                                href={`/dashboard/surveys/${surveyId}/dynamic-report`}
+                                className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
+                                title="Análise interativa com filtros em tempo real (cruzamentos por premissas e localidade)"
+                            >
+                                📈 Dinâmico
+                            </a>
+                            <a
+                                href={`/dashboard/surveys/${surveyId}/reports`}
+                                className="flex items-center gap-2 bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition text-sm font-medium"
+                                title="Gerar documentos profissionais (DOCX/PDF) com gráficos, cotas e IA"
+                            >
+                                📊 Físicos
+                            </a>
+                        </div>
                     </div>
+
+                    {/* Small recent reports summary for quick visibility */}
+                    {surveyId ? <RecentReportsSummary surveyId={surveyId} /> : null}
                 </div>
 
                 {/* Question Palette */}

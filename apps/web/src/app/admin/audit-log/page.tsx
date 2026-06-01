@@ -16,8 +16,8 @@ interface AuditLog {
     action: string;
     entity_type: string;
     entity_id: string;
-    old_values: Record<string, any> | null;
-    new_values: Record<string, any> | null;
+    old_values: Record<string, unknown> | null;
+    new_values: Record<string, unknown> | null;
     changes_description: string | null;
     is_critical: boolean;
     created_at: string;

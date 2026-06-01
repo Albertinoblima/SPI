@@ -264,7 +264,7 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
             order_index: questions.length,
             created_at: now,
             updated_at: now,
-            options: defaultOptions,
+            ...(defaultOptions ? { options: defaultOptions } : {}),
         };
         onChange([...questions, newQ]);
     };
@@ -314,7 +314,9 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
         const q = questions.find(q => q.id === qId);
         if (!q?.options) return;
         const opts = [...q.options];
-        opts[optIdx] = { ...opts[optIdx], label };
+        const currentOption = opts[optIdx];
+        if (!currentOption) return;
+        opts[optIdx] = { ...currentOption, label };
         updateQuestion(qId, { options: opts });
     };
 
@@ -322,6 +324,7 @@ export function Step4Questions({ questions, onChange, surveyTitle }: Props) {
         if (!result.destination) return;
         const items = Array.from(questions);
         const [moved] = items.splice(result.source.index, 1);
+        if (!moved) return;
         items.splice(result.destination.index, 0, moved);
         onChange(items.map((q, i) => ({ ...q, order_index: i })));
     };

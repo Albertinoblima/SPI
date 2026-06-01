@@ -3,16 +3,23 @@
 import React, { useState } from 'react';
 import { calcInterviews, getMethodologyHint } from '@political-research/shared-utils/src/sampling-utils';
 
+interface Step3SampleSizeData {
+    population?: number | string;
+    margin?: number | string;
+    confidence?: number | string;
+    researchType?: string;
+}
+
 interface Step3SampleSizeProps {
-    initialData?: Record<string, any>;
-    onNext: (data: Record<string, any>) => void;
+    initialData?: Partial<Step3SampleSizeData>;
+    onNext: (data: { population: number; margin: number; confidence: number }) => void;
     onBack: () => void;
 }
 
 const Step3SampleSize: React.FC<Step3SampleSizeProps> = ({ initialData, onNext, onBack }) => {
-    const [population, setPopulation] = useState(initialData?.population || '');
-    const [margin, setMargin] = useState(initialData?.margin || '5');
-    const [confidence, setConfidence] = useState(initialData?.confidence || '95');
+    const [population, setPopulation] = useState(String(initialData?.population ?? ''));
+    const [margin, setMargin] = useState(String(initialData?.margin ?? '5'));
+    const [confidence, setConfidence] = useState(String(initialData?.confidence ?? '95'));
     const [sampleSize, setSampleSize] = useState<number | null>(null);
     const [hint, setHint] = useState('');
 
@@ -23,7 +30,7 @@ const Step3SampleSize: React.FC<Step3SampleSizeProps> = ({ initialData, onNext, 
         if (!isNaN(pop) && !isNaN(mar) && !isNaN(conf)) {
             const result = calcInterviews(pop, mar, conf);
             setSampleSize(result);
-            setHint(getMethodologyHint(initialData?.researchType || ''));
+            setHint(getMethodologyHint(initialData?.researchType ?? ''));
         }
     };
 
@@ -92,7 +99,11 @@ const Step3SampleSize: React.FC<Step3SampleSizeProps> = ({ initialData, onNext, 
                     Voltar
                 </button>
                 <button
-                    onClick={() => onNext({ population, margin, confidence, sampleSize })}
+                    onClick={() => onNext({
+                        population: Number(population),
+                        margin: Number(margin),
+                        confidence: Number(confidence),
+                    })}
                     className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
                 >
                     Próximo passo

@@ -8,7 +8,7 @@ import {
     computeTseStratifiedSuggestion,
     computeCnefeDensity,
 } from '@/lib/planning/tse-stratification';
-import { InterviewerQuotaAssignment, type Interviewer, type GeographicQuota } from '@/components/planning/InterviewerQuotaAssignment';
+import { InterviewerQuotaAssignment, type Interviewer, type GeographicQuota, type InterviewerQuota } from '@/components/planning/InterviewerQuotaAssignment';
 import { HelpAssistant } from '@/components/help/HelpAssistant';
 import { reportClientError } from '@/lib/monitoring/reportClientError';
 
@@ -16,23 +16,43 @@ interface Step4DistributionProps {
     initialData?: {
         sampleSize?: number;
         quotas?: Quota[];
+        distribution?: {
+            quotas?: Quota[];
+        };
         interviewerDistribution?: Array<{ interviewerId: string; localityKey: string; interviews: number }>;
+        geographicBase?: {
+            municipalities?: PlanMunicipality[];
+            metadata?: {
+                total_population?: number;
+                research_type?: string;
+            };
+        };
     };
-    onNext: (data: { quotas: Quota[]; interviewerDistribution?: Array<{ interviewerId: string; localityKey: string; interviews: number }> }) => void;
+    onNext: (data: {
+        distribution: {
+            quotas: Quota[];
+            totalAssigned: number;
+            sampleSize: number;
+            totalPopulation: number;
+            interviewerAssignments?: Array<{ interviewerId: string; localityKey: string; interviews: number }>;
+        };
+    }) => void;
     onBack: () => void;
 }
 
-interface Quota {
+export interface Quota {
     name: string;
     uf?: string;
     population: number;
     interviews: number;
     locked?: boolean;
+    source?: string;
 }
 
 interface PlanArea {
     id?: string;
     name: string;
+    uf?: string;
     displayName?: string;
     population?: number;
     interviews?: number;
@@ -49,30 +69,38 @@ interface PlanMunicipality {
     name: string;
     uf?: string;
     population?: number;
-    localities?: any[]; // TODO: Define proper nested Locality type from planning data
-    enriched?: Record<string, any>;
+    localities?: Array<{ id: string; name: string; zone?: string; interviews_required?: number }>;
+    enriched?: {
+        population_census?: number;
+        recommended_population?: number;
+        residences_cnefe?: number;
+    };
 }
 
 interface TeamMember {
     id: string;
+    user_id?: string;
+    full_name?: string;
     name?: string;
     email?: string;
     role?: string;
 }
 
+type TseSuggestion = ReturnType<typeof computeTseStratifiedSuggestion>;
+
 const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNext, onBack }) => {
     const sampleSize: number = initialData?.sampleSize || 0;
-    const geoBase = initialData?.geographicBase || {};
-    const municipalities = geoBase.municipalities || [];
+    const geoBase = initialData?.geographicBase;
+    const municipalities = geoBase?.municipalities || [];
 
     // Fase 2 - Estados para sugestão inteligente
-    const [tseSuggestion, setTseSuggestion] = useState<any>(null);
+    const [tseSuggestion, setTseSuggestion] = useState<TseSuggestion | null>(null);
     const [showTseSuggestion, setShowTseSuggestion] = useState(false);
 
     // INTEGRAÇÃO: Atribuição por Entrevistador (novo - Fase Ponta a Ponta)
     // Estes estados devem ficar no topo do componente
     const [showInterviewerAssignment, setShowInterviewerAssignment] = useState(false);
-    const [interviewerAssignments, setInterviewerAssignments] = useState<any[]>([]);
+    const [interviewerAssignments, setInterviewerAssignments] = useState<InterviewerQuota[]>(initialData?.interviewerDistribution ?? []);
     const [realInterviewers, setRealInterviewers] = useState<Interviewer[] | null>(null);
     const [loadingTeam, setLoadingTeam] = useState(false);
 
@@ -88,12 +116,12 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
             if (m.localities && m.localities.length > 0) {
                 // Tem localidades específicas selecionadas → usa elas
-                m.localities.forEach((loc: any) => { // TODO: type localities properly
+                m.localities.forEach((loc: { id: string; name: string; zone?: string; interviews_required?: number }) => { // TODO: type localities properly
                     areas.push({
                         ...loc,
                         displayName: `${loc.name} (${m.name} - ${m.uf})`,
                         parentMunicipality: m.name,
-                        parentUf: m.uf,
+                        ...(m.uf ? { parentUf: m.uf } : {}),
                         source: 'locality',
                         dataSource: m.enriched ? 'enriched' : 'basic',
                     });
@@ -102,7 +130,8 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 // Usa o município inteiro — com preferência por dados enriquecidos
                 areas.push({
                     ...m,
-                    population: effectivePopulation,
+                    ...(m.uf ? { uf: m.uf } : {}),
+                    population: Number(effectivePopulation ?? 0),
                     displayName: `${m.name} - ${m.uf}`,
                     source: 'municipality',
                     dataSource: m.enriched ? 'enriched' : 'basic',
@@ -124,16 +153,17 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             const totalPop = allAreas.reduce((sum: number, a: PlanArea) => sum + (a.population || 0), 0) || 1;
 
             return allAreas.map((area: PlanArea) => {
-                const pop = area.population || 0;
+                const pop = Number(area.population ?? 0);
                 // Sugestão proporcional no nível mais granular possível
                 const suggested = Math.max(1, Math.round((pop / totalPop) * sampleSize));
 
                 return {
-                    name: area.displayName || area.name,
-                    uf: area.uf || area.parentUf,
+                    name: String(area.displayName || area.name || ''),
+                    ...(area.uf || area.parentUf ? { uf: area.uf || area.parentUf } : {}),
                     population: pop,
                     interviews: suggested,
                     locked: false,
+                    ...(area.source ? { source: area.source } : {}),
                 };
             });
         }
@@ -152,21 +182,24 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
         [quotas]);
 
     // Recebe metadados da base geográfica (vindo do Passo 2)
-    const geoMetadata = initialData?.geographicBase?.metadata || {};
+    const geoMetadata = initialData?.geographicBase?.metadata || { total_population: 0, research_type: '' };
 
     const updateQuota = (index: number, value: number) => {
-        if (quotas[index].locked) return; // Não permite editar cotas travadas
+        const currentQuota = quotas[index];
+        if (!currentQuota || currentQuota.locked) return; // Não permite editar cotas travadas
 
         const newQuotas = [...quotas];
-        newQuotas[index] = { ...newQuotas[index], interviews: Math.max(0, Math.floor(value)) };
+        newQuotas[index] = { ...currentQuota, interviews: Math.max(0, Math.floor(value)) };
         setQuotas(newQuotas);
     };
 
     const toggleLock = (index: number) => {
+        const currentQuota = quotas[index];
+        if (!currentQuota) return;
         const newQuotas = [...quotas];
         newQuotas[index] = {
-            ...newQuotas[index],
-            locked: !newQuotas[index].locked
+            ...currentQuota,
+            locked: !currentQuota.locked
         };
         setQuotas(newQuotas);
     };
@@ -224,12 +257,24 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             if (unlockedIndices.length === 0) break;
 
             const target = unlockedIndices[i % unlockedIndices.length];
+            if (!target) break;
+            const currentTarget = newQuotas[target.idx];
+            if (!currentTarget) {
+                i++;
+                continue;
+            }
             if (diff > 0) {
-                newQuotas[target.idx].interviews += 1;
+                newQuotas[target.idx] = {
+                    ...currentTarget,
+                    interviews: currentTarget.interviews + 1,
+                };
                 diff--;
             } else {
-                if (newQuotas[target.idx].interviews > 0) {
-                    newQuotas[target.idx].interviews -= 1;
+                if (currentTarget.interviews > 0) {
+                    newQuotas[target.idx] = {
+                        ...currentTarget,
+                        interviews: currentTarget.interviews - 1,
+                    };
                     diff++;
                 }
             }
@@ -245,8 +290,8 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
     const cnefeMetrics = useMemo(() => {
         return computeCnefeDensity(
             municipalities.map((m: PlanMunicipality) => ({
-                residencesCnefe: m.enriched?.residences_cnefe,
-                population: m.population,
+                ...(m.enriched?.residences_cnefe !== undefined ? { residencesCnefe: m.enriched.residences_cnefe } : {}),
+                ...(m.population !== undefined ? { population: m.population } : {}),
             })),
             sampleSize
         );
@@ -255,7 +300,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
     const generateTseSuggestion = () => {
         const areas = municipalities.map((m: PlanMunicipality) => ({
             name: m.name,
-            uf: m.uf,
+            ...(m.uf ? { uf: m.uf } : {}),
             population: m.enriched?.population_census || m.population || 0,
         }));
 
@@ -305,6 +350,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
             if (unlocked.length === 0) break;
 
             const target = unlocked[i % unlocked.length];
+            if (!target) break;
             if (diff > 0) {
                 target.q.interviews += 1;
                 diff--;
@@ -343,7 +389,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                 sampleSize,
                 totalPopulation,
                 // Nova: atribuições por entrevistador (fecha o loop ponta a ponta)
-                interviewerAssignments: hasInterviewerAssignments ? interviewerAssignments : undefined,
+                ...(hasInterviewerAssignments ? { interviewerAssignments } : {}),
             },
         });
     };
@@ -458,27 +504,33 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
 
                         if (isLocalityItem) {
                             const match = q.name.match(/\((.+?)\)/);
-                            groupKey = match ? match[1] : 'Outros';
+                            groupKey = match?.[1] ?? 'Outros';
                             displayName = q.name.replace(/\s*\(.+\)$/, '');
                         } else if ((q as PlanArea).parentMunicipality) {
                             groupKey = `${(q as PlanArea).parentMunicipality} - ${(q as PlanArea).parentUf || ''}`.trim();
                         }
 
                         if (!groups[groupKey]) groups[groupKey] = [];
-                        groups[groupKey].push({ ...q, originalIndex: index, displayName });
+                        const group = groups[groupKey];
+                        if (!group) return;
+                        group.push({ ...q, originalIndex: index, displayName });
                     });
 
-                    return Object.entries(groups).map(([groupName, items]: [string, any]) => (
+                    return Object.entries(groups).map(([groupName, items]: [string, PlanArea[]]) => (
                         <div key={groupName} className="border border-slate-700 rounded-2xl p-3 bg-slate-900/40">
                             <div className="text-xs uppercase tracking-wider text-slate-400 mb-2 px-1 font-medium flex items-center justify-between">
                                 <span>{groupName}</span>
                                 {items.length > 1 && <span className="normal-case text-[10px] text-slate-500 font-normal">{items.length} áreas</span>}
                             </div>
                             <div className="space-y-2">
-                                {items.map((item: PlanArea) => {
+                                {items.map((item: PlanArea, idx: number) => {
                                     const q = item;
                                     const stableKey = `${item.id || item.name || 'q'}-${item.originalIndex ?? idx}`;
-                                    const density = q.population > 0 ? ((q.interviews / q.population) * 10000).toFixed(1) : null;
+                                    const population = q.population ?? 0;
+                                    const interviews = q.interviews ?? 0;
+                                    const quotaIndex = item.originalIndex ?? idx;
+                                    const density = population > 0 ? ((interviews / population) * 10000).toFixed(1) : null;
+                                    const quotaPercent = sampleSize > 0 ? Math.min((interviews / sampleSize) * 100, 100) : 0;
 
                                     return (
                                         <div
@@ -498,9 +550,9 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                                         </span>
                                                     )}
                                                 </div>
-                                                {q.population > 0 && (
+                                                {population > 0 && (
                                                     <div className="text-[11px] text-slate-400 mt-px flex gap-2">
-                                                        <span>Pop: {q.population.toLocaleString('pt-BR')}</span>
+                                                        <span>Pop: {population.toLocaleString('pt-BR')}</span>
                                                         {density && <span className="text-emerald-400">{density}/10k hab</span>}
                                                     </div>
                                                 )}
@@ -511,21 +563,24 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                                                     <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                                         <div
                                                             className={`h-1.5 ${q.locked ? 'bg-amber-500' : 'bg-blue-500'}`}
-                                                            style={{ width: `${sampleSize > 0 ? Math.min((q.interviews / sampleSize) * 100, 100) : 0}%` }}
+                                                            data-width={`${quotaPercent.toFixed(0)}%`}
                                                         />
                                                     </div>
+                                                    <div className="text-[10px] text-slate-500 mt-0.5 text-right">{quotaPercent.toFixed(0)}%</div>
                                                 </div>
 
                                                 <input
                                                     type="number"
-                                                    value={q.interviews}
-                                                    onChange={(e) => updateQuota(idx, parseInt(e.target.value) || 0)}
+                                                    aria-label={`Entrevistas para ${q.displayName || q.name}`}
+                                                    title={`Entrevistas para ${q.displayName || q.name}`}
+                                                    value={interviews}
+                                                    onChange={(e) => updateQuota(quotaIndex, parseInt(e.target.value) || 0)}
                                                     disabled={q.locked}
                                                     className={`w-16 bg-slate-900 border text-right text-sm rounded px-1.5 py-0.5 focus:outline-none ${q.locked ? 'border-amber-600 text-slate-400' : 'border-slate-600'}`}
                                                 />
 
                                                 <button
-                                                    onClick={() => toggleLock(idx)}
+                                                    onClick={() => toggleLock(quotaIndex)}
                                                     className="text-base px-1 opacity-75 hover:opacity-100"
                                                     title={q.locked ? "Destravar" : "Travar cota"}
                                                 >
@@ -590,8 +645,8 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                             <div>
                                 <div className="text-xs uppercase tracking-wider text-indigo-400 mb-1.5">Por Faixa Etária (principais)</div>
                                 <div className="text-xs space-y-1">
-                                    {tseSuggestion.age.slice(0, 5).map((band: { label?: string; count?: number }, idx: number) => (
-                                        <div key={stableKey} className="flex justify-between bg-slate-900/70 px-3 py-1 rounded">
+                                    {tseSuggestion.age.slice(0, 5).map((band, idx: number) => (
+                                        <div key={`tse-band-${idx}`} className="flex justify-between bg-slate-900/70 px-3 py-1 rounded">
                                             <span className="text-slate-300">{band.label}</span>
                                             <span className="font-medium text-white">{band.interviews} <span className="text-slate-500">({(band.proportion * 100).toFixed(0)}%)</span></span>
                                         </div>
@@ -643,7 +698,7 @@ const Step4Distribution: React.FC<Step4DistributionProps> = ({ initialData, onNe
                         <div className="flex justify-between text-xs">
                             <span className="text-slate-400">Qualidade da distribuição:</span>
                             <span className={`font-medium ${Math.abs(difference) < sampleSize * 0.05 ? 'text-emerald-400' :
-                                    Math.abs(difference) < sampleSize * 0.15 ? 'text-yellow-400' : 'text-red-400'
+                                Math.abs(difference) < sampleSize * 0.15 ? 'text-yellow-400' : 'text-red-400'
                                 }`}>
                                 {Math.abs(difference) < sampleSize * 0.05 ? 'Excelente' :
                                     Math.abs(difference) < sampleSize * 0.15 ? 'Boa' : 'Requer atenção'}

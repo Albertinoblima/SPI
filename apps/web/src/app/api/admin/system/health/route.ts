@@ -34,8 +34,8 @@ async function fetchGitHubData(): Promise<{
     workflowRuns: GitHubWorkflowRun[];
     error?: string;
 }> {
-    const token = process.env.GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO; // e.g. "Albertinoblima/SPI"
+    const token = process.env['GITHUB_TOKEN'];
+    const repo = process.env['GITHUB_REPO']; // e.g. "Albertinoblima/SPI"
 
     if (!token || !repo) {
         return { commits: [], workflowRuns: [], error: 'GITHUB_TOKEN ou GITHUB_REPO não configurados' };
@@ -68,27 +68,27 @@ async function fetchGitHubData(): Promise<{
             runsRes.ok ? runsRes.json() : { workflow_runs: [] },
         ]);
 
-        const commits: GitHubCommit[] = (Array.isArray(commitsJson) ? commitsJson : []).map((c: any) => ({
-            sha: c.sha?.slice(0, 7) ?? '',
-            message: c.commit?.message?.split('\n')[0] ?? '',
-            author: c.commit?.author?.name ?? '',
-            date: c.commit?.author?.date ?? '',
-            url: c.html_url ?? '',
+        const commits: GitHubCommit[] = (Array.isArray(commitsJson) ? commitsJson : []).map((c: Record<string, unknown>) => ({
+            sha: String(c['sha'] ?? '').slice(0, 7),
+            message: String(((c['commit'] as Record<string, unknown>)?.['message'] ?? '') as string).split('\n')[0] ?? '',
+            author: String((((c['commit'] as Record<string, unknown>)?.['author'] as Record<string, unknown>)?.['name'] ?? '') as string),
+            date: String((((c['commit'] as Record<string, unknown>)?.['author'] as Record<string, unknown>)?.['date'] ?? '') as string),
+            url: String(c['html_url'] ?? ''),
         }));
 
-        const runs: GitHubWorkflowRun[] = (runsJson.workflow_runs ?? []).map((r: any) => ({
-            id: r.id,
-            name: r.name ?? '',
-            status: r.status ?? '',
-            conclusion: r.conclusion ?? null,
-            branch: r.head_branch ?? '',
-            event: r.event ?? '',
-            createdAt: r.created_at ?? '',
-            updatedAt: r.updated_at ?? '',
-            url: r.html_url ?? '',
+        const runs: GitHubWorkflowRun[] = (runsJson['workflow_runs'] ?? []).map((r: Record<string, unknown>) => ({
+            id: Number(r['id'] ?? 0),
+            name: String(r['name'] ?? ''),
+            status: String(r['status'] ?? ''),
+            conclusion: r['conclusion'] ? String(r['conclusion']) : null,
+            branch: String(r['head_branch'] ?? ''),
+            event: String(r['event'] ?? ''),
+            createdAt: String(r['created_at'] ?? ''),
+            updatedAt: String(r['updated_at'] ?? ''),
+            url: String(r['html_url'] ?? ''),
             durationMs:
-                r.created_at && r.updated_at
-                    ? new Date(r.updated_at).getTime() - new Date(r.created_at).getTime()
+                r['created_at'] && r['updated_at']
+                    ? new Date(String(r['updated_at'])).getTime() - new Date(String(r['created_at'])).getTime()
                     : null,
         }));
 
@@ -114,8 +114,8 @@ async function fetchVercelDeployments(): Promise<{
     deployments: VercelDeployment[];
     error?: string;
 }> {
-    const token = process.env.VERCEL_TOKEN;
-    const projectId = process.env.VERCEL_PROJECT_ID;
+    const token = process.env['VERCEL_TOKEN'];
+    const projectId = process.env['VERCEL_PROJECT_ID'];
 
     if (!token || !projectId) {
         return { deployments: [], error: 'VERCEL_TOKEN ou VERCEL_PROJECT_ID não configurados' };
@@ -123,7 +123,7 @@ async function fetchVercelDeployments(): Promise<{
 
     try {
         const params = new URLSearchParams({ projectId, limit: '10', target: 'production' });
-        const teamId = process.env.VERCEL_TEAM_ID;
+        const teamId = process.env['VERCEL_TEAM_ID'];
         if (teamId) params.append('teamId', teamId);
 
         const res = await fetch(`https://api.vercel.com/v6/deployments?${params}`, {
@@ -200,7 +200,8 @@ export async function GET(request: NextRequest) {
             .eq('resolved', false);
 
         const severityCount = (errorCounts ?? []).reduce<Record<string, number>>((acc, row) => {
-            acc[row.severity] = (acc[row.severity] ?? 0) + 1;
+            const sev = row['severity'] as string | undefined;
+            if (sev) acc[sev] = (acc[sev] ?? 0) + 1;
             return acc;
         }, {});
 
@@ -233,6 +234,8 @@ export async function GET(request: NextRequest) {
             },
         };
 
+        const correlationIdForResponse = (request.headers.get('x-correlation-id') ?? undefined);
+
         return apiSuccess({
             vercel: {
                 deployments: vercelResult.deployments.map((d) => ({
@@ -253,7 +256,7 @@ export async function GET(request: NextRequest) {
                 commits: githubResult.commits,
                 workflowRuns: githubResult.workflowRuns,
                 apiError: githubResult.error ?? null,
-                repo: process.env.GITHUB_REPO ?? null,
+                repo: process.env['GITHUB_REPO'] ?? null,
             },
             supabase: {
                 systemStats,
@@ -263,7 +266,8 @@ export async function GET(request: NextRequest) {
                 activeImpersonations: activeImpersonations ?? [],
             },
             integrationStatus,
-        });
+            correlationId: correlationIdForResponse,
+        }, 200, correlationIdForResponse);
     } catch (error) {
         await trackedApiError(request, 'Falha ao gerar diagnóstico de saúde do sistema', 500, {
             errorCode: 'API_HTTP_5XX',

@@ -9,16 +9,18 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function createSupabase() {
     const cookieStore = cookies();
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
         {
             cookies: {
                 get: (name: string) => cookieStore.get(name)?.value,
-                set: (name: string, value: string, options: any) => cookieStore.set(name, value, options),
+                // @ts-expect-error - Supabase SSR cookie adapter requires exact CookieOptions shape from next/headers; runtime compatible
+                set: (name: string, value: string, options?: object) => cookieStore.set(name, value, options),
                 remove: (name: string) => cookieStore.delete(name),
             },
         }
@@ -29,11 +31,12 @@ export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createSupabase();
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: ticket, error: ticketError } = await supabase
             .from('support_tickets')
@@ -42,7 +45,7 @@ export async function GET(
             .eq('user_id', user.id)
             .single();
 
-        if (ticketError || !ticket) return apiError('Ticket não encontrado', 404);
+        if (ticketError || !ticket) return apiError('Ticket não encontrado', 404, correlationId);
 
         const { data: messages } = await supabase
             .from('support_messages')
@@ -63,16 +66,17 @@ export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createSupabase();
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const body = await request.json();
         const { message, attachments } = body;
         if (!message?.trim() && (!attachments || attachments.length === 0)) {
-            return apiError('Mensagem ou anexo é obrigatório', 400);
+            return apiError('Mensagem ou anexo é obrigatório', 400, correlationId);
         }
 
         // Verificar posse do ticket
@@ -83,8 +87,8 @@ export async function POST(
             .eq('user_id', user.id)
             .single();
 
-        if (!ticket) return apiError('Ticket não encontrado', 404);
-        if (ticket.status === 'closed') return apiError('Ticket está fechado', 400);
+        if (!ticket) return apiError('Ticket não encontrado', 404, correlationId);
+        if (ticket.status === 'closed') return apiError('Ticket está fechado', 400, correlationId);
 
         const { data: newMsg, error: insertError } = await supabase
             .from('support_messages')

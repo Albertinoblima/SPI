@@ -35,31 +35,30 @@ export async function POST(request: NextRequest) {
                 : undefined;
 
         const httpMethod =
-            typeof metadata?.method === 'string' && metadata.method.trim().length > 0
-                ? metadata.method.trim().toUpperCase()
+            typeof metadata?.['method'] === 'string' && metadata['method'].trim().length > 0
+                ? metadata['method'].trim().toUpperCase()
                 : undefined;
 
         const httpPath =
-            typeof metadata?.target === 'string' && metadata.target.trim().length > 0
-                ? metadata.target.trim()
+            typeof metadata?.['target'] === 'string' && metadata['target'].trim().length > 0
+                ? metadata['target'].trim()
                 : undefined;
 
         const result = await captureSystemError({
             request,
             errorCode,
             errorMessage,
-            severity,
             correlationId,
-            httpMethod,
-            httpPath,
-            httpStatusCode:
-                typeof body.httpStatusCode === 'number' ? body.httpStatusCode : undefined,
-            metadata,
+            ...(severity ? { severity } : {}),
+            ...(httpMethod ? { httpMethod } : {}),
+            ...(httpPath ? { httpPath } : {}),
+            ...(typeof body.httpStatusCode === 'number' ? { httpStatusCode: body.httpStatusCode } : {}),
+            ...(metadata ? { metadata } : {}),
         });
 
         return apiSuccess({ accepted: true, correlationId: result.correlationId }, 202);
     } catch (error) {
         console.error(`[errors/ingest] Erro ao processar payload [${correlationId}]:`, error);
-        return apiError('Payload de monitoramento inválido', 400);
+        return apiError('Payload de monitoramento inválido', 400, correlationId);
     }
 }

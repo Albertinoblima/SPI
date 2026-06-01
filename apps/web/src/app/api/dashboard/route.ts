@@ -7,21 +7,24 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
+
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData } = await supabase
             .from('users')
             .select('tenant_id, role')
             .eq('id', user.id)
             .single();
-        if (!userData) return apiError('Usuário não encontrado', 404);
+        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
 
         const tid = userData.tenant_id;
 

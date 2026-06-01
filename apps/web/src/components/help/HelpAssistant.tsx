@@ -15,9 +15,9 @@ interface HelpAssistantProps {
     onTrackHelpful?: (topic: HelpTopic, context?: string) => void;
 }
 
-export function HelpAssistant({ 
-    initialQuery = '', 
-    onTopicHelpful, 
+export function HelpAssistant({
+    initialQuery = '',
+    onTopicHelpful,
     onStillNeedHelp,
     compact = false,
     context = 'general',
@@ -29,12 +29,12 @@ export function HelpAssistant({
 
     const searchResults = React.useMemo(() => {
         const normalized = query.toLowerCase().trim();
-        
+
         const scored = HELP_TOPICS.map(topic => {
             let score = 0;
             const haystack = [
-                topic.title, 
-                topic.short, 
+                topic.title,
+                topic.short,
                 ...topic.content,
                 ...(topic.keywords || [])
             ].join(' ').toLowerCase();
@@ -44,7 +44,7 @@ export function HelpAssistant({
                 normalized.split(' ').forEach(word => {
                     if (word.length > 2 && haystack.includes(word)) score += 1;
                 });
-                
+
                 if (topic.relatedErrors?.some(err => err.toLowerCase().includes(normalized))) {
                     score += 2;
                 }
@@ -85,7 +85,7 @@ export function HelpAssistant({
     };
 
     const handleStillNeedHelp = () => {
-        onStillNeedHelp?.();
+        onStillNeedHelp?.(query);
     };
 
     if (compact) {
@@ -113,7 +113,7 @@ export function HelpAssistant({
                                     disabled={helpfulMarked.has(topic.id)}
                                     className="mt-2 text-xs text-emerald-400 hover:text-emerald-300 disabled:text-emerald-600 flex items-center gap-1"
                                 >
-                                    <CheckCircle className="w-3 h-3" /> 
+                                    <CheckCircle className="w-3 h-3" />
                                     {helpfulMarked.has(topic.id) ? 'Obrigado! Marcado como útil' : 'Isso resolveu meu problema'}
                                 </button>
                             </div>
@@ -148,7 +148,7 @@ export function HelpAssistant({
                 <p className="text-xs text-slate-400 mb-3">
                     Descreva seu problema. Vamos sugerir artigos da Base de Conhecimento antes de abrir um ticket.
                 </p>
-                
+
                 <div className="relative">
                     <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
                     <input
@@ -170,7 +170,7 @@ export function HelpAssistant({
                         {context === 'distribution' && 'Leia "Como Distribuir Cotas Proporcionalmente" e "O que o Entrevistador Vê no Mobile".'}
                         {context === 'mobile-collection' && 'Consulte "O que o Entrevistador Vê no App" e "Contagem Real de Respostas por Cota".'}
                         {context === 'reports' && 'Veja "Link Protegido para o Contratante" e os 3 tipos de relatório .docx.'}
-                        {(context === 'admin' || context === 'general') && 'Explore a categoria Fluxo Ponta a Ponta para guias completos do ciclo planejamento → coleta → relatório.'}
+                        {context === 'admin' && 'Explore a categoria Fluxo Ponta a Ponta para guias completos do ciclo planejamento → coleta → relatório.'}
                     </div>
                 </div>
             )}
@@ -190,7 +190,7 @@ export function HelpAssistant({
                                         {topic.category}
                                     </span>
                                 </div>
-                                
+
                                 <div className="mt-3 text-sm text-slate-300 space-y-1">
                                     {topic.content.slice(0, 2).map((line, i) => (
                                         <div key={i} className="flex gap-2">• {line}</div>

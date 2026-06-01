@@ -9,7 +9,7 @@
  * - Manter toda lógica de agregação aqui para ser reutilizada tanto pelo .docx quanto pelo Dashboard.
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 interface QuestionOption {
   value: string;
@@ -17,7 +17,7 @@ interface QuestionOption {
 }
 
 export class ReportAggregationService {
-  private supabase = createAdminClient();
+  private supabase = createAuditedSupabaseAdminClient('ReportAggregationService');
 
   /**
    * Retorna estatísticas gerais da pesquisa.
@@ -69,11 +69,14 @@ export class ReportAggregationService {
 
     const total = answers.length;
     const labels = Object.keys(counts);
-    const values = labels.map((label) => ({
-      label,
-      count: counts[label],
-      percentage: Math.round((counts[label] / total) * 100),
-    }));
+    const values = labels.map((label) => {
+      const count = counts[label] ?? 0;
+      return {
+        label,
+        count,
+        percentage: Math.round((count / total) * 100),
+      };
+    });
 
     return {
       labels,
@@ -111,11 +114,15 @@ export class ReportAggregationService {
 
       let value = ans.answer_text || 'N/A';
 
-      if (ans.answer_json && typeof ans.answer_json === 'object' && ans.answer_json.value) {
-        value = ans.answer_json.value;
+      if (ans.answer_json && typeof ans.answer_json === 'object' && 'value' in ans.answer_json) {
+        value = (ans.answer_json as { value?: string }).value ?? 'N/A';
       }
 
-      byResponse[ans.response_id][ans.question_id] = value;
+      const responseBucket = byResponse[ans.response_id];
+      if (!responseBucket) {
+        return;
+      }
+      responseBucket[ans.question_id] = value;
     });
 
     // Contar combinações

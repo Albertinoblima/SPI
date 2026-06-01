@@ -34,7 +34,7 @@ export interface WizardData {
     questions: Question[];
     // When coming from a rich research plan (5-step planning) - handoff metadata
     sourcePlanId?: string;
-    interviewerDistribution?: any[];
+    interviewerDistribution?: Array<{ interviewerId: string; localityId: string; quota: number }>;
     preselectedTeamUserIds?: string[];   // for stronger pre-fill in Step 6
 }
 
@@ -248,19 +248,19 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                         specific_public_description: s.specific_public_description ?? '',
                     },
                     localities: (s.survey_localities ?? []).map((l: Record<string, unknown>) => ({
-                        id: l.id as string,
-                        name: l.name as string,
-                        zone: l.zone as 'urban' | 'rural' | 'mixed',
-                        population: (l.population as number) ?? 0,
-                        population_type: (l.population_type as Locality['population_type']) ?? 'eleitores',
-                        interviews_required: (l.interviews_required as number) ?? 0,
-                        interviews_weight: (l.interviews_weight as number) ?? 0,
-                        geo_level: (l.geo_level as Locality['geo_level']) ?? 'locality',
-                        parent_state_name: (l.parent_state_name as string) ?? null,
-                        parent_city_name: (l.parent_city_name as string) ?? null,
+                        id: String(l['id'] ?? ''),
+                        name: String(l['name'] ?? ''),
+                        zone: (l['zone'] as 'urban' | 'rural' | 'mixed') ?? 'mixed',
+                        population: Number(l['population'] ?? 0),
+                        population_type: (l['population_type'] as Locality['population_type']) ?? 'eleitores',
+                        interviews_required: Number(l['interviews_required'] ?? 0),
+                        interviews_weight: Number(l['interviews_weight'] ?? 0),
+                        geo_level: (l['geo_level'] as Locality['geo_level']) ?? 'locality',
+                        parent_state_name: l['parent_state_name'] ? String(l['parent_state_name']) : null,
+                        parent_city_name: l['parent_city_name'] ? String(l['parent_city_name']) : null,
                     })),
-                    premises: s.survey_premises ?? [],
-                    questions: s.questions ?? [],
+                    premises: (s.survey_premises ?? []) as Premise[],
+                    questions: (s.questions ?? []) as Question[],
                 });
 
                 // Retoma o wizard no último passo com dados preenchidos
@@ -284,7 +284,7 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
         const loadRichPlan = async () => {
             try {
                 // Try the dedicated research plans endpoint first
-                let planData: any = null;
+                let planData: Record<string, unknown> | null = null;
 
                 const planRes = await fetch(`/api/research-plans/${planId}`);
                 if (planRes.ok) {
@@ -301,37 +301,39 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
 
                 if (!planData) return;
 
-                const geo = planData.geographicBase || {};
-                const dist = planData.distribution || {};
+                const geo = (planData as any).geographicBase || {};
+                const dist = (planData as any).distribution || {};
 
-                const prefilledLocalities: any[] = (geo.municipalities || []).map((m: any) => ({
-                    id: m.id || m.name,
-                    name: m.name,
-                    zone: m.zone || 'mixed',
-                    population: m.population || m.enriched?.population_census || m.enriched?.recommended_population || 0,
-                    interviews_required: m.interviews || (dist.quotas || []).find((q: any) => q.name === m.name)?.interviews || 0,
+                const prefilledLocalities: Locality[] = ((geo.municipalities || []) as Array<Record<string, unknown>>).map((m: Record<string, unknown>) => ({
+                    id: String(m['id'] || m['name'] || ''),
+                    name: String(m['name'] || ''),
+                    geo_level: 'city',
+                    zone: ((m['zone'] as string) || 'mixed') as 'urban' | 'rural' | 'mixed',
+                    population: Number(m['population'] || (m['enriched'] as any)?.population_census || (m['enriched'] as any)?.recommended_population || 0),
+                    population_type: 'eleitores',
+                    interviews_required: Number((m as any)['interviews'] || ((dist.quotas || []) as Array<Record<string, unknown>>).find((q: Record<string, unknown>) => String(q['name']) === String(m['name']))?.['interviews'] || 0),
                 }));
 
                 // Extract unique interviewers from distribution for pre-selection in team step (stronger handoff)
-                const distAssignments = dist.interviewerAssignments || planData.interviewerDistribution || [];
+                const distAssignments = dist.interviewerAssignments || (planData as any).interviewerDistribution || [];
                 const preselectedTeam = Array.from(new Set(
-                    (distAssignments as any[]).map((a: any) => a.interviewerId || a.userId).filter(Boolean)
+                    ((distAssignments || []) as Array<Record<string, unknown>>).map((a: Record<string, unknown>) => a['interviewerId'] || a['userId']).filter(Boolean)
                 )) as string[];
 
                 setData(prev => ({
                     ...prev,
                     tech: {
                         ...prev.tech,
-                        title: planData.name || prev.tech.title,
-                        objective: planData.objective || prev.tech.objective,
-                        methodology: planData.methodology || prev.tech.methodology,
-                        total_interviews: dist.sampleSize || planData.sampleSize || prev.tech.total_interviews,
+                        title: String((planData as any).name || prev.tech.title || ''),
+                        objective: String((planData as any).objective || prev.tech.objective || ''),
+                        methodology: String((planData as any).methodology || prev.tech.methodology || ''),
+                        total_interviews: Number(dist.sampleSize || (planData as any).sampleSize || prev.tech.total_interviews || 0),
                     },
                     localities: prefilledLocalities.length > 0 ? prefilledLocalities : prev.localities,
                     // Handoff from rich 5-step planning (ponta a ponta 100%)
                     sourcePlanId: planId,
-                    interviewerDistribution: distAssignments,
-                    preselectedTeamUserIds: preselectedTeam.length > 0 ? preselectedTeam : undefined,
+                    interviewerDistribution: distAssignments as any,
+                    ...(preselectedTeam.length > 0 ? { preselectedTeamUserIds: preselectedTeam } : {}),
                 }));
 
                 // If we have strong data from the plan, jump to a relevant step
@@ -345,6 +347,70 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
 
         loadRichPlan();
     }, [planId]);
+
+    /**
+     * Persiste o rascunho atual sem redirecionar.
+     * Retorna o surveyId (novo ou existente) em caso de sucesso, ou null em caso de erro.
+     */
+    const persistDraft = useCallback(async (
+        wizardData: WizardData,
+        currentId: string | undefined,
+        options: { skipValidation?: boolean; status?: string } = {},
+    ): Promise<{ id: string | null; error: string | null }> => {
+        try {
+            const payload = {
+                ...wizardData.tech,
+                localities: wizardData.localities,
+                premises: wizardData.premises,
+                questions: wizardData.questions,
+                skip_validation: options.skipValidation ?? false,
+                ...(options.status ? { status: options.status } : {}),
+            };
+
+            if (currentId) {
+                const res = await fetch(`/api/surveys/${currentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const json = await res.json();
+                if (!res.ok) return { id: null, error: json.error || 'Erro ao atualizar rascunho' };
+                return { id: currentId, error: null };
+            }
+
+            // Primeira vez: cria via POST
+            const res = await fetch('/api/surveys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const json = await res.json();
+            if (!res.ok) return { id: null, error: json.error || 'Erro ao criar rascunho' };
+
+            const newId: string | undefined = json.data?.survey?.id;
+            if (!newId) return { id: null, error: 'Resposta inválida do servidor' };
+
+            // Salva localidades, premissas e questões no registro recém-criado
+            const putRes = await fetch(`/api/surveys/${newId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    localities: wizardData.localities,
+                    premises: wizardData.premises,
+                    questions: wizardData.questions,
+                }),
+            });
+            if (!putRes.ok) {
+                const putJson = await putRes.json();
+                // Rascunho criado mas detalhes falharam — retorna id mesmo assim
+                return { id: newId, error: putJson.error || 'Erro ao salvar detalhes da pesquisa' };
+            }
+
+            return { id: newId, error: null };
+        } catch {
+            return { id: null, error: 'Erro de conexão com o servidor' };
+        }
+    }, []);
 
     useEffect(() => {
         if (loadingDraft) return;
@@ -534,80 +600,16 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
         return null;
     };
 
-    /**
-     * Persiste o rascunho atual sem redirecionar.
-     * Retorna o surveyId (novo ou existente) em caso de sucesso, ou null em caso de erro.
-     */
-    const persistDraft = useCallback(async (
-        wizardData: WizardData,
-        currentId: string | undefined,
-        options: { skipValidation?: boolean; status?: string } = {},
-    ): Promise<{ id: string | null; error: string | null }> => {
-        try {
-            const payload = {
-                ...wizardData.tech,
-                localities: wizardData.localities,
-                premises: wizardData.premises,
-                questions: wizardData.questions,
-                skip_validation: options.skipValidation ?? false,
-                ...(options.status ? { status: options.status } : {}),
-            };
-
-            if (currentId) {
-                const res = await fetch(`/api/surveys/${currentId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                const json = await res.json();
-                if (!res.ok) return { id: null, error: json.error || 'Erro ao atualizar rascunho' };
-                return { id: currentId, error: null };
-            }
-
-            // Primeira vez: cria via POST
-            const res = await fetch('/api/surveys', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            const json = await res.json();
-            if (!res.ok) return { id: null, error: json.error || 'Erro ao criar rascunho' };
-
-            const newId: string | undefined = json.data?.survey?.id;
-            if (!newId) return { id: null, error: 'Resposta inválida do servidor' };
-
-            // Salva localidades, premissas e questões no registro recém-criado
-            const putRes = await fetch(`/api/surveys/${newId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    localities: wizardData.localities,
-                    premises: wizardData.premises,
-                    questions: wizardData.questions,
-                }),
-            });
-            if (!putRes.ok) {
-                const putJson = await putRes.json();
-                // Rascunho criado mas detalhes falharam — retorna id mesmo assim
-                return { id: newId, error: putJson.error || 'Erro ao salvar detalhes da pesquisa' };
-            }
-
-            return { id: newId, error: null };
-        } catch {
-            return { id: null, error: 'Erro de conexão com o servidor' };
-        }
-    }, []);
-
     /** NEW: Seed per-interviewer quotas from a rich research plan */
-    const seedInterviewerDistributionFromPlan = useCallback(async (surveyId: string, distribution: any[]) => {
+    const seedInterviewerDistributionFromPlan = useCallback(async (surveyId: string, distribution: Array<Record<string, unknown>>) => {
         if (!distribution || distribution.length === 0) return;
 
         try {
             const payload = {
-                interviewer_quotas: distribution.map((item: any) => ({
-                    interviewer_id: item.interviewerId,
-                    locality: item.localityKey,
-                    quota: item.interviews,
+                interviewer_quotas: distribution.map((item: Record<string, unknown>) => ({
+                    interviewer_id: item['interviewerId'],
+                    locality: item['localityKey'],
+                    quota: item['interviews'],
                 })),
             };
 
@@ -626,11 +628,11 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
     }, []);
 
     /** NEW: Seed team members (interviewers) from plan distribution */
-    const seedTeamFromPlan = useCallback(async (surveyId: string, distribution: any[]) => {
+    const seedTeamFromPlan = useCallback(async (surveyId: string, distribution: Array<Record<string, unknown>>) => {
         if (!distribution || distribution.length === 0) return;
 
         try {
-            const uniqueInterviewers = [...new Set(distribution.map((item: any) => item.interviewerId))];
+            const uniqueInterviewers = [...new Set(distribution.map((item: Record<string, unknown>) => item['interviewerId']))];
             for (const userId of uniqueInterviewers) {
                 await fetch(`/api/surveys/${surveyId}/team`, {
                     method: 'POST',
@@ -923,7 +925,7 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                         )}
                         {currentStep === 6 && (
                             <Step5QuestionnaireOutput
-                                surveyId={surveyId}
+                                {...(surveyId ? { surveyId } : {})}
                                 surveyTitle={data.tech.title}
                                 questions={data.questions}
                                 premises={data.premises}
@@ -931,18 +933,18 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                         )}
                         {currentStep === 7 && (
                             <Step6Team
-                                surveyId={surveyId}
-                                initialTeamUserIds={data.preselectedTeamUserIds}
+                                {...(surveyId ? { surveyId } : {})}
+                                {...(data.preselectedTeamUserIds ? { initialTeamUserIds: data.preselectedTeamUserIds } : {})}
                             />
                         )}
                         {currentStep === 8 && (
                             <Step7Routes
-                                surveyId={surveyId}
+                                {...(surveyId ? { surveyId } : {})}
                                 localities={data.localities}
                             />
                         )}
                         {currentStep === 9 && (
-                            <Step8Distribution surveyId={surveyId} />
+                            <Step8Distribution {...(surveyId ? { surveyId } : {})} />
                         )}
                     </div>
 

@@ -1,7 +1,8 @@
 let PublicReportAccessService: typeof import('../PublicReportAccessService').PublicReportAccessService;
 
 const singleMock = jest.fn();
-const eqMock = jest.fn(() => ({ eq: eqMock, single: singleMock }));
+const eqMock: jest.Mock = jest.fn();
+eqMock.mockImplementation(() => ({ eq: eqMock, single: singleMock }));
 const selectMock = jest.fn(() => ({ eq: eqMock, single: singleMock }));
 const fromMock = jest.fn(() => ({ select: selectMock }));
 
@@ -14,7 +15,7 @@ jest.mock('@political-research/shared-utils', () => ({
 describe('PublicReportAccessService security', () => {
     beforeEach(async () => {
         jest.clearAllMocks();
-        process.env.PUBLIC_REPORT_SESSION_SECRET = 'test-public-report-session-secret';
+        process.env['PUBLIC_REPORT_SESSION_SECRET'] = 'test-public-report-session-secret';
         ({ PublicReportAccessService } = await import('../PublicReportAccessService'));
     });
 

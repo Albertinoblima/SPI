@@ -124,7 +124,7 @@ function Label({ htmlFor, children, tooltip }: { htmlFor: string; children: Reac
     return (
         <label htmlFor={htmlFor} className="flex items-center text-sm font-medium text-slate-700 mb-1.5">
             {children}
-            {tooltip && <Tooltip text={tooltip} helpId={helpByField[htmlFor]} />}
+            {tooltip && <Tooltip text={tooltip} {...(helpByField[htmlFor] ? { helpId: helpByField[htmlFor] } : {})} />}
         </label>
     );
 }

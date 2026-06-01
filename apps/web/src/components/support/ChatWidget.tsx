@@ -188,6 +188,7 @@ export default function ChatWidget() {
             pollRef.current = setInterval(() => fetchMessages(activeTicket.id), 8000);
             return () => { if (pollRef.current) clearInterval(pollRef.current); };
         }
+        return undefined;
     }, [view, activeTicket, fetchMessages]);
 
     useEffect(() => {
@@ -208,7 +209,14 @@ export default function ChatWidget() {
         const arr = Array.from(files);
         const newPending = arr.map((file) => {
             const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
-            return { url: '', name: file.name, type: file.type, size: file.size, preview, file };
+            return {
+                url: '',
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                ...(preview ? { preview } : {}),
+                file,
+            };
         });
         setPendingFiles((prev) => [...prev, ...newPending].slice(0, 5)); // máx 5 por vez
     }

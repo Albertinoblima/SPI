@@ -1,7 +1,7 @@
 type BarraDinamicaProps = {
     percent: number;
     className?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 };
 function BarraDinamica({ percent, className = '', ...props }: BarraDinamicaProps) {
     return (
@@ -16,7 +16,7 @@ function BarraDinamica({ percent, className = '', ...props }: BarraDinamicaProps
 type BarraAlturaProps = {
     percent: number;
     className?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 };
 function BarraAltura({ percent, className = '', ...props }: BarraAlturaProps) {
     return (
@@ -31,7 +31,7 @@ function BarraAltura({ percent, className = '', ...props }: BarraAlturaProps) {
 type PontoAnimadoProps = {
     delayMs: number;
     className?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 };
 function PontoAnimado({ delayMs, className = '', ...props }: PontoAnimadoProps) {
     return (
@@ -83,7 +83,8 @@ const MOCK_DATA = {
 };
 
 const AnalyticsDashboard = () => {
-    const [selectedSurvey, setSelectedSurvey] = useState(MOCK_DATA.surveys[0]);
+    const defaultSurvey = MOCK_DATA.surveys[0] ?? { id: '', title: 'Sem pesquisa', responses: 0 };
+    const [selectedSurvey, setSelectedSurvey] = useState(defaultSurvey);
     const [dateRange, setDateRange] = useState('7d');
     const [mapView, setMapView] = useState<'markers' | 'heatmap'>('markers');
 
@@ -155,7 +156,7 @@ const AnalyticsDashboard = () => {
                                 value={selectedSurvey.id}
                                 onChange={(e) =>
                                     setSelectedSurvey(
-                                        MOCK_DATA.surveys.find((s) => s.id === e.target.value)!
+                                        MOCK_DATA.surveys.find((s) => s.id === e.target.value) ?? defaultSurvey
                                     )
                                 }
                                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none"

@@ -1,12 +1,13 @@
 // POST /api/auth/register - Registro completo de empresa + admin
 import { NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function slugify(text: string): string {
     return text
@@ -18,25 +19,26 @@ function slugify(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const body = await request.json();
         const { companyName, fullName, email, password } = body;
 
         if (!companyName || !fullName || !email || !password) {
-            return apiError('Todos os campos são obrigatórios', 400);
+            return apiError('Todos os campos são obrigatórios', 400, correlationId);
         }
 
         if (password.length < 8) {
-            return apiError('A senha deve ter no mínimo 8 caracteres', 400);
+            return apiError('A senha deve ter no mínimo 8 caracteres', 400, correlationId);
         }
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('user-registration');
 
         // 1. Verificar se email já existe
         const { data: existingUsers } = await adminSupabase.auth.admin.listUsers();
         const emailExists = existingUsers?.users?.some(u => u.email === email);
         if (emailExists) {
-            return apiError('Este e-mail já está cadastrado', 409);
+            return apiError('Este e-mail já está cadastrado', 409, correlationId);
         }
 
         // 2. Gerar slug único para o tenant

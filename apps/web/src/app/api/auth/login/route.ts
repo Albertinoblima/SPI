@@ -14,6 +14,7 @@ import { consumeRateLimit } from '@/lib/auth/rate-limit';
 import { getUserAuditContextByEmail, logAuthAuditEvent } from '@/lib/auth/audit';
 import { createRouteHandlerClient } from '@/lib/supabase/route';
 import { getPostLoginRedirectUrl } from '@/lib/post-login-redirect.server';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function getRateLimitKey(request: NextRequest, email: string) {
     const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
@@ -24,12 +25,13 @@ function getRateLimitKey(request: NextRequest, email: string) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const body = await request.json();
         const parsedBody = loginRequestSchema.safeParse(body);
 
         if (!parsedBody.success) {
-            return apiError(parsedBody.error.issues[0]?.message ?? 'Credenciais inválidas.', 400);
+            return apiError(parsedBody.error.issues[0]?.message ?? 'Credenciais inválidas.', 400, correlationId);
         }
 
         const normalizedEmail = parsedBody.data.email.trim().toLowerCase();
@@ -59,7 +61,8 @@ export async function POST(request: NextRequest) {
 
             const response = apiError(
                 'Muitas tentativas de login em sequência. Aguarde alguns minutos antes de tentar novamente.',
-                429
+                429,
+                correlationId
             );
             response.headers.set('Retry-After', String(rateLimit.retryAfterSeconds));
             return response;
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
                 },
             });
 
-            return applyCookies(apiError(normalizeAuthErrorMessage(error?.message), 401));
+            return applyCookies(apiError(normalizeAuthErrorMessage(error?.message), 401, correlationId));
         }
 
         const redirectTo = getSafeRedirectPath(
@@ -109,16 +112,16 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        return applyCookies(apiSuccess({ redirectTo }));
+        return applyCookies(apiSuccess({ redirectTo, correlationId }));
     } catch (error) {
         await trackedApiError(request, 'Falha inesperada no login', 500, {
             errorCode: 'AUTH_FORBIDDEN',
-            metadata: { route: '/api/auth/login' },
+            metadata: { route: '/api/auth/login', correlationId },
         });
 
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
-            metadata: { route: '/api/auth/login' },
+            metadata: { route: '/api/auth/login', correlationId },
         });
     }
 }

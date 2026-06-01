@@ -7,12 +7,14 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -83,7 +85,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Enriquecer com estatísticas + Saúde (erros recentes)
-        const tenantIds = tenants.map((t: any) => t.id);
+        const tenantIds = tenants.map((t: Record<string, unknown>) => t['id']);
 
         // Busca agregada de erros não resolvidos nas últimas 24h (1 query eficiente)
         const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -96,25 +98,27 @@ export async function GET(request: NextRequest) {
 
         // Agrega por tenant
         const healthByTenant = new Map<string, { critical: number; high: number; medium: number; lastErrorAt: string | null }>();
-        (recentErrors ?? []).forEach((row: any) => {
-            if (!row.tenant_id) return;
-            const current = healthByTenant.get(row.tenant_id) || { critical: 0, high: 0, medium: 0, lastErrorAt: null };
-            if (row.severity === 'critical') current.critical += 1;
-            else if (row.severity === 'high') current.high += 1;
-            else if (row.severity === 'medium') current.medium += 1;
+        (recentErrors ?? []).forEach((row: Record<string, unknown>) => {
+            if (!row['tenant_id']) return;
+            const tid = row['tenant_id'] as string;
+            const current = healthByTenant.get(tid) || { critical: 0, high: 0, medium: 0, lastErrorAt: null };
+            const sev = row['severity'] as string | undefined;
+            if (sev === 'critical') current.critical += 1;
+            else if (sev === 'high') current.high += 1;
+            else if (sev === 'medium') current.medium += 1;
             // lastErrorAt pode ser refinado depois se necessário
-            healthByTenant.set(row.tenant_id, current);
+            healthByTenant.set(tid, current);
         });
 
         const enrichedTenants = await Promise.all(
-            tenants.map(async (tenant: any) => {
+            tenants.map(async (tenant: Record<string, unknown>) => {
                 const { data: stats } = await auth.supabase
                     .from('vw_tenant_stats')
                     .select('*')
-                    .eq('tenant_id', tenant.id)
+                    .eq('tenant_id', tenant['id'])
                     .single();
 
-                const health = healthByTenant.get(tenant.id) || { critical: 0, high: 0, medium: 0, lastErrorAt: null };
+                const health = healthByTenant.get(tenant['id'] as string) || { critical: 0, high: 0, medium: 0, lastErrorAt: null };
 
                 return {
                     ...tenant,
@@ -149,10 +153,11 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/tenants - Bulk actions (Fase 1 - Ações em Massa God Mode)
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -164,12 +169,12 @@ export async function POST(request: NextRequest) {
         };
 
         if (!action || !Array.isArray(tenantIds) || tenantIds.length === 0) {
-            return apiError('Parâmetros inválidos para ação em massa', 400);
+            return apiError('Parâmetros inválidos para ação em massa', 400, correlationId);
         }
 
         // Limite de segurança
         if (tenantIds.length > 100) {
-            return apiError('Máximo de 100 tenants por operação em massa', 400);
+            return apiError('Máximo de 100 tenants por operação em massa', 400, correlationId);
         }
 
         if (action === 'update_status') {
@@ -183,7 +188,7 @@ export async function POST(request: NextRequest) {
                 .select('id, name, status')
                 .in('id', tenantIds);
 
-            const currentMap = new Map((currentTenants ?? []).map((t: any) => [t.id, t]));
+            const currentMap = new Map((currentTenants ?? []).map((t: Record<string, unknown>) => [t['id'], t]));
 
             // Executar update
             const { error: updateError } = await auth.supabase
@@ -208,11 +213,11 @@ export async function POST(request: NextRequest) {
                     action: 'bulk_update_tenant_status',
                     entity_type: 'tenant',
                     entity_id: tid,
-                    changes_description: `Status alterado de "${prev?.status ?? 'unknown'}" para "${status}" via ação em massa`,
+                    changes_description: `Status alterado de "${prev?.['status'] ?? 'unknown'}" para "${status}" via ação em massa`,
                     is_critical: status === 'suspended', // Suspensão é crítica
                     metadata: {
                         bulk_operation: true,
-                        previous_status: prev?.status ?? null,
+                        previous_status: prev?.['status'] ?? null,
                         new_status: status,
                         performed_by: auth.user.email ?? auth.user.id,
                     },
@@ -229,7 +234,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        return apiError(`Ação não suportada: ${action}`, 400);
+        return apiError(`Ação não suportada: ${action}`, 400, correlationId);
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

@@ -10,12 +10,13 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 import { createClient } from '@supabase/supabase-js';
 
 function adminDb() {
     return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['SUPABASE_SERVICE_ROLE_KEY']!
     );
 }
 
@@ -23,11 +24,12 @@ export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     // Pode ser system_admin ou tenant_admin
     const auth = await requireTenantAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -42,12 +44,12 @@ export async function GET(
 
         if (ticketError || !ticket) {
             console.error('Ticket fetch error:', ticketError);
-            return apiError('Ticket não encontrado', 404);
+            return apiError('Ticket não encontrado', 404, correlationId);
         }
 
         // Verificar acesso (system_admin vê tudo, tenant_admin vê do seu tenant)
         if (!auth.userData.is_system_admin && ticket.tenant_id !== auth.userData.tenant_id) {
-            return apiError('Acesso negado', 403);
+            return apiError('Acesso negado', 403, correlationId);
         }
 
         // Usar service_role para contornar RLS ao ler dados de outros tenants
@@ -98,10 +100,11 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -114,20 +117,20 @@ export async function PUT(
         const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
         if (status && !validStatuses.includes(status)) {
-            return apiError('Status inválido', 400);
+            return apiError('Status inválido', 400, correlationId);
         }
 
         if (priority && !validPriorities.includes(priority)) {
-            return apiError('Prioridade inválida', 400);
+            return apiError('Prioridade inválida', 400, correlationId);
         }
 
-        const updatePayload: any = {};
-        if (status) updatePayload.status = status;
-        if (priority) updatePayload.priority = priority;
-        if (assigned_to !== undefined) updatePayload.assigned_to = assigned_to;
+        const updatePayload: Record<string, unknown> = {};
+        if (status) updatePayload['status'] = status;
+        if (priority) updatePayload['priority'] = priority;
+        if (assigned_to !== undefined) updatePayload['assigned_to'] = assigned_to;
 
         if (status === 'resolved') {
-            updatePayload.resolved_at = new Date().toISOString();
+            updatePayload['resolved_at'] = new Date().toISOString();
         }
 
         // Atualizar ticket
@@ -160,10 +163,11 @@ export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireTenantAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -172,7 +176,7 @@ export async function POST(
         const { message } = body;
 
         if (!message || message.trim().length === 0) {
-            return apiError('Mensagem é obrigatória', 400);
+            return apiError('Mensagem é obrigatória', 400, correlationId);
         }
 
         // Verificar acesso ao ticket
@@ -183,11 +187,11 @@ export async function POST(
             .single();
 
         if (!ticket) {
-            return apiError('Ticket não encontrado', 404);
+            return apiError('Ticket não encontrado', 404, correlationId);
         }
 
         if (!auth.userData.is_system_admin && ticket.tenant_id !== auth.userData.tenant_id) {
-            return apiError('Acesso negado', 403);
+            return apiError('Acesso negado', 403, correlationId);
         }
 
         // Inserir mensagem

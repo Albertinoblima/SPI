@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         if (error) {
             await logAuthAuditEvent({
                 action: 'auth_password_reset_failed',
-                email: user.email,
+                ...(user.email ? { email: user.email } : {}),
                 request,
                 userId: user.id,
                 description: 'Falha ao concluir redefinição de senha.',
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
         await logAuthAuditEvent({
             action: 'auth_password_reset_completed',
-            email: user.email,
+            ...(user.email ? { email: user.email } : {}),
             request,
             userId: user.id,
             description: 'Senha redefinida com sucesso.',

@@ -161,13 +161,13 @@ export default function TenantsPage() {
             trial: { bg: 'bg-blue-900/30', text: 'text-blue-300', label: 'Trial' },
         };
 
-        const badge = badges[status] || badges.active;
+        const badge = badges[status as keyof typeof badges] ?? badges['active'];
 
         return (
             <span
-                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${badge?.bg ?? ''} ${badge?.text ?? ''}`}
             >
-                {badge.label}
+                {badge?.label ?? ''}
             </span>
         );
     };

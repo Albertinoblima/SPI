@@ -4,13 +4,14 @@ import {
     listResearchPlans,
     updateResearchPlan,
     deleteResearchPlan,
+    type ResearchPlan,
 } from '@/lib/supabase/researchPlans';
 import { reportClientError } from '@/lib/monitoring/reportClientError';
 
 export function useResearchPlans() {
-    const [plans, setPlans] = useState<any[]>([]);
+    const [plans, setPlans] = useState<ResearchPlan[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<any>(null);
+    const [error, setError] = useState<Error | null>(null);
 
     const fetchPlans = async () => {
         setLoading(true);
@@ -18,11 +19,12 @@ export function useResearchPlans() {
         try {
             const data = await listResearchPlans();
             setPlans(data);
-        } catch (err: any) {
-            setError(err);
+        } catch (err: unknown) {
+            const e = err instanceof Error ? err : new Error(String(err));
+            setError(e);
             await reportClientError({
                 errorCode: 'PLANNING_LOAD_FAILED',
-                errorMessage: err?.message || 'Falha ao carregar planejamentos',
+                errorMessage: e.message || 'Falha ao carregar planejamentos',
                 severity: 'medium',
                 metadata: { operation: 'fetchPlans' },
             });
@@ -31,20 +33,21 @@ export function useResearchPlans() {
         }
     };
 
-    const createPlan = async (args: any) => {
+    const createPlan = async (args: { name: string; planningData: Record<string, unknown>; status?: string; linkedSurveyId?: string | null }) => {
         setLoading(true);
         setError(null);
         try {
             const data = await createResearchPlan(args);
             setPlans((prev) => [data, ...prev]);
             return data;
-        } catch (err: any) {
-            setError(err);
+        } catch (err: unknown) {
+            const e = err instanceof Error ? err : new Error(String(err));
+            setError(e);
             await reportClientError({
                 errorCode: 'PLANNING_SAVE_FAILED',
-                errorMessage: err?.message || 'Falha ao salvar planejamento',
+                errorMessage: e.message || 'Falha ao salvar planejamento',
                 severity: 'high',
-                metadata: { operation: 'createPlan', name: args?.name },
+                metadata: { operation: 'createPlan', name: (args as { name?: string }).name },
             });
             throw err;
         } finally {
@@ -52,18 +55,19 @@ export function useResearchPlans() {
         }
     };
 
-    const updatePlan = async (id: string, updates: any) => {
+    const updatePlan = async (id: string, updates: Partial<ResearchPlan>) => {
         setLoading(true);
         setError(null);
         try {
             const data = await updateResearchPlan(id, updates);
             setPlans((prev) => prev.map((p) => (p.id === id ? data : p)));
             return data;
-        } catch (err: any) {
-            setError(err);
+        } catch (err: unknown) {
+            const e = err instanceof Error ? err : new Error(String(err));
+            setError(e);
             await reportClientError({
                 errorCode: 'PLANNING_SAVE_FAILED',
-                errorMessage: err?.message || 'Falha ao atualizar planejamento',
+                errorMessage: e.message || 'Falha ao atualizar planejamento',
                 severity: 'high',
                 metadata: { operation: 'updatePlan', id },
             });
@@ -79,11 +83,12 @@ export function useResearchPlans() {
         try {
             await deleteResearchPlan(id);
             setPlans((prev) => prev.filter((p) => p.id !== id));
-        } catch (err: any) {
-            setError(err);
+        } catch (err: unknown) {
+            const e = err instanceof Error ? err : new Error(String(err));
+            setError(e);
             await reportClientError({
                 errorCode: 'PLANNING_SAVE_FAILED',
-                errorMessage: err?.message || 'Falha ao excluir planejamento',
+                errorMessage: e.message || 'Falha ao excluir planejamento',
                 severity: 'high',
                 metadata: { operation: 'deletePlan', id },
             });

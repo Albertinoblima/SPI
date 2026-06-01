@@ -1,6 +1,6 @@
 export interface HelpTopic {
     id: string;
-    category: string;
+    category?: string;
     title: string;
     short: string;
     content: string[];

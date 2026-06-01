@@ -1,29 +1,10 @@
 // Middleware para verificar se usuário é system_admin
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createSupabaseServerClient } from '@political-research/shared-utils';
 import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
 export async function requireSystemAdmin(request: NextRequest) {
-    const cookieStore = cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value;
-                },
-                set(name: string, value: string, options: any) {
-                    cookieStore.set(name, value, options);
-                },
-                remove(name: string, options: any) {
-                    cookieStore.delete(name);
-                },
-            },
-        }
-    );
+    const supabase = await createSupabaseServerClient();
 
     // Verificar autenticação
     const {
@@ -62,25 +43,7 @@ export async function requireSystemAdmin(request: NextRequest) {
 }
 
 export async function requireTenantAdmin(request: NextRequest) {
-    const cookieStore = cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value;
-                },
-                set(name: string, value: string, options: any) {
-                    cookieStore.set(name, value, options);
-                },
-                remove(name: string, options: any) {
-                    cookieStore.delete(name);
-                },
-            },
-        }
-    );
+    const supabase = await createSupabaseServerClient();
 
     const {
         data: { user },
@@ -118,7 +81,9 @@ export async function requireTenantAdmin(request: NextRequest) {
         };
     }
 
-    // === Suporte a Impersonation (Fase 1) ===
+    // === Suporte a Impersonation (Fase 2 hardened) ===
+    // Todas as operações de impersonation devem usar createAuditedSupabaseAdminClient
+    // e rate limiting. RLS policies on admin_impersonation_sessions devem restringir a system_admins.
     let effectiveTenantId = userData.tenant_id;
 
     if (userData.is_system_admin) {
@@ -150,10 +115,12 @@ export async function requireTenantAdmin(request: NextRequest) {
 }
 
 /**
- * Utilitário para retornar erro com formato consistente
+ * Utilitário para retornar erro com formato consistente + suporte a correlationId (Fase 5 Observability)
  */
-export function apiError(message: string, status: number = 400) {
-    return NextResponse.json({ error: message }, { status });
+export function apiError(message: string, status: number = 400, correlationId?: string) {
+    const body: Record<string, unknown> = { error: message };
+    if (correlationId) body['correlationId'] = correlationId;
+    return NextResponse.json(body, { status });
 }
 
 export async function trackedApiError(
@@ -165,6 +132,7 @@ export async function trackedApiError(
         tenantId?: string | null;
         userId?: string | null;
         metadata?: Record<string, unknown>;
+        correlationId?: string;
     }
 ) {
     if (status >= 500 || options?.errorCode) {
@@ -172,14 +140,15 @@ export async function trackedApiError(
             request,
             errorCode: options?.errorCode ?? 'API_HTTP_5XX',
             errorMessage: message,
-            tenantId: options?.tenantId,
-            userId: options?.userId,
+            ...(options?.tenantId !== undefined ? { tenantId: options.tenantId } : {}),
+            ...(options?.userId !== undefined ? { userId: options.userId } : {}),
             httpStatusCode: status,
-            metadata: options?.metadata,
+            ...(options?.metadata ? { metadata: options.metadata } : {}),
+            ...(options?.correlationId ? { correlationId: options.correlationId } : {}),
         });
     }
 
-    return apiError(message, status);
+    return apiError(message, status, options?.correlationId);
 }
 
 export async function handleApiUnhandledError(
@@ -196,10 +165,10 @@ export async function handleApiUnhandledError(
         request,
         errorCode: options?.errorCode ?? 'API_UNHANDLED_EXCEPTION',
         error,
-        tenantId: options?.tenantId,
-        userId: options?.userId,
+        ...(options?.tenantId !== undefined ? { tenantId: options.tenantId } : {}),
+        ...(options?.userId !== undefined ? { userId: options.userId } : {}),
         httpStatusCode: 500,
-        metadata: options?.metadata,
+        ...(options?.metadata ? { metadata: options.metadata } : {}),
     });
 
     return NextResponse.json(
@@ -212,8 +181,10 @@ export async function handleApiUnhandledError(
 }
 
 /**
- * Utilitário para retornar sucesso com formato consistente
+ * Utilitário para retornar sucesso com formato consistente + suporte a correlationId (Fase 5 Observability)
  */
-export function apiSuccess(data: any, status: number = 200) {
-    return NextResponse.json({ success: true, data }, { status });
+export function apiSuccess<T = unknown>(data: T, status: number = 200, correlationId?: string) {
+    const body: Record<string, unknown> = { success: true, data };
+    if (correlationId) body['correlationId'] = correlationId;
+    return NextResponse.json(body, { status });
 }

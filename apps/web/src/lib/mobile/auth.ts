@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { verifyMobileAccessToken } from '@/lib/mobile/token';
 
 export interface MobileAuthContext {
@@ -17,7 +17,7 @@ export async function getMobileAuthContext(request: NextRequest): Promise<Mobile
     const token = authHeader.slice(7).trim();
     if (!token) return null;
 
-    const admin = createAdminClient();
+    const admin = createAuditedSupabaseAdminClient('mobile-auth-context');
 
     // Prefer mobile short-lived JWT first; fallback keeps backward compatibility
     // with existing Supabase bearer tokens until all clients migrate.

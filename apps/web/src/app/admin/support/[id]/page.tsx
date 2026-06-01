@@ -79,7 +79,7 @@ function formatTime(dateStr: string) {
 
 export default function AdminTicketDetailPage() {
     const params = useParams();
-    const ticketId = params.id as string;
+    const ticketId = params['id'] as string;
 
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);

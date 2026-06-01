@@ -2,9 +2,16 @@
 // Formulário para nome, objetivo, tipo de pesquisa e público-alvo
 import React, { useState } from 'react';
 
+interface Step1DefinitionData {
+    name: string;
+    objective: string;
+    researchType: string;
+    targetAudience: string;
+}
+
 interface Step1DefinitionProps {
-    initialData?: Record<string, any>;
-    onNext: (data: Record<string, any>) => void;
+    initialData?: Partial<Step1DefinitionData>;
+    onNext: (data: Step1DefinitionData) => void;
 }
 
 const Step1Definition: React.FC<Step1DefinitionProps> = ({ initialData, onNext }) => {

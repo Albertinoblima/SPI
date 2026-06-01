@@ -1,22 +1,24 @@
 import { NextRequest } from 'next/server';
 import { apiError, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getSurveyAuthContext, surveyBelongsToTenant } from '@/lib/surveys/auth-context';
 import { buildQuestionnaireHtml } from '@/lib/surveys/documents';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getSurveyAuthContext();
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
-        if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada', 404, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('questionnaire-preview');
         const { data, error } = await admin
             .from('surveys')
             .select('title, started_at, users!surveys_created_by_fkey(full_name), questions(*), survey_premises(*)')
@@ -25,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .single();
 
         if (error || !data) {
-            return apiError(`Falha ao montar questionario: ${error?.message ?? 'desconhecido'}`, 500);
+            return apiError(`Falha ao montar questionario: ${error?.message ?? 'desconhecido'}`, 500, correlationId);
         }
 
         const usersRelation = data.users as { full_name?: string } | Array<{ full_name?: string }> | null;

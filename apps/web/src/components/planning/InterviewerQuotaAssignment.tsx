@@ -66,7 +66,7 @@ export function InterviewerQuotaAssignment({
 
     assignments.forEach(a => {
       if (map[a.localityKey] !== undefined) {
-        map[a.localityKey] += a.interviews;
+        map[a.localityKey] = (map[a.localityKey] ?? 0) + a.interviews;
       }
     });
     return map;
@@ -79,7 +79,7 @@ export function InterviewerQuotaAssignment({
 
     assignments.forEach(a => {
       if (map[a.interviewerId] !== undefined) {
-        map[a.interviewerId] += a.interviews;
+        map[a.interviewerId] = (map[a.interviewerId] ?? 0) + a.interviews;
       }
     });
     return map;
@@ -119,7 +119,11 @@ export function InterviewerQuotaAssignment({
 
       if (existing >= 0) {
         const copy = [...prev];
-        copy[existing] = { ...copy[existing], interviews: newValue };
+        const existingAssignment = copy[existing];
+        if (!existingAssignment) {
+          return prev;
+        }
+        copy[existing] = { ...existingAssignment, interviews: newValue };
         return copy;
       } else {
         return [...prev, { interviewerId, localityKey, interviews: newValue }];
@@ -180,6 +184,9 @@ export function InterviewerQuotaAssignment({
       if (unlocked.length === 0) break;
 
       const target = unlocked[i % unlocked.length];
+      if (!target) {
+        break;
+      }
       if (diff > 0) {
         target.interviews += 1;
         diff--;
@@ -368,13 +375,15 @@ export function InterviewerQuotaAssignment({
                     )?.interviews || 0;
 
                     const geoTotal = geographicQuotas.find(q => q.name === geoKey)?.totalInterviews || 0;
-                    const otherAssigned = assignedByLocality[geoKey] - current;
+                    const otherAssigned = (assignedByLocality[geoKey] ?? 0) - current;
                     const maxAllowed = Math.max(0, geoTotal - otherAssigned);
 
                     return (
                       <td key={geoKey} className="px-2 py-2 text-center">
                         <input
                           type="number"
+                          aria-label={`Cota de ${intv.fullName} em ${geoKey}`}
+                          title={`Cota de ${intv.fullName} em ${geoKey}`}
                           value={current}
                           onChange={(e) => updateAssignment(intv.userId, geoKey, parseInt(e.target.value) || 0)}
                           disabled={disabled || isLocked}

@@ -43,8 +43,11 @@ function extractPopulationFromAggregate(payload: IbgeAggregateResult): Populatio
     const years = Object.keys(serieMap).sort((a, b) => Number(b) - Number(a));
     if (years.length === 0) return { population: null, referenceYear: null };
 
-    const latestYear = Number(years[0]);
-    const latestValue = serieMap[years[0]];
+    const latestYearKey = years[0];
+    if (!latestYearKey) return { population: null, referenceYear: null };
+
+    const latestYear = Number(latestYearKey);
+    const latestValue = serieMap[latestYearKey];
     if (!latestValue) {
         return {
             population: null,

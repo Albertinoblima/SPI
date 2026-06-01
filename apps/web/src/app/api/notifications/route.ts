@@ -9,12 +9,13 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function createSupabase() {
     const cookieStore = cookies();
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
         {
             cookies: {
                 get(name: string) { return cookieStore.get(name)?.value; },
@@ -30,9 +31,10 @@ function createSupabase() {
 }
 
 export async function GET(_request: NextRequest) {
+    const correlationId = buildCorrelationId(_request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return apiError('Não autorizado', 401);
+    if (authError || !user) return apiError('Não autorizado', 401, correlationId);
 
     try {
         // Buscar notificações destinadas ao usuário (pelo user_id, tenant ou all)

@@ -1,18 +1,20 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getMobileAuthContext(request);
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('mobile-cotas');
 
         const { data: member } = await admin
             .from('survey_team_members')
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .eq('is_active', true)
             .single();
 
-        if (!member) return apiError('Usuario sem acesso a esta pesquisa', 403);
+        if (!member) return apiError('Usuario sem acesso a esta pesquisa', 403, correlationId);
 
         let query = admin
             .from('survey_distribution_quotas')
@@ -37,10 +39,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
 
         const { data: quotas, error } = await query;
-        if (error) return apiError(`Falha ao carregar cotas: ${error.message}`, 500);
+        if (error) return apiError(`Falha ao carregar cotas: ${error.message}`, 500, correlationId);
 
         // === POLISH 100%: Real collected counts (same logic as main bundle) ===
-        let quotasWithCounts = (quotas ?? []) as any[];
+        let quotasWithCounts = (quotas ?? []) as Array<Record<string, unknown>>;
 
         if (quotasWithCounts.length > 0) {
             const interviewFilter = member.role === 'interviewer' ? { interviewer_id: ctx.userId } : {};
@@ -53,19 +55,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 .in('status', ['completed', 'synced']);
 
             const collectedByLocality: Record<string, number> = {};
-            (interviews ?? []).forEach((iv: any) => {
+            (interviews ?? []).forEach((iv: { locality_id?: string }) => {
                 if (iv.locality_id) {
                     collectedByLocality[iv.locality_id] = (collectedByLocality[iv.locality_id] || 0) + 1;
                 }
             });
 
-            quotasWithCounts = quotasWithCounts.map((q: any) => {
-                const locId = q.locality_id;
+            quotasWithCounts = quotasWithCounts.map((q: Record<string, unknown>) => {
+                const locId = q['locality_id'] as string | undefined;
                 const collected = locId ? (collectedByLocality[locId] || 0) : 0;
                 return {
                     ...q,
                     collected_count: collected,
-                    remaining: Math.max(0, (q.quota_total || 0) - collected),
+                    remaining: Math.max(0, ((q['quota_total'] as number) || 0) - collected),
                 };
             });
         }

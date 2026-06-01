@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient, checkRateLimit, adminRateLimitKey } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 type SyncInterviewPayload = {
     local_id?: string;
@@ -26,24 +27,35 @@ function toDuration(start: string, end?: string | null) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getMobileAuthContext(request);
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
+
+        // Fase 2: Rate limit on interview sync (prevents abuse of admin client)
+        const rateKey = adminRateLimitKey(ctx.userId || 'mobile-unknown', 'sync-interviews');
+        if (!checkRateLimit(rateKey, { windowMs: 60_000, maxRequests: 20 })) {
+            return apiError('Limite de sincronização excedido. Tente novamente em breve.', 429, correlationId);
+        }
 
         const payload = await request.json();
         const interviews = Array.isArray(payload) ? (payload as SyncInterviewPayload[]) : [];
 
         if (interviews.length === 0) {
-            return apiError('Envie um array de entrevistas para sincronizar', 400);
+            return apiError('Envie um array de entrevistas para sincronizar', 400, correlationId);
         }
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('entrevistas-sync');
         const result: Array<{ local_id?: string; interview_id?: string; ok: boolean; error?: string }> = [];
 
         for (const item of interviews) {
             try {
                 if (!item.survey_id || !item.horario_inicio) {
-                    result.push({ local_id: item.local_id, ok: false, error: 'survey_id e horario_inicio obrigatorios' });
+                    result.push({
+                        ...(item.local_id ? { local_id: item.local_id } : {}),
+                        ok: false,
+                        error: 'survey_id e horario_inicio obrigatorios',
+                    });
                     continue;
                 }
 
@@ -68,7 +80,11 @@ export async function POST(request: NextRequest) {
                     .single();
 
                 if (interviewError || !interview) {
-                    result.push({ local_id: item.local_id, ok: false, error: interviewError?.message ?? 'erro ao inserir entrevista' });
+                    result.push({
+                        ...(item.local_id ? { local_id: item.local_id } : {}),
+                        ok: false,
+                        error: interviewError?.message ?? 'erro ao inserir entrevista',
+                    });
                     continue;
                 }
 
@@ -85,26 +101,39 @@ export async function POST(request: NextRequest) {
                 if (answers.length > 0) {
                     const { error: answersError } = await admin.from('interview_answers').insert(answers);
                     if (answersError) {
-                        result.push({ local_id: item.local_id, ok: false, error: answersError.message });
+                        result.push({
+                            ...(item.local_id ? { local_id: item.local_id } : {}),
+                            ok: false,
+                            error: answersError.message,
+                        });
                         continue;
                     }
                 }
 
-                result.push({ local_id: item.local_id, interview_id: interview.id, ok: true });
+                result.push({
+                    ...(item.local_id ? { local_id: item.local_id } : {}),
+                    interview_id: interview.id,
+                    ok: true,
+                });
             } catch (error) {
                 result.push({
-                    local_id: item.local_id,
+                    ...(item.local_id ? { local_id: item.local_id } : {}),
                     ok: false,
                     error: error instanceof Error ? error.message : 'erro desconhecido',
                 });
             }
         }
 
-        return apiSuccess({ synced: result.filter((r) => r.ok).length, failed: result.filter((r) => !r.ok).length, items: result });
+        return apiSuccess({
+            synced: result.filter((r) => r.ok).length,
+            failed: result.filter((r) => !r.ok).length,
+            items: result,
+            correlationId,
+        });
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
-            metadata: { route: '/api/entrevistas/sync', operation: 'POST' },
+            metadata: { route: '/api/entrevistas/sync', operation: 'POST', correlationId },
         });
     }
 }

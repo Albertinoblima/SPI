@@ -2,16 +2,25 @@
 // Consolida dados do planejamento e permite salvar/exportar
 import React from 'react';
 
-interface PlanningData {
+export interface PlanningData {
     id?: string;
+    name?: string;
+    objective?: string;
+    researchType?: string;
+    targetAudience?: string;
     sampleSize?: number;
     geographicBase?: {
+        scope?: string;
         municipalities?: Array<{
             id?: string;
             name: string;
             uf?: string;
+            zone?: string;
             population?: number;
-            localities?: any[]; // keep for now
+            enriched?: {
+                population_census?: number;
+            };
+            localities?: Array<{ id: string; name: string; zone?: string; interviews_required?: number }>;
         }>;
         metadata?: {
             total_population?: number;
@@ -19,6 +28,7 @@ interface PlanningData {
     };
     distribution?: {
         sampleSize?: number;
+        totalAssigned?: number;
         quotas?: Array<{
             name: string;
             population?: number;
@@ -30,6 +40,7 @@ interface PlanningData {
             interviews?: number;
         }>;
     };
+    // F6: ready for stricter PlanningContext from F3 types
 }
 
 interface Step5SummaryProps {
@@ -52,7 +63,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
     const geo = planningData.geographicBase || {};
     const dist = planningData.distribution || {};
     const sampleSize = planningData.sampleSize || dist.sampleSize || 0;
-    const totalPop = geo.metadata?.total_population || 0;
+    const totalPop = (geo.metadata as any)?.total_population || 0;
 
     const municipalities = geo.municipalities || [];
     const quotas = dist.quotas || [];
@@ -68,10 +79,10 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                     <span>1. Definição Inicial</span>
                 </h3>
                 <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-2 text-sm">
-                    <div><span className="text-slate-400">Nome:</span> <span className="font-medium">{planningData.name || '—'}</span></div>
-                    <div><span className="text-slate-400">Objetivo:</span> {planningData.objective || '—'}</div>
-                    <div><span className="text-slate-400">Tipo de Pesquisa:</span> {planningData.researchType || '—'}</div>
-                    <div><span className="text-slate-400">Público-alvo:</span> {planningData.targetAudience || '—'}</div>
+                    <div><span className="text-slate-400">Nome:</span> <span className="font-medium">{(planningData as any).name || '—'}</span></div>
+                    <div><span className="text-slate-400">Objetivo:</span> {(planningData as any).objective || '—'}</div>
+                    <div><span className="text-slate-400">Tipo de Pesquisa:</span> {(planningData as any).researchType || '—'}</div>
+                    <div><span className="text-slate-400">Público-alvo:</span> {(planningData as any).targetAudience || '—'}</div>
                 </div>
             </div>
 
@@ -103,15 +114,15 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                 <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <div className="text-slate-400 text-xs">População</div>
-                        <div className="font-semibold">{planningData.population?.toLocaleString('pt-BR') || '—'}</div>
+                        <div className="font-semibold">{(planningData as any)['population']?.toLocaleString('pt-BR') || '—'}</div>
                     </div>
                     <div>
                         <div className="text-slate-400 text-xs">Margem de erro</div>
-                        <div className="font-semibold">{planningData.margin || '—'}%</div>
+                        <div className="font-semibold">{(planningData as any)['margin'] || '—'}%</div>
                     </div>
                     <div>
                         <div className="text-slate-400 text-xs">Nível de confiança</div>
-                        <div className="font-semibold">{planningData.confidence || '—'}%</div>
+                        <div className="font-semibold">{(planningData as any)['confidence'] || '—'}%</div>
                     </div>
                     <div>
                         <div className="text-slate-400 text-xs">Tamanho da amostra</div>
@@ -127,8 +138,8 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                     {quotas.length > 0 ? (
                         <>
                             <div className="space-y-1">
-                                {quotas.slice(0, 6).map((q: { name: string; interviews?: number }, idx: number) => (
-                                    <div key={item.id || item.name || idx} className="flex justify-between text-sm">
+                                {quotas.slice(0, 6).map((q: { name: string; interviews?: number; uf?: string }, idx: number) => (
+                                    <div key={(q as any).id || q.name || idx} className="flex justify-between text-sm">
                                         <span>{q.name} {q.uf ? `(${q.uf})` : ''}</span>
                                         <span className="font-medium">{q.interviews?.toLocaleString('pt-BR') || 0}</span>
                                     </div>
@@ -149,7 +160,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                                     </div>
                                 )}
 
-                                {geo?.municipalities?.length > 0 && totalPop > 0 && (
+                                {municipalities.length > 0 && totalPop > 0 && (
                                     <div className="mt-1 text-xs text-slate-400">
                                         Densidade geral: {((dist.totalAssigned || 0) / totalPop * 10000).toFixed(1)} entrevistas por 10 mil habitantes.
                                     </div>
@@ -228,7 +239,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                                             description: planningData.objective || '',
                                             total_interviews: dist.sampleSize || 0,
                                             planning_data_id: planningData.id,
-                                            localities: (geo.municipalities || []).map((m: { name: string; population?: number }) => ({
+                                            localities: (geo.municipalities || []).map((m: { name: string; zone?: string; population?: number; enriched?: { population_census?: number } }) => ({
                                                 name: m.name,
                                                 zone: m.zone || 'mixed',
                                                 population: m.population || m.enriched?.population_census || 0,
@@ -259,7 +270,7 @@ const Step5Summary: React.FC<Step5SummaryProps> = ({
                                                     user_id: interviewerId,
                                                     role: 'interviewer',
                                                 }),
-                                            }).catch(() => {});
+                                            }).catch(() => { });
                                         }
                                     }
 

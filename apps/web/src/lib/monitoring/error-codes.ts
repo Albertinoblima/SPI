@@ -270,7 +270,7 @@ export const ERROR_CODE_CATALOG: Record<string, ErrorCodeDefinition> = {
 export type ErrorCode = keyof typeof ERROR_CODE_CATALOG;
 
 export function getErrorCodeDefinition(code: string): ErrorCodeDefinition {
-    return ERROR_CODE_CATALOG[code] ?? ERROR_CODE_CATALOG.UNKNOWN_ERROR;
+    return ERROR_CODE_CATALOG[code] ?? ERROR_CODE_CATALOG['UNKNOWN_ERROR']!;
 }
 
 export function isImmediateNotificationCode(code: string): boolean {

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     ErrorSeverity,
     getErrorCodeDefinition,
@@ -48,7 +48,7 @@ function safeJson(value: unknown): string {
     }
 }
 
-function buildCorrelationId(input?: string): string {
+export function buildCorrelationId(input?: string): string {
     if (input && input.trim().length > 0) {
         return input.trim();
     }
@@ -98,7 +98,7 @@ export async function captureSystemError(input: CaptureSystemErrorInput): Promis
     const request = input.request;
     const requestPath = request ? request.nextUrl.pathname : null;
 
-    const pathFromTarget = derivePathFromTarget(input.metadata?.target);
+    const pathFromTarget = derivePathFromTarget(input.metadata?.['target']);
     const inferredPath =
         requestPath === '/api/system/errors/ingest' && pathFromTarget
             ? pathFromTarget
@@ -119,7 +119,7 @@ export async function captureSystemError(input: CaptureSystemErrorInput): Promis
     };
 
     try {
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('error-monitor');
 
         const { data, error } = await admin
             .from('error_logs')

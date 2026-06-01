@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 type AuthAuditEventInput = {
     action: string;
@@ -26,7 +26,7 @@ function getRequestIpAddress(request: NextRequest) {
 
 export async function getUserAuditContextByEmail(email: string) {
     try {
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('auth-audit');
         const normalizedEmail = email.trim().toLowerCase();
 
         const { data } = await adminSupabase
@@ -49,7 +49,7 @@ export async function getUserAuditContextByEmail(email: string) {
 
 export async function logAuthAuditEvent(input: AuthAuditEventInput) {
     try {
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('auth-audit');
 
         await adminSupabase.from('audit_log').insert({
             id: randomUUID(),

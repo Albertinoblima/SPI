@@ -11,9 +11,27 @@ interface Props {
   researchType?: string;
 }
 
+interface MunicipalitySearchResult {
+  id?: string;
+  ibge_id?: number;
+  name: string;
+  uf?: string;
+  population?: number;
+  populacao_estimada?: number;
+  populacao_censo?: number;
+}
+
+interface LocalitySearchResult {
+  ibge_id?: string | number;
+  name: string;
+  zone?: string;
+  population?: number;
+  interviews?: number;
+}
+
 export default function GeographicBaseSelector({ value, onChange, researchType }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<MunicipalitySearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedUf, setSelectedUf] = useState('');
 
@@ -54,12 +72,14 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
     return () => clearTimeout(timer);
   }, [searchTerm, selectedUf]);
 
-  const addMunicipality = async (m: { id: string; name: string; uf?: string }) => {
+  const addMunicipality = async (m: MunicipalitySearchResult) => {
     const newMun: PlanningMunicipality = {
-      ibge_id: m.ibge_id,
-      name: m.nome,
-      uf: m.uf,
-      population: m.populacao_estimada || m.populacao_censo,
+      ...(m.ibge_id !== undefined ? { ibge_id: m.ibge_id } : {}),
+      name: m.name,
+      uf: m.uf || '',
+      ...((m.populacao_estimada || m.populacao_censo || m.population) !== undefined
+        ? { population: m.populacao_estimada || m.populacao_censo || m.population }
+        : {}),
     };
 
     if (!municipalities.some((m2) => m2.ibge_id === newMun.ibge_id)) {
@@ -70,7 +90,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
       // Busca dados enriquecidos em background (Fase 1 - Geo Enrichment)
       try {
         const res = await fetch(
-          `/api/geo/municipality-profile?state=${m.uf}&city=${encodeURIComponent(m.nome)}`
+          `/api/geo/municipality-profile?state=${m.uf || ''}&city=${encodeURIComponent(m.name)}`
         );
         if (res.ok) {
           const json = await res.json();
@@ -100,7 +120,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
         }
       } catch (e) {
         // Silencioso — mantém os dados básicos
-        console.info('Dados enriquecidos não disponíveis para', m.nome);
+        console.info('Dados enriquecidos não disponíveis para', m.name);
       }
     }
 
@@ -117,21 +137,21 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
 
   // Estado para controle de seleção de localidades dentro de um município (modal)
   const [editingLocalitiesFor, setEditingLocalitiesFor] = useState<number | null>(null);
-  const [localitiesForCurrent, setLocalitiesForCurrent] = useState<any[]>([]);
+  const [localitiesForCurrent, setLocalitiesForCurrent] = useState<LocalitySearchResult[]>([]);
   const [selectedLocalities, setSelectedLocalities] = useState<Set<string>>(new Set());
   const [localitySearch, setLocalitySearch] = useState('');
   const [activeZoneFilter, setActiveZoneFilter] = useState<'all' | 'urban' | 'rural'>('all');
 
   // Cache simples de localidades por município (evita refetches repetidos na mesma sessão)
-  const [localitiesCache, setLocalitiesCache] = useState<Record<number, any[]>>({});
+  const [localitiesCache, setLocalitiesCache] = useState<Record<string, LocalitySearchResult[]>>({});
 
   // Carregar localidades de um município específico (com cache)
   const loadLocalitiesForMunicipality = async (municipality: PlanningMunicipality) => {
     if (!municipality.name || !municipality.uf) return [];
 
-    const key = municipality.ibge_id || `${municipality.name}-${municipality.uf}`;
-    if (localitiesCache[key as number]) {
-      return localitiesCache[key as number];
+    const key = String(municipality.ibge_id || `${municipality.name}-${municipality.uf}`);
+    if (localitiesCache[key]) {
+      return localitiesCache[key];
     }
 
     try {
@@ -143,10 +163,10 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
       if (!res.ok) return [];
 
       const json = await res.json();
-      const data = json.data?.localities || [];
+      const data = (json.data?.localities || []) as LocalitySearchResult[];
 
       // Guarda em cache
-      setLocalitiesCache(prev => ({ ...prev, [key as number]: data }));
+      setLocalitiesCache(prev => ({ ...prev, [key]: data }));
       return data;
     } catch (error) {
       console.error('Erro ao carregar localidades:', error);
@@ -164,7 +184,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
     setActiveZoneFilter('all');
 
     // Pré-carrega as localidades já selecionadas para este município
-    const already = new Set<string>((municipality.localities || []).map((l: any) => l.name));
+    const already = new Set<string>((municipality.localities || []).map((l: { name: string }) => l.name));
     setSelectedLocalities(already);
 
     // Carrega da API (com cache simples no estado do componente para evitar reloads repetidos)
@@ -188,24 +208,27 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
     if (municipalityIndex === -1) return;
 
     const municipality = municipalities[municipalityIndex];
+    if (!municipality) return;
 
     const finalLocalities = localitiesForCurrent
       .filter(loc => selectedLocalities.has(loc.name))
-      .map((loc: any) => ({
-        id: loc.ibge_id,
+      .map((loc): PlanningLocality => ({
+        id: loc.ibge_id ?? `${municipality.ibge_id ?? municipality.name}-${loc.name}`,
         name: loc.name,
         geo_level: 'locality' as const,
         parent_city_name: municipality.name,
         parent_state_name: municipality.uf,
-        zone: loc.zone || 'urban',
+        zone: (loc.zone === 'rural' || loc.zone === 'mixed') ? loc.zone : 'urban',
         population: loc.population || 0,
       }));
 
     const updatedMunicipalities = [...municipalities];
-    updatedMunicipalities[municipalityIndex] = {
-      ...municipality,
-      localities: finalLocalities.length > 0 ? finalLocalities : undefined,
-    };
+    updatedMunicipalities[municipalityIndex] = finalLocalities.length > 0
+      ? { ...municipality, localities: finalLocalities }
+      : (() => {
+        const { localities, ...baseMunicipality } = municipality;
+        return baseMunicipality;
+      })();
 
     onChange({
       ...value,
@@ -233,38 +256,38 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
 
     if (localitySearch.trim()) {
       const term = localitySearch.toLowerCase();
-      list = list.filter((loc: any) => loc.name.toLowerCase().includes(term));
+      list = list.filter((loc: { name: string }) => loc.name.toLowerCase().includes(term));
     }
 
     if (activeZoneFilter !== 'all') {
-      list = list.filter((loc: any) => (loc.zone || 'urban') === activeZoneFilter);
+      list = list.filter((loc: { zone?: string }) => (loc.zone || 'urban') === activeZoneFilter);
     }
 
     return list;
   }, [localitiesForCurrent, localitySearch, activeZoneFilter]);
 
   const zoneCounts = useMemo(() => {
-    const urban = localitiesForCurrent.filter((l: any) => (l.zone || 'urban') === 'urban').length;
-    const rural = localitiesForCurrent.filter((l: any) => (l.zone || 'urban') === 'rural').length;
+    const urban = localitiesForCurrent.filter((l: { zone?: string }) => (l.zone || 'urban') === 'urban').length;
+    const rural = localitiesForCurrent.filter((l: { zone?: string }) => (l.zone || 'urban') === 'rural').length;
     return { all: localitiesForCurrent.length, urban, rural };
   }, [localitiesForCurrent]);
 
   const selectedCountInFilter = useMemo(() => {
-    return filteredLocalities.filter((loc: any) => selectedLocalities.has(loc.name)).length;
+    return filteredLocalities.filter((loc: { name: string }) => selectedLocalities.has(loc.name)).length;
   }, [filteredLocalities, selectedLocalities]);
 
   // Ações em massa no modal
   const selectAllVisible = () => {
     const newSet = new Set(selectedLocalities);
-    filteredLocalities.forEach((loc: any) => newSet.add(loc.name));
+    filteredLocalities.forEach((loc: { name: string }) => newSet.add(loc.name));
     setSelectedLocalities(newSet);
   };
 
   const selectAllByZone = (zone: 'urban' | 'rural') => {
     const newSet = new Set(selectedLocalities);
     localitiesForCurrent
-      .filter((loc: any) => (loc.zone || 'urban') === zone)
-      .forEach((loc: any) => newSet.add(loc.name));
+      .filter((loc: { zone?: string }) => (loc.zone || 'urban') === zone)
+      .forEach((loc: { name: string }) => newSet.add(loc.name));
     setSelectedLocalities(newSet);
   };
 
@@ -281,13 +304,15 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
       <div>
         <label className="block text-sm font-medium mb-2">Abrangência Geográfica</label>
         <select
+          aria-label="Abrangência geográfica"
+          title="Abrangência geográfica"
           value={value.scope}
           onChange={(e) => onChange({ ...value, scope: e.target.value as GeoScope | 'mixed' })}
           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"
         >
           {allowedScopes.map((scope) => (
             <option key={scope} value={scope}>
-              {(SCOPE_LABELS as any)[scope] || scope}
+              {(SCOPE_LABELS as Record<string, string>)[scope] || scope}
             </option>
           ))}
         </select>
@@ -308,6 +333,8 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
             className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"
           />
           <select
+            aria-label="Filtrar municípios por UF"
+            title="Filtro de UF"
             value={selectedUf}
             onChange={(e) => setSelectedUf(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-28"
@@ -337,8 +364,8 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
                 onClick={() => addMunicipality(m)}
                 className="px-3 py-2 hover:bg-slate-800 cursor-pointer text-sm flex justify-between"
               >
-                <span>{m.nome} - {m.uf}</span>
-                <span className="text-slate-500 text-xs">{m.populacao_estimada?.toLocaleString('pt-BR')}</span>
+                <span>{m.name} - {m.uf}</span>
+                <span className="text-slate-500 text-xs">{(m.populacao_estimada || m.population || 0).toLocaleString('pt-BR')}</span>
               </div>
             ))}
           </div>
@@ -352,7 +379,10 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
               type="button"
               onClick={() => {
                 // Remover refinamentos de TODOS (voltar para municípios inteiros)
-                const updated = municipalities.map(m => ({ ...m, localities: undefined }));
+                const updated = municipalities.map((municipality) => {
+                  const { localities, ...baseMunicipality } = municipality;
+                  return baseMunicipality;
+                });
                 onChange({ ...value, municipalities: updated });
               }}
               className="text-xs px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded border border-slate-600"
@@ -364,7 +394,10 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
               onClick={() => {
                 // Exemplo poderoso: aplicar "só urbanas" onde possível (requer carregar, simplificado: limpa e avisa)
                 // Para UX real profunda, o usuário abre o refinamento individual ou usamos default urban em massa
-                const updated = municipalities.map(m => ({ ...m, localities: undefined }));
+                const updated = municipalities.map((municipality) => {
+                  const { localities, ...baseMunicipality } = municipality;
+                  return baseMunicipality;
+                });
                 onChange({ ...value, municipalities: updated });
                 alert('Para aplicar "somente áreas urbanas" em vários municípios, abra o refinamento em cada um (ou use o filtro no Passo 4). Ação em massa avançada disponível em refinamento individual.');
               }}
@@ -394,7 +427,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
             const ruralCount = hasLocalities ? m.localities!.filter(l => l.zone === 'rural').length : 0;
 
             return (
-              <div key={item.id || item.name || index} className="border border-slate-700 bg-slate-800/80 rounded-2xl p-3.5 hover:border-slate-500 transition-colors">
+              <div key={m.ibge_id || m.name || index} className="border border-slate-700 bg-slate-800/80 rounded-2xl p-3.5 hover:border-slate-500 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="mt-0.5">
@@ -483,7 +516,8 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
                           type="button"
                           onClick={() => {
                             const updated = [...municipalities];
-                            updated[index] = { ...m, localities: undefined };
+                            const { localities, ...baseMunicipality } = m;
+                            updated[index] = baseMunicipality;
                             onChange({ ...value, municipalities: updated });
                           }}
                           className="text-xs px-2.5 py-1 rounded-lg border border-slate-600 hover:bg-slate-700 text-slate-300"
@@ -523,7 +557,7 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
                     Selecione bairros, distritos ou subdistritos específicos. As cotas no Passo 4 usarão exatamente estas áreas.
                   </div>
                 </div>
-                <button onClick={closeLocalitySelector} className="text-slate-400 hover:text-white p-1">
+                <button aria-label="Fechar refinamento de localidades" title="Fechar" onClick={closeLocalitySelector} className="text-slate-400 hover:text-white p-1">
                   <X size={20} />
                 </button>
               </div>
@@ -588,16 +622,16 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
               </div>
 
               {/* Lista de localidades (scrollável e filtrada) */}
-              <div className="flex-1 overflow-auto px-5 py-3 bg-slate-950/40" style={{ maxHeight: '420px' }}>
+              <div className="flex-1 overflow-auto px-5 py-3 bg-slate-950/40 max-h-[420px]">
                 {filteredLocalities.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
-                    {filteredLocalities.slice(0, 400).map((loc: any, i: number) => {  // limite de segurança para render
+                    {filteredLocalities.slice(0, 400).map((loc, i: number) => {
                       const isSelected = selectedLocalities.has(loc.name);
-                      const isAlreadyInBase = (currentMunicipality.localities || []).some((l: any) => l.name === loc.name);
+                      const isAlreadyInBase = (currentMunicipality.localities || []).some((l: { name: string }) => l.name === loc.name);
 
                       return (
                         <label
-                          key={loc.id || loc.name || i}
+                          key={loc.ibge_id || loc.name || i}
                           className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition hover:bg-slate-800 ${isSelected ? 'bg-blue-950/40 ring-1 ring-blue-500/30' : ''}`}
                         >
                           <input
@@ -612,9 +646,9 @@ export default function GeographicBaseSelector({ value, onChange, researchType }
                             {loc.zone === 'urban' ? 'urbana' : 'rural'}
                           </span>
 
-                          {loc.population > 0 && (
+                          {(loc.population || 0) > 0 && (
                             <span className="tabular-nums text-emerald-400 text-xs">
-                              {loc.population.toLocaleString('pt-BR')}
+                              {(loc.population || 0).toLocaleString('pt-BR')}
                             </span>
                           )}
                         </label>

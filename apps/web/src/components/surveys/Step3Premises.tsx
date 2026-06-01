@@ -173,13 +173,17 @@ function PremiseCard({ premise, onRemove, onUpdate }: {
 
     const updateOptionLabel = (idx: number, label: string) => {
         const opts = [...premise.options];
-        opts[idx] = { ...opts[idx], label };
+        const current = opts[idx];
+        if (!current) return;
+        opts[idx] = { ...current, label };
         onUpdate({ options: opts });
     };
 
     const updateOptionQuota = (idx: number, quota_pct: number) => {
         const opts = [...premise.options];
-        opts[idx] = { ...opts[idx], quota_pct };
+        const current = opts[idx];
+        if (!current) return;
+        opts[idx] = { ...current, quota_pct };
         onUpdate({ options: opts });
     };
 
@@ -323,10 +327,12 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
 
         if (premises.length === 0) return;
 
-        onChange(premises.map(premise => ({
-            ...premise,
-            stratification_label: label || undefined,
-        })));
+        onChange(
+            premises.map((premise) => ({
+                ...premise,
+                ...(label ? { stratification_label: label } : {}),
+            }))
+        );
     };
 
     const applySuggestedQuotas = async () => {
@@ -364,10 +370,20 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
 
                 const updatedOptions = premise.options.map((opt) => {
                     const suggestedOption = suggestion.suggestions.find((s: { value: string }) => s.value === opt.value);
-                    return suggestedOption ? { ...opt, quota_pct: suggestedOption.quota_pct } : { ...opt, quota_pct: undefined };
+                    if (!suggestedOption || suggestedOption.quota_pct === undefined) {
+                        const { quota_pct: _quotaPct, ...rest } = opt;
+                        return rest;
+                    }
+                    return { ...opt, quota_pct: suggestedOption.quota_pct };
                 });
 
-                return { ...premise, options: updatedOptions, stratification_label: stratificationLabel || premise.stratification_label };
+                return {
+                    ...premise,
+                    options: updatedOptions,
+                    ...((stratificationLabel || premise.stratification_label)
+                        ? { stratification_label: stratificationLabel || premise.stratification_label }
+                        : {}),
+                };
             });
 
             onChange(updatedPremises);
@@ -386,7 +402,7 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
             id: `prem_${Date.now()}`,
             category: preset.category,
             label: preset.label,
-            stratification_label: stratificationLabel || undefined,
+            ...(stratificationLabel ? { stratification_label: stratificationLabel } : {}),
             options: [...preset.options],
             is_required: true,
             allow_multiple: preset.allow_multiple,
@@ -400,7 +416,7 @@ export function Step3Premises({ premises, onChange, localities = [] }: Props) {
             id: `prem_${Date.now()}`,
             category: 'nova_premissa',
             label: 'Nova premissa',
-            stratification_label: stratificationLabel || undefined,
+            ...(stratificationLabel ? { stratification_label: stratificationLabel } : {}),
             options: [],
             is_required: true,
             allow_multiple: false,

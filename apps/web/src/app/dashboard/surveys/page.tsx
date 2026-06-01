@@ -119,10 +119,10 @@ export default function SurveysPage() {
                             }`}
                     >
                         {label}
-                        {counts[key] > 0 && (
+                        {(counts[key] ?? 0) > 0 && (
                             <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${filter === key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                                 }`}>
-                                {counts[key]}
+                                {counts[key] ?? 0}
                             </span>
                         )}
                     </button>
@@ -202,9 +202,25 @@ export default function SurveysPage() {
                                                 {formatDate(s.created_at)}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <Link href={href} className="text-slate-300 hover:text-blue-500 transition-colors">
-                                                    <ChevronRight size={16} />
-                                                </Link>
+                                                <div className="flex items-center justify-end gap-2 text-slate-400">
+                                                    <Link
+                                                        href={`/dashboard/surveys/${s.id}/dynamic-report`}
+                                                        className="hover:text-indigo-600 transition-colors p-1"
+                                                        title="Relatório Dinâmico"
+                                                    >
+                                                        📈
+                                                    </Link>
+                                                    <Link
+                                                        href={`/dashboard/surveys/${s.id}/reports`}
+                                                        className="hover:text-emerald-600 transition-colors p-1"
+                                                        title="Relatórios Físicos"
+                                                    >
+                                                        📊
+                                                    </Link>
+                                                    <Link href={href} className="text-slate-300 hover:text-blue-500 transition-colors ml-1">
+                                                        <ChevronRight size={16} />
+                                                    </Link>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

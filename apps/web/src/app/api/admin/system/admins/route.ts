@@ -9,13 +9,15 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 // Lista todos os system_admins
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -45,10 +47,11 @@ export async function GET(request: NextRequest) {
 
 // Promove ou rebaixa um usuário como system_admin
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -56,12 +59,12 @@ export async function POST(request: NextRequest) {
         const { userId, isSystemAdmin } = body;
 
         if (!userId || typeof isSystemAdmin !== 'boolean') {
-            return apiError('Parâmetros inválidos (userId e isSystemAdmin são obrigatórios)', 400);
+            return apiError('Parâmetros inválidos (userId e isSystemAdmin são obrigatórios)', 400, correlationId);
         }
 
         // Impede que o próprio usuário se rebaixe (proteção básica)
         if (userId === auth.user.id && isSystemAdmin === false) {
-            return apiError('Você não pode remover seus próprios privilégios de system_admin', 400);
+            return apiError('Você não pode remover seus próprios privilégios de system_admin', 400, correlationId);
         }
 
         const { error } = await auth.supabase

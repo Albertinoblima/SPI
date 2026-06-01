@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getSurveyAuthContext, surveyBelongsToTenant } from '@/lib/surveys/auth-context';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
@@ -24,14 +25,15 @@ function normalizeLocalityName(value: string) {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getSurveyAuthContext();
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
-        if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada', 404, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('survey-routes');
         const { data: routes, error } = await admin
             .from('survey_routes')
             .select('id, zone, route_number, route_name, survey_route_localities(locality_id, order_index)')
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .order('zone', { ascending: true })
             .order('route_number', { ascending: true });
 
-        if (error) return apiError(`Falha ao carregar rotas: ${error.message}`, 500);
+        if (error) return apiError(`Falha ao carregar rotas: ${error.message}`, 500, correlationId);
 
         return apiSuccess({ routes: routes ?? [] });
     } catch (error) {
@@ -52,14 +54,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getSurveyAuthContext();
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
-        if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada', 404, correlationId);
         if (survey.status === 'published') {
-            return apiError('Pesquisa publicada esta em coleta e nao pode mais alterar rotas.', 400);
+            return apiError('Pesquisa publicada esta em coleta e nao pode mais alterar rotas.', 400, correlationId);
         }
 
         const body = await request.json();
@@ -75,13 +78,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         for (const zonePayload of zones) {
             if (!isZone(String(zonePayload.zona))) {
-                return apiError(`Zona invalida: ${String(zonePayload.zona)}`, 400);
+                return apiError(`Zona invalida: ${String(zonePayload.zona)}`, 400, correlationId);
             }
             if (!Array.isArray(zonePayload.rotas) || zonePayload.rotas.length === 0) {
-                return apiError(`A zona ${zonePayload.zona} precisa ter ao menos uma rota`, 400);
+                return apiError(`A zona ${zonePayload.zona} precisa ter ao menos uma rota`, 400, correlationId);
             }
             if (zonePayload.rotas.some((r) => !Array.isArray(r.localidades) || r.localidades.length === 0)) {
-                return apiError(`Nenhuma rota da zona ${zonePayload.zona} pode ficar vazia`, 400);
+                return apiError(`Nenhuma rota da zona ${zonePayload.zona} pode ficar vazia`, 400, correlationId);
             }
 
             for (const route of zonePayload.rotas) {
@@ -92,12 +95,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 });
 
                 if (hasInvalidLocality) {
-                    return apiError(`Rota ${route.numero} possui localidade vazia`, 400);
+                    return apiError(`Rota ${route.numero} possui localidade vazia`, 400, correlationId);
                 }
             }
         }
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('survey-routes');
 
         const { data: localities } = await admin
             .from('survey_localities')
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         const existingLocalities = localities ?? [];
         const localitySet = new Set(existingLocalities.map((l) => l.id));
-        const localityNameMap = new Map(existingLocalities.map((l) => [normalizeLocalityName(String((l as Record<string, unknown>).name ?? '')), l.id]));
+        const localityNameMap = new Map(existingLocalities.map((l) => [normalizeLocalityName(String((l as Record<string, unknown>)['name'] ?? '')), l.id]));
         const allAssigned = new Set<string>();
 
         for (const zonePayload of zones) {
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 for (const locality of route.localidades) {
                     const hasId = Boolean(locality.locality_id && String(locality.locality_id).trim());
                     if (hasId && !localitySet.has(String(locality.locality_id))) {
-                        return apiError(`Localidade invalida na rota ${route.numero}`, 400);
+                        return apiError(`Localidade invalida na rota ${route.numero}`, 400, correlationId);
                     }
                     if (hasId) allAssigned.add(String(locality.locality_id));
                 }
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
 
         if (existingLocalities.length > 0 && allAssigned.size !== existingLocalities.length) {
-            return apiError('Todas as localidades devem ser alocadas em alguma rota antes de avancar', 400);
+            return apiError('Todas as localidades devem ser alocadas em alguma rota antes de avancar', 400, correlationId);
         }
 
         const { data: existingRoutes } = await admin
@@ -156,7 +159,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                     .single();
 
                 if (routeError || !createdRoute) {
-                    return apiError(`Erro ao criar rota ${route.numero}: ${routeError?.message ?? 'desconhecido'}`, 500);
+                    return apiError(`Erro ao criar rota ${route.numero}: ${routeError?.message ?? 'desconhecido'}`, 500, correlationId);
                 }
 
                 const rows = route.localidades
@@ -213,7 +216,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
                 const { error: linkError } = await admin.from('survey_route_localities').insert(resolvedRows);
                 if (linkError) {
-                    return apiError(`Erro ao salvar localidades da rota ${route.numero}: ${linkError.message}`, 500);
+                    return apiError(`Erro ao salvar localidades da rota ${route.numero}: ${linkError.message}`, 500, correlationId);
                 }
 
                 insertedSummary.push({

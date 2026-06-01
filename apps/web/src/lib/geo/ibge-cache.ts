@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -67,7 +67,7 @@ function buildExpiry(ttlSeconds: number): string {
 
 async function readCache(cacheKey: string): Promise<CacheRow | null> {
     try {
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('ibge-cache');
         const { data, error } = await admin
             .from('geo_ibge_cache')
             .select('cache_key, payload, payload_hash, source, source_updated_at, expires_at')
@@ -89,7 +89,7 @@ async function writeCache<T>(
     fresh: FreshPayload<T>
 ): Promise<void> {
     try {
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('ibge-cache');
         const payloadHash = hashPayload(fresh.payload);
         const expiresAt = buildExpiry(ttlSeconds);
 
@@ -118,7 +118,7 @@ async function writeCache<T>(
 
 async function markCacheStale(cacheKey: string, message: string): Promise<void> {
     try {
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('ibge-cache');
         await admin
             .from('geo_ibge_cache')
             .update({

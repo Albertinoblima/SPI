@@ -25,8 +25,8 @@ function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const isSupabaseConfigured =
-        Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-        Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+        Boolean(process.env['NEXT_PUBLIC_SUPABASE_URL']) &&
+        Boolean(process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -53,8 +53,8 @@ function LoginContent() {
             const flattenedErrors = parsedCredentials.error.flatten().fieldErrors;
 
             setFieldErrors({
-                email: flattenedErrors.email?.[0],
-                password: flattenedErrors.password?.[0],
+                ...(flattenedErrors.email?.[0] ? { email: flattenedErrors.email[0] } : {}),
+                ...(flattenedErrors.password?.[0] ? { password: flattenedErrors.password[0] } : {}),
             });
 
             return;

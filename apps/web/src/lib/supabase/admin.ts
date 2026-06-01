@@ -1,19 +1,19 @@
-// Supabase Admin Client (service role) - SERVER SIDE ONLY
-// Bypasses RLS. Never expose to the client.
+/**
+ * @deprecated — LEGACY ONLY. DO NOT USE.
+ *
+ * All production code has been migrated to:
+ *   import { createSupabaseAdminClient } from '@political-research/shared-utils';
+ *
+ * This file is kept temporarily for any un-migrated scripts or during the final cleanup of Fase 0.
+ * It will be **deleted** before or right after Gate 0.
+ *
+ * If this function is called, it will throw to prevent silent use of the old path.
+ */
 import { createClient } from '@supabase/supabase-js';
 
 export function createAdminClient() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!url || !serviceRoleKey) {
-        throw new Error('Missing Supabase admin credentials');
-    }
-
-    return createClient(url, serviceRoleKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
-    });
+    throw new Error(
+        'createAdminClient() is deprecated. Use createSupabaseAdminClient from @political-research/shared-utils instead. ' +
+        'This file will be removed soon.'
+    );
 }

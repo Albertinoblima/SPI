@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 export interface SurveyAuthContext {
     userId: string;
@@ -8,7 +8,7 @@ export interface SurveyAuthContext {
 }
 
 export async function getSurveyAuthContext(): Promise<SurveyAuthContext | null> {
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
         data: { user },
         error: authError,
@@ -36,7 +36,7 @@ export async function getSurveyAuthContext(): Promise<SurveyAuthContext | null> 
 }
 
 export async function surveyBelongsToTenant(surveyId: string, tenantId: string) {
-    const admin = createAdminClient();
+    const admin = createAuditedSupabaseAdminClient('survey-auth-context');
     const { data: survey } = await admin
         .from('surveys')
         .select('id, tenant_id, title, started_at, ended_at, status, published_at, total_interviews')

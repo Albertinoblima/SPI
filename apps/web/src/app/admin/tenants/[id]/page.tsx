@@ -19,7 +19,7 @@ interface TenantDetails {
         id: string;
         name: string;
         slug: string;
-        status: 'active' | 'suspended' | 'trial';
+        status: 'active' | 'suspended' | 'trial' | 'archived';
         max_users: number;
         max_surveys: number;
         storage_limit_mb: number;
@@ -66,7 +66,7 @@ interface TenantDetails {
 export default function TenantDetailsPage() {
     const params = useParams();
     const router = useRouter();
-    const tenantId = params.id as string;
+    const tenantId = params['id'] as string;
 
     const [data, setData] = useState<TenantDetails | null>(null);
     const [loading, setLoading] = useState(true);
@@ -118,11 +118,11 @@ export default function TenantDetailsPage() {
                 throw new Error(body.error || 'Erro ao atualizar tenant');
             }
 
-            setData((prev) => {
+            setData((prev: TenantDetails | null) => {
                 if (!prev) return prev;
                 return {
                     ...prev,
-                    tenant: { ...prev.tenant, status: newStatus as any },
+                    tenant: { ...prev.tenant, status: newStatus as 'active' | 'suspended' | 'archived' },
                 };
             });
         } catch (err) {
@@ -524,7 +524,6 @@ export default function TenantDetailsPage() {
                                         }
                                     } catch (err) {
                                         console.error('Failed to mark errors as resolved', err);
-                                    }
                                         alert('Erro de conexão');
                                     }
                                 }}
@@ -539,7 +538,7 @@ export default function TenantDetailsPage() {
                         {data.recentErrors.slice(0, 5).map((error) => {
                             const sevColor = error.severity === 'critical' ? 'bg-red-500/20 text-red-300 border-red-500/30'
                                 : error.severity === 'high' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
-                                : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+                                    : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
 
                             return (
                                 <div key={error.id} className="p-3 rounded-lg bg-slate-800/60 border border-slate-700 flex justify-between items-start">

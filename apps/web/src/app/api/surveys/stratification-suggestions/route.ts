@@ -60,11 +60,11 @@ function mapAgeRanges(faixasEtarias: Record<string, number>): Record<string, num
 
     for (const [key, value] of Object.entries(faixasEtarias)) {
         const numValue = Number(value) || 0;
-        if (key === '15_19' || key === '20_24') result['16-24'] += numValue;
-        else if (key === '25_29' || key === '30_34') result['25-34'] += numValue;
-        else if (key === '35_39' || key === '40_44') result['35-44'] += numValue;
-        else if (key === '45_49' || key === '50_54' || key === '55_59') result['45-59'] += numValue;
-        else if (key === '60_64' || key === '65_69' || key === '70_74' || key === '75_79' || key === '80_mais' || key === '90_mais') result['60+'] += numValue;
+        if (key === '15_19' || key === '20_24') result['16-24'] = (result['16-24'] ?? 0) + numValue;
+        else if (key === '25_29' || key === '30_34') result['25-34'] = (result['25-34'] ?? 0) + numValue;
+        else if (key === '35_39' || key === '40_44') result['35-44'] = (result['35-44'] ?? 0) + numValue;
+        else if (key === '45_49' || key === '50_54' || key === '55_59') result['45-59'] = (result['45-59'] ?? 0) + numValue;
+        else if (key === '60_64' || key === '65_69' || key === '70_74' || key === '75_79' || key === '80_mais' || key === '90_mais') result['60+'] = (result['60+'] ?? 0) + numValue;
     }
 
     return result;
@@ -89,12 +89,12 @@ function mapEducation(escolaridade: Record<string, number>): Record<string, numb
 
     for (const [key, value] of Object.entries(escolaridade)) {
         const numValue = Number(value) || 0;
-        if (key === 'sem_instrucao') result['sem_instrucao'] += numValue;
-        else if (key === 'fundamental_incompleto') result['fund_inc'] += numValue;
-        else if (key === 'fundamental_completo') result['fund_comp'] += numValue;
-        else if (key === 'medio_incompleto') result['medio_inc'] += numValue;
-        else if (key === 'medio_completo') result['medio_comp'] += numValue;
-        else if (key === 'superior_incompleto' || key === 'superior_completo' || key === 'pos_graduacao') result['superior'] += numValue;
+        if (key === 'sem_instrucao') result['sem_instrucao'] = (result['sem_instrucao'] ?? 0) + numValue;
+        else if (key === 'fundamental_incompleto') result['fund_inc'] = (result['fund_inc'] ?? 0) + numValue;
+        else if (key === 'fundamental_completo') result['fund_comp'] = (result['fund_comp'] ?? 0) + numValue;
+        else if (key === 'medio_incompleto') result['medio_inc'] = (result['medio_inc'] ?? 0) + numValue;
+        else if (key === 'medio_completo') result['medio_comp'] = (result['medio_comp'] ?? 0) + numValue;
+        else if (key === 'superior_incompleto' || key === 'superior_completo' || key === 'pos_graduacao') result['superior'] = (result['superior'] ?? 0) + numValue;
     }
 
     return result;
@@ -104,7 +104,7 @@ function mapEducation(escolaridade: Record<string, number>): Record<string, numb
  * Busca dados demográficos para uma localidade específica
  */
 async function getDemographicsForLocality(
-    supabase: Record<string, unknown>,
+    supabase: any,
     locality: LocalityInput,
     state: string,
     city: string,
@@ -220,8 +220,8 @@ function generateSuggestions(demographics: DemographicData[]): CotaSuggestion[] 
                 category: 'sexo',
                 label: 'Sexo',
                 suggestions: [
-                    { value: 'M', label: 'Masculino', quota_pct: malePercent > 0 ? malePercent : undefined },
-                    { value: 'F', label: 'Feminino', quota_pct: femalePercent > 0 ? femalePercent : undefined },
+                    { value: 'M', label: 'Masculino', ...(malePercent > 0 ? { quota_pct: malePercent } : {}) },
+                    { value: 'F', label: 'Feminino', ...(femalePercent > 0 ? { quota_pct: femalePercent } : {}) },
                 ].filter(s => s.quota_pct !== undefined),
             });
         }
@@ -239,10 +239,13 @@ function generateSuggestions(demographics: DemographicData[]): CotaSuggestion[] 
             { value: '45-59', label: '45 a 59 anos' },
             { value: '60+', label: '60 anos ou mais' },
         ]
-            .map(opt => ({
-                ...opt,
-                quota_pct: mappedAges[opt.value] > 0 ? Math.round((mappedAges[opt.value] / ageTotal) * 100) : undefined,
-            }))
+            .map((opt) => {
+                const value = mappedAges[opt.value] ?? 0;
+                return {
+                    ...opt,
+                    ...(value > 0 ? { quota_pct: Math.round((value / ageTotal) * 100) } : {}),
+                };
+            })
             .filter(s => s.quota_pct !== undefined);
 
         if (ageSuggestions.length > 0) {
@@ -267,10 +270,13 @@ function generateSuggestions(demographics: DemographicData[]): CotaSuggestion[] 
             { value: 'medio_comp', label: 'Médio completo' },
             { value: 'superior', label: 'Superior ou mais' },
         ]
-            .map(opt => ({
-                ...opt,
-                quota_pct: mappedEducation[opt.value] > 0 ? Math.round((mappedEducation[opt.value] / educationTotal) * 100) : undefined,
-            }))
+            .map((opt) => {
+                const value = mappedEducation[opt.value] ?? 0;
+                return {
+                    ...opt,
+                    ...(value > 0 ? { quota_pct: Math.round((value / educationTotal) * 100) } : {}),
+                };
+            })
             .filter(s => s.quota_pct !== undefined);
 
         if (educationSuggestions.length > 0) {
@@ -307,7 +313,7 @@ export async function POST(request: NextRequest) {
         );
 
         const demographics = await Promise.all(demographicsPromises);
-        const validDemographics = demographics.filter(d => d !== null);
+        const validDemographics = demographics.filter((d): d is DemographicData => d !== null);
 
         if (validDemographics.length === 0) {
             return apiSuccess({

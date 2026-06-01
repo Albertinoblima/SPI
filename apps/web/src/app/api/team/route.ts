@@ -2,19 +2,21 @@
 // POST /api/team - Cria novo membro da equipe
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404);
+        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
 
         const { data: members, error: membersError } = await supabase
             .from('users')
@@ -49,10 +51,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -60,9 +63,9 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404);
+        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para gerenciar equipe', 403);
+            return apiError('Sem permissão para gerenciar equipe', 403, correlationId);
         }
 
         const body = await request.json();
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
             return apiError('Nome, e-mail, cargo e senha são obrigatórios', 400);
         }
         if (password.length < 8) {
-            return apiError('A senha deve ter no mínimo 8 caracteres', 400);
+            return apiError('A senha deve ter no mínimo 8 caracteres', 400, correlationId);
         }
 
         const validRoles = [
@@ -87,10 +90,10 @@ export async function POST(request: NextRequest) {
             'fiscal',
         ];
         if (!validRoles.includes(role)) {
-            return apiError('Cargo inválido', 400);
+            return apiError('Cargo inválido', 400, correlationId);
         }
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('team-crud');
 
         // Verificar limite de usuários do tenant
         const { data: tenant } = await adminSupabase
@@ -106,7 +109,7 @@ export async function POST(request: NextRequest) {
             .eq('is_active', true);
 
         if (tenant && currentCount !== null && currentCount >= tenant.max_users) {
-            return apiError(`Limite de ${tenant.max_users} usuários atingido para este plano`, 403);
+            return apiError(`Limite de ${tenant.max_users} usuários atingido para este plano`, 403, correlationId);
         }
 
         // Criar usuário no auth
@@ -119,7 +122,7 @@ export async function POST(request: NextRequest) {
 
         if (createAuthError || !authData?.user) {
             if (createAuthError?.message?.includes('already registered')) {
-                return apiError('Este e-mail já está cadastrado no sistema', 409);
+                return apiError('Este e-mail já está cadastrado no sistema', 409, correlationId);
             }
             return trackedApiError(request, 'Erro ao criar usuário', 500, {
                 errorCode: 'USER_SAVE_FAILED',

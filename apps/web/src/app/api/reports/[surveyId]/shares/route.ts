@@ -3,6 +3,7 @@ import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middlew
 import { getSurveyAuthContext } from '@/lib/surveys/auth-context';
 import { publicReportAccessService } from '@/lib/reports/PublicReportAccessService';
 import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 
 /**
  * POST /api/reports/[surveyId]/shares
@@ -15,7 +16,7 @@ export async function POST(
 ) {
   const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
   try {
-    const ctx = await getSurveyAuthContext(request, params.surveyId);
+    const ctx = await getSurveyAuthContext();
     if (!ctx) return apiError('Não autorizado', 401, correlationId);
 
     const body = await request.json();
@@ -60,13 +61,15 @@ export async function GET(
 ) {
   const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
   try {
-    const ctx = await getSurveyAuthContext(request, params.surveyId);
+    const ctx = await getSurveyAuthContext();
     if (!ctx) return apiError('Não autorizado', 401, correlationId);
 
-    const { data: shares, error } = await ctx.supabase
+    const admin = createAuditedSupabaseAdminClient('report-shares-list');
+    const { data: shares, error } = await admin
       .from('report_shares')
       .select('id, share_token, access_type, contractor_email, contractor_name, expires_at, is_active, created_at, current_access_count')
       .eq('survey_id', params.surveyId)
+      .eq('tenant_id', ctx.tenantId)
       .order('created_at', { ascending: false });
 
     if (error) return apiError(error.message, 500, correlationId);

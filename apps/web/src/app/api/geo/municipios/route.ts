@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError, requireTenantAdmin } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireTenantAdmin(request);
     if (!auth.isAuthorized) {
         return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest) {
 
         // Filtro obrigatório para evitar consultas pesadas sem filtro
         if (!q && !uf) {
-            return apiError('É obrigatório informar pelo menos um filtro: UF ou busca por nome (q)', 400);
+            return apiError('É obrigatório informar pelo menos um filtro: UF ou busca por nome (q)', 400, correlationId);
         }
 
         let query = auth.supabase
@@ -52,12 +54,12 @@ export async function GET(request: NextRequest) {
         }
 
         // Fase 1 - Enriquecimento: expomos flags de qualidade que já existem na view
-        const enrichedData = (data ?? []).map((row: any) => ({
+        const enrichedData = (data ?? []).map((row: Record<string, unknown>) => ({
             ...row,
-            has_census_data: (row.populacao_censo ?? 0) > 0,
-            has_tse_data: (row.total_eleitores ?? 0) > 0,
-            has_cnefe_data: (row.residencias_cnefe ?? 0) > 0,
-            data_quality_score: row.ingestoes_concluidas ?? 0,
+            has_census_data: Number(row['populacao_censo'] ?? 0) > 0,
+            has_tse_data: Number(row['total_eleitores'] ?? 0) > 0,
+            has_cnefe_data: Number(row['residencias_cnefe'] ?? 0) > 0,
+            data_quality_score: row['ingestoes_concluidas'] ?? 0,
         }));
 
         return apiSuccess({

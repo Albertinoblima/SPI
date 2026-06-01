@@ -27,7 +27,7 @@ const PlanningSteps = () => {
     const editId = searchParams.get('editId');
 
     const [currentStep, setCurrentStep] = useState(0);
-    const [planningData, setPlanningData] = useState<any>({});
+    const [planningData, setPlanningData] = useState<Record<string, unknown>>({});
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -49,7 +49,7 @@ const PlanningSteps = () => {
                     }
                 }
             }
-        } catch {}
+        } catch { }
     }, [isEditMode]);
 
     // Load existing plan when in edit mode
@@ -70,8 +70,8 @@ const PlanningSteps = () => {
 
                 if (data) {
                     // Restore the planning data structure defensively
-                    const baseData = data.planning_data && typeof data.planning_data === 'object' 
-                        ? data.planning_data 
+                    const baseData = data.planning_data && typeof data.planning_data === 'object'
+                        ? data.planning_data
                         : {};
 
                     const restoredData = {
@@ -109,7 +109,7 @@ const PlanningSteps = () => {
                     step: currentStep,
                     savedAt: new Date().toISOString(),
                 }));
-            } catch {}
+            } catch { }
         }
     }, [planningData, currentStep]);
 
@@ -121,13 +121,13 @@ const PlanningSteps = () => {
         setSaveError(null);
     };
 
-    const handleNext = (data: Record<string, any>) => {
+    const handleNext = (data: Record<string, unknown>) => {
         const updatedData = { ...planningData, ...data };
         setPlanningData(updatedData);
         setSaveError(null);
 
         // Basic validation before advancing
-        if (currentStep === 0 && !updatedData.name?.trim()) {
+        if (currentStep === 0 && !String(updatedData['name'] || '').trim()) {
             setSaveError('O nome do planejamento é obrigatório.');
             return;
         }
@@ -148,19 +148,21 @@ const PlanningSteps = () => {
 
         try {
             const { createResearchPlan, updateResearchPlan } = await import('@/lib/supabase/researchPlans');
+            const planName = String(planningData['name'] ?? '').trim() || 'Planejamento sem nome';
 
             let savedPlan;
 
-            if (isEditMode && planningData.id) {
+            const existingId = typeof planningData['id'] === 'string' ? planningData['id'] : undefined;
+            if (isEditMode && existingId) {
                 // Update existing plan
-                savedPlan = await updateResearchPlan(planningData.id, {
-                    name: planningData.name || 'Planejamento sem nome',
+                savedPlan = await updateResearchPlan(existingId, {
+                    name: planName,
                     planning_data: planningData,
                 });
             } else {
                 // Create new plan
                 savedPlan = await createResearchPlan({
-                    name: planningData.name || 'Planejamento sem nome',
+                    name: planName,
                     planningData,
                 });
             }
@@ -171,7 +173,10 @@ const PlanningSteps = () => {
             localStorage.removeItem(DRAFT_KEY);
 
             // Update local data with saved plan (so links work)
-            setPlanningData((prev: any) => ({ ...prev, id: savedPlan.id })); // TODO: improve planningData type
+            const savedPlanId = (savedPlan as { id?: string })?.id;
+            if (savedPlanId) {
+                setPlanningData((prev: Record<string, unknown>) => ({ ...prev, id: savedPlanId }));
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Erro desconhecido ao salvar planejamento';
             setSaveError(message);
@@ -182,7 +187,7 @@ const PlanningSteps = () => {
                 severity: 'high',
                 metadata: {
                     step: currentStep,
-                    hasName: !!planningData.name,
+                    hasName: !!planningData['name'],
                     planningDataKeys: Object.keys(planningData),
                     isEditMode,
                 },
@@ -206,15 +211,14 @@ const PlanningSteps = () => {
                     const isCompleted = index < currentStep;
 
                     return (
-                        <div key={step.id || index} className="flex flex-col items-center flex-1">
+                        <div key={index} className="flex flex-col items-center flex-1">
                             <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mb-1 transition-colors ${
-                                    isCompleted
-                                        ? 'bg-emerald-600 text-white'
-                                        : isActive
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mb-1 transition-colors ${isCompleted
+                                    ? 'bg-emerald-600 text-white'
+                                    : isActive
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-slate-700 text-slate-400'
-                                }`}
+                                    }`}
                             >
                                 {isCompleted ? <Check size={16} /> : index + 1}
                             </div>
@@ -252,7 +256,15 @@ const PlanningSteps = () => {
         Step4Distribution,
     ];
 
-    const StepComponent = stepComponents[currentStep];
+    const StepComponent = stepComponents[currentStep] as React.ComponentType<{
+        initialData?: Record<string, unknown>;
+        onNext: (data: Record<string, unknown>) => void;
+        onBack: () => void;
+    }> | undefined;
+
+    if (!StepComponent) {
+        return null;
+    }
 
     return (
         <div>

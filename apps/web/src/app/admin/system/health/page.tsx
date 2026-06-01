@@ -768,7 +768,7 @@ export default function SystemHealthPage() {
                         Sessões de Impersonation Ativas ({data.supabase.activeImpersonations.length})
                     </h3>
                     <div className="space-y-2">
-                        {data.supabase.activeImpersonations.map((imp: { id: string; user?: string; started_at?: string }) => (
+                        {data.supabase.activeImpersonations.map((imp: { id: string; user?: string; started_at?: string; users?: { full_name?: string; email?: string }; tenants?: { name?: string }; target_tenant_id?: string }) => (
                             <div key={imp.id} className="flex justify-between items-center bg-slate-800/60 p-3 rounded text-sm">
                                 <div>
                                     <span className="font-medium text-white">{imp.users?.full_name || imp.users?.email}</span>
@@ -777,7 +777,7 @@ export default function SystemHealthPage() {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="text-xs text-slate-500">
-                                        Desde {new Date(imp.started_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        Desde {imp.started_at ? new Date(imp.started_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                     </div>
                                     <a
                                         href={`/admin/tenants/${imp.target_tenant_id}`}
@@ -806,17 +806,17 @@ export default function SystemHealthPage() {
                         </a>
                     </div>
                     <div className="divide-y divide-gray-800">
-                        {data.supabase.recentErrors.slice(0, 5).map((err: { id: string; message?: string; created_at?: string }) => (
+                        {data.supabase.recentErrors.slice(0, 5).map((err: { id: string; message?: string; created_at?: string; severity?: string; error_code?: string; error_message?: string }) => (
                             <div key={err.id} className="px-5 py-3 flex items-start gap-3 text-sm hover:bg-gray-800/40">
-                                <span className={`text-xs px-2 py-0.5 rounded border shrink-0 mt-0.5 ${SEVERITY_COLORS[err.severity] ?? ''}`}>
-                                    {err.severity}
+                                <span className={`text-xs px-2 py-0.5 rounded border shrink-0 mt-0.5 ${SEVERITY_COLORS[err['severity'] as keyof typeof SEVERITY_COLORS] ?? ''}`}>
+                                    {err['severity']}
                                 </span>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-mono text-xs text-gray-500">{err.error_code}</div>
                                     <div className="text-gray-300 truncate">{err.error_message}</div>
                                 </div>
                                 <div className="text-xs text-gray-500 shrink-0 whitespace-nowrap">
-                                    {new Date(err.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    {err.created_at ? new Date(err.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                 </div>
                             </div>
                         ))}

@@ -166,7 +166,11 @@ export function Step7Routes({ surveyId, localities }: Props) {
                         if (targetIndex < 0 || targetIndex >= route.localityIds.length) return route;
 
                         const copy = [...route.localityIds];
-                        [copy[index], copy[targetIndex]] = [copy[targetIndex], copy[index]];
+                        const currentValue = copy[index];
+                        const targetValue = copy[targetIndex];
+                        if (!currentValue || !targetValue) return route;
+                        copy[index] = targetValue;
+                        copy[targetIndex] = currentValue;
                         return { ...route, localityIds: copy };
                     }),
                 };

@@ -1,11 +1,13 @@
 // Utilitária client-side para determinar redirecionamento pós-login
 // Versão server-side disponível em post-login-redirect.server.ts
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 /**
  * Versão para client-side (sem acesso ao cookies do server)
  * Busca os dados do usuário e retorna o redirecionamento
  */
-export async function getPostLoginRedirectUrlClient(supabase: any): Promise<string> {
+export async function getPostLoginRedirectUrlClient(supabase: SupabaseClient): Promise<string> {
     try {
         // Obter usuário autenticado
         const {

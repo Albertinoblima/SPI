@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError, requireTenantAdmin } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 type Params = { params: { id: string } };
 
@@ -17,6 +18,7 @@ type LocalidadeConsulta = {
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireTenantAdmin(request);
     if (!auth.isAuthorized) {
         return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest, { params }: Params) {
         const ibgeId = parseInt(id, 10);
 
         if (isNaN(ibgeId)) {
-            return apiError('ID IBGE inválido.', 400);
+            return apiError('ID IBGE inválido.', 400, correlationId);
         }
 
         // Busca dados do municipio + resumo na view
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest, { params }: Params) {
         ]);
 
         if (municipioRes.error || !municipioRes.data) {
-            return apiError('Município não encontrado.', 404);
+            return apiError('Município não encontrado.', 404, correlationId);
         }
 
         // Estatisticas calculadas pelo backend

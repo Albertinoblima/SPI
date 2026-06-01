@@ -158,7 +158,9 @@ export function Step2Localities({
     // Sincroniza geo_level ao mudar abrangencia
     useEffect(() => {
         if (allowedLevels.length > 0 && !allowedLevels.includes(cascade.geo_level)) {
-            setCascade((prev) => ({ ...prev, geo_level: allowedLevels[0], state: '', city: '', localityName: '' }));
+            const firstAllowed = allowedLevels[0];
+            if (!firstAllowed) return;
+            setCascade((prev) => ({ ...prev, geo_level: firstAllowed, state: '', city: '', localityName: '' }));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scopeData.geographic_scope]);
@@ -490,7 +492,10 @@ export function Step2Localities({
         if (event.key === 'Enter') {
             if (isLocalityDropdownOpen && activeLocalityIndex >= 0 && activeLocalityIndex < previewSuggestions.length) {
                 event.preventDefault();
-                handleLocalitySelect(previewSuggestions[activeLocalityIndex].name);
+                const selectedSuggestion = previewSuggestions[activeLocalityIndex];
+                if (selectedSuggestion) {
+                    handleLocalitySelect(selectedSuggestion.name);
+                }
             }
             return;
         }
@@ -869,7 +874,7 @@ export function Step2Localities({
                                             </div>
                                         </div>
                                     )}
-                                    {!loadingLocalities && ibgeLocalities.length === 1 && normalizeGeoText(ibgeLocalities[0].name) === normalizeGeoText(cascadeCityForLocalities) && (
+                                    {!loadingLocalities && ibgeLocalities.length === 1 && ibgeLocalities[0] && normalizeGeoText(ibgeLocalities[0].name) === normalizeGeoText(cascadeCityForLocalities) && (
                                         <p className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
                                             Este município não possui subdivisões cadastradas no IBGE. Você pode digitar o nome da localidade manualmente (ex: bairro, vila, distrito).
                                         </p>

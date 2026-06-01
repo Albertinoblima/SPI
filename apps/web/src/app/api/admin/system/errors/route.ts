@@ -7,12 +7,14 @@ import {
     handleApiUnhandledError,
     trackedApiError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -105,10 +107,11 @@ export async function GET(request: NextRequest) {
 
 // PUT /api/admin/system/errors/:id - Resolver erro
 export async function PUT(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -116,7 +119,7 @@ export async function PUT(request: NextRequest) {
         const { id, resolved, resolution_notes } = body;
 
         if (!id) {
-            return apiError('ID do erro é obrigatório', 400);
+            return apiError('ID do erro é obrigatório', 400, correlationId);
         }
 
         const { data: updated, error: updateError } = await auth.supabase
@@ -159,10 +162,11 @@ export async function PUT(request: NextRequest) {
 
 // POST /api/admin/system/errors - Bulk actions (Fase 1 - Ações em Massa God Mode)
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -174,16 +178,16 @@ export async function POST(request: NextRequest) {
         };
 
         if (!action || !Array.isArray(errorIds) || errorIds.length === 0) {
-            return apiError('Parâmetros inválidos para ação em massa', 400);
+            return apiError('Parâmetros inválidos para ação em massa', 400, correlationId);
         }
 
         if (errorIds.length > 200) {
-            return apiError('Máximo de 200 erros por operação em massa', 400);
+            return apiError('Máximo de 200 erros por operação em massa', 400, correlationId);
         }
 
         if (action === 'mark_resolved') {
             if (typeof resolved !== 'boolean') {
-                return apiError('Campo "resolved" (boolean) é obrigatório', 400);
+                return apiError('Campo "resolved" (boolean) é obrigatório', 400, correlationId);
             }
 
             // Buscar códigos para auditoria
@@ -192,7 +196,7 @@ export async function POST(request: NextRequest) {
                 .select('id, error_code, severity')
                 .in('id', errorIds);
 
-            const currentMap = new Map((currentErrors ?? []).map((e: any) => [e.id, e]));
+            const currentMap = new Map((currentErrors ?? []).map((e: Record<string, unknown>) => [e['id'], e]));
 
             // Update em lote (eficiente)
             const { error: updateError } = await auth.supabase
@@ -219,11 +223,11 @@ export async function POST(request: NextRequest) {
                     action: 'bulk_error_resolve',
                     entity_type: 'error_log',
                     entity_id: eid,
-                    changes_description: `Erro ${curr?.error_code ?? eid} ${resolved ? 'marcado como resolvido' : 'reaberto'} via bulk`,
-                    is_critical: curr?.severity === 'critical',
+                    changes_description: `Erro ${(curr as Record<string, unknown> | undefined)?.['error_code'] ?? eid} ${resolved ? 'marcado como resolvido' : 'reaberto'} via bulk`,
+                    is_critical: (curr as Record<string, unknown> | undefined)?.['severity'] === 'critical',
                     metadata: {
                         bulk_operation: true,
-                        error_code: curr?.error_code ?? null,
+                        error_code: (curr as Record<string, unknown> | undefined)?.['error_code'] ?? null,
                         previous_resolved: !resolved,
                         new_resolved: resolved,
                         performed_by: auth.user.email ?? auth.user.id,
@@ -241,7 +245,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        return apiError(`Ação não suportada: ${action}`, 400);
+        return apiError(`Ação não suportada: ${action}`, 400, correlationId);
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

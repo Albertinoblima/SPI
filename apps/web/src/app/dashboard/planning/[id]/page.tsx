@@ -6,17 +6,49 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { reportClientError } from '@/lib/monitoring/reportClientError';
-import { 
-    FileText, MapPin, Users, BarChart3, Copy, Edit2, ArrowRight, 
-    Calendar, Target 
+import type { ResearchPlan } from '@/lib/supabase/researchPlans';
+import {
+    FileText, MapPin, Users, BarChart3, Copy, Edit2, ArrowRight,
+    Calendar, Target
 } from 'lucide-react';
+
+interface PlanMunicipality {
+    name?: string;
+    uf?: string;
+    population?: number;
+}
+
+interface PlanQuota {
+    name?: string;
+    uf?: string;
+    interviews?: number;
+}
+
+interface PlanData {
+    sampleSize?: number;
+    researchType?: string;
+    objective?: string;
+    targetAudience?: string;
+    population?: number;
+    margin?: number;
+    confidence?: number;
+    geographicBase?: {
+        scope?: string;
+        municipalities?: PlanMunicipality[];
+    };
+    distribution?: {
+        sampleSize?: number;
+        totalAssigned?: number;
+        quotas?: PlanQuota[];
+    };
+}
 
 const PlanningViewPage = () => {
     const params = useParams();
     const router = useRouter();
-    const planId = params.id as string;
+    const planId = params['id'] as string;
 
-    const [plan, setPlan] = useState<any>(null);
+    const [plan, setPlan] = useState<ResearchPlan | null>(null); // F6 strict: ResearchPlan from F3 domain contract (no any)
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDuplicating, setIsDuplicating] = useState(false);
@@ -36,8 +68,9 @@ const PlanningViewPage = () => {
 
                 if (error) throw error;
                 setPlan(data);
-            } catch (err: any) {
-                setError(err.message || 'Erro ao carregar planejamento');
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : 'Erro ao carregar planejamento';
+                setError(message);
                 await reportClientError({
                     errorCode: 'PLANNING_LOAD_FAILED',
                     errorMessage: `Falha ao carregar detalhes do planejamento ${planId}`,
@@ -58,9 +91,9 @@ const PlanningViewPage = () => {
         setIsDuplicating(true);
         try {
             const { createResearchPlan } = await import('@/lib/supabase/researchPlans');
-            
+
             const duplicatedName = `${plan.name} (Cópia)`;
-            
+
             const newPlan = await createResearchPlan({
                 name: duplicatedName,
                 planningData: plan.planning_data,
@@ -68,12 +101,13 @@ const PlanningViewPage = () => {
 
             // Redireciona para a página de edição do novo planejamento
             router.push(`/planning/new?editId=${newPlan.id}`);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'unknown';
             await reportClientError({
                 errorCode: 'PLANNING_SAVE_FAILED',
                 errorMessage: 'Falha ao duplicar planejamento',
                 severity: 'high',
-                metadata: { originalPlanId: planId, error: err?.message },
+                metadata: { originalPlanId: planId, error: message },
             });
             alert('Erro ao duplicar planejamento. Tente novamente.');
         } finally {
@@ -104,10 +138,10 @@ const PlanningViewPage = () => {
         );
     }
 
-    const data = plan.planning_data || {};
-    const sampleSize = data.sampleSize || data.distribution?.sampleSize;
-    const municipalities = data.geographicBase?.municipalities || [];
-    const totalQuotas = data.distribution?.quotas?.reduce((sum: number, q: any) => sum + (q.interviews || 0), 0);
+    const data = (plan.planning_data || {}) as PlanData;
+    const sampleSize = data.sampleSize ?? data.distribution?.sampleSize;
+    const municipalities = data.geographicBase?.municipalities ?? [];
+    const totalQuotas = data.distribution?.quotas?.reduce((sum: number, q: PlanQuota) => sum + (q.interviews || 0), 0);
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -223,16 +257,16 @@ const PlanningViewPage = () => {
                     <h2 className="text-xl font-semibold">Base Geográfica</h2>
                 </div>
 
-                {Array.isArray(data.geographicBase?.municipalities) && data.geographicBase.municipalities.length > 0 ? (
+                {municipalities.length > 0 ? (
                     <div>
                         <div className="text-sm text-slate-400 mb-2">
                             Abrangência: <span className="text-white font-medium">{data.geographicBase?.scope || 'N/A'}</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {data.geographicBase.municipalities.map((m: any, idx: number) => (
+                            {municipalities.map((m: PlanMunicipality, idx: number) => (
                                 <div key={idx} className="bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                                    {m?.name || 'Desconhecido'} - {m?.uf || ''}
-                                    {m?.population && (
+                                    {m.name || 'Desconhecido'} - {m.uf || ''}
+                                    {m.population && (
                                         <span className="text-xs text-slate-400">({Number(m.population).toLocaleString('pt-BR')})</span>
                                     )}
                                 </div>
@@ -282,10 +316,10 @@ const PlanningViewPage = () => {
 
                 {Array.isArray(data.distribution?.quotas) && data.distribution.quotas.length > 0 ? (
                     <div className="space-y-2">
-                        {data.distribution.quotas.map((q: any, idx: number) => (
+                        {data.distribution.quotas.map((q: PlanQuota, idx: number) => (
                             <div key={idx} className="flex justify-between items-center bg-slate-800 px-4 py-2.5 rounded-xl text-sm">
-                                <span>{q?.name || 'Desconhecido'} {q?.uf ? `(${q.uf})` : ''}</span>
-                                <span className="font-medium text-white">{Number(q?.interviews || 0).toLocaleString('pt-BR')} entrevistas</span>
+                                <span>{q.name || 'Desconhecido'} {q.uf ? `(${q.uf})` : ''}</span>
+                                <span className="font-medium text-white">{Number(q.interviews || 0).toLocaleString('pt-BR')} entrevistas</span>
                             </div>
                         ))}
                         <div className="text-right text-sm text-slate-400 mt-2">

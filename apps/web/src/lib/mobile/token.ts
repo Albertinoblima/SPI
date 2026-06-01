@@ -28,9 +28,9 @@ function base64UrlDecode(input: string): string {
 
 function getMobileAuthSecret(): string {
     const secret =
-        process.env.MOBILE_AUTH_SECRET
-        || process.env.SUPABASE_JWT_SECRET
-        || process.env.NEXTAUTH_SECRET;
+        process.env['MOBILE_AUTH_SECRET']
+        || process.env['SUPABASE_JWT_SECRET']
+        || process.env['NEXTAUTH_SECRET'];
 
     if (!secret || secret.length < 32) {
         throw new Error('MOBILE_AUTH_SECRET ausente ou muito curto. Defina ao menos 32 caracteres no ambiente.');
@@ -57,6 +57,7 @@ function verifyToken(token: string): MobileTokenClaims | null {
     if (parts.length !== 3) return null;
 
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
+    if (!encodedHeader || !encodedPayload || !encodedSignature) return null;
     const message = `${encodedHeader}.${encodedPayload}`;
 
     const expectedSignature = createHmac('sha256', getMobileAuthSecret())

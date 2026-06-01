@@ -160,7 +160,15 @@ export function computeTseStratifiedSuggestion(
 
     // Tenta obter perfis TSE para cada área
     const profiles: TseProfile[] = areas.map((area) => {
-        if (!area.uf) return { source: 'none' } as TseProfile;
+        if (!area.uf) {
+            return {
+                totalElectorate: 0,
+                sex: { male: 0, female: 0, unknown: 0 },
+                ageBands: [],
+                source: 'none',
+                confidence: 0,
+            };
+        }
         return getTseProfileForArea(area.uf, area.name);
     });
 
@@ -179,7 +187,7 @@ export function computeTseStratifiedSuggestion(
     areas.forEach((area, index) => {
         const profile = profiles[index];
         const pop = area.population || 0;
-        if (pop <= 0 || profile.source !== 'tse') return;
+        if (pop <= 0 || !profile || profile.source !== 'tse') return;
 
         totalPop += pop;
         weightedMale += pop * profile.sex.male;
@@ -211,11 +219,11 @@ export function computeTseStratifiedSuggestion(
 
     const ageSuggestions = applyAge
         ? normalizedAge.map((band) => ({
-              key: band.key,
-              label: TSE_AGE_LABELS[band.key] || band.key,
-              interviews: Math.max(1, Math.round(totalSample * band.proportion)),
-              proportion: band.proportion,
-          }))
+            key: band.key,
+            label: TSE_AGE_LABELS[band.key] || band.key,
+            interviews: Math.max(1, Math.round(totalSample * band.proportion)),
+            proportion: band.proportion,
+        }))
         : [];
 
     return {
@@ -285,18 +293,32 @@ function levenshteinDistance(a: string, b: string): number {
     const dp: number[][] = Array.from({ length: a.length + 1 }, () =>
         Array(b.length + 1).fill(0)
     );
-    for (let i = 0; i <= a.length; i += 1) dp[i][0] = i;
-    for (let j = 0; j <= b.length; j += 1) dp[0][j] = j;
+    for (let i = 0; i <= a.length; i += 1) {
+        const row = dp[i];
+        if (!row) continue;
+        row[0] = i;
+    }
+    const firstRow = dp[0];
+    if (firstRow) {
+        for (let j = 0; j <= b.length; j += 1) firstRow[j] = j;
+    }
 
     for (let i = 1; i <= a.length; i += 1) {
         for (let j = 1; j <= b.length; j += 1) {
-            dp[i][j] =
+            const row = dp[i];
+            const prevRow = dp[i - 1];
+            if (!row || !prevRow) continue;
+            const up = prevRow[j] ?? 0;
+            const left = row[j - 1] ?? 0;
+            const diag = prevRow[j - 1] ?? 0;
+
+            row[j] =
                 a[i - 1] === b[j - 1]
-                    ? dp[i - 1][j - 1]
-                    : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+                    ? diag
+                    : 1 + Math.min(up, left, diag);
         }
     }
-    return dp[a.length][b.length];
+    return dp[a.length]?.[b.length] ?? 0;
 }
 
 function normalizeProportions(items: { key: string; proportion: number }[]) {

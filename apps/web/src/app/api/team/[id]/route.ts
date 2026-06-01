@@ -3,23 +3,25 @@
 // DELETE /api/team/[id] - Desativa membro (soft delete)
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(_request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData } = await supabase
             .from('users')
@@ -27,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             .eq('id', user.id)
             .single();
 
-        if (!userData) return apiError('Usuário não encontrado', 404);
+        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
 
         const { data: member, error } = await supabase
             .from('users')
@@ -36,7 +38,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', userData.tenant_id)
             .single();
 
-        if (error || !member) return apiError('Membro não encontrado', 404);
+        if (error || !member) return apiError('Membro não encontrado', 404, correlationId);
 
         return apiSuccess({ member });
     } catch (error) {
@@ -48,10 +50,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData } = await supabase
             .from('users')
@@ -59,14 +62,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .eq('id', user.id)
             .single();
 
-        if (!userData) return apiError('Usuário não encontrado', 404);
+        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para editar membros', 403);
+            return apiError('Sem permissão para editar membros', 403, correlationId);
         }
 
         // Não permitir editar a si mesmo por aqui
         if (params.id === user.id) {
-            return apiError('Use as configurações de perfil para editar seus próprios dados', 400);
+            return apiError('Use as configurações de perfil para editar seus próprios dados', 400, correlationId);
         }
 
         const body = await request.json();
@@ -84,10 +87,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             'fiscal',
         ];
         if (role && !validRoles.includes(role)) {
-            return apiError('Cargo inválido', 400);
+            return apiError('Cargo inválido', 400, correlationId);
         }
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('team-management');
 
         // Verificar se o membro pertence ao mesmo tenant
         const { data: targetMember } = await adminSupabase
@@ -97,14 +100,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', userData.tenant_id)
             .single();
 
-        if (!targetMember) return apiError('Membro não encontrado', 404);
+        if (!targetMember) return apiError('Membro não encontrado', 404, correlationId);
 
         // Atualizar perfil
         const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
-        if (full_name?.trim()) updateData.full_name = full_name.trim();
-        if (phone !== undefined) updateData.phone = phone?.trim() || null;
-        if (role) updateData.role = role;
-        if (is_active !== undefined) updateData.is_active = is_active;
+        if (full_name?.trim()) updateData['full_name'] = full_name.trim();
+        if (phone !== undefined) updateData['phone'] = phone?.trim() || null;
+        if (role) updateData['role'] = role;
+        if (is_active !== undefined) updateData['is_active'] = is_active;
 
         const { data: updated, error: updateError } = await adminSupabase
             .from('users')
@@ -124,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         // Se nova senha for fornecida, atualizar no auth
         if (password) {
-            if (password.length < 8) return apiError('A senha deve ter no mínimo 8 caracteres', 400);
+            if (password.length < 8) return apiError('A senha deve ter no mínimo 8 caracteres', 400, correlationId);
             const { error: pwError } = await adminSupabase.auth.admin.updateUserById(params.id, { password });
             if (pwError) {
                 await trackedApiError(request, 'Falha ao atualizar senha de membro', 500, {
@@ -148,13 +151,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(_request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         if (params.id === user.id) {
-            return apiError('Não é possível desativar sua própria conta', 400);
+            return apiError('Não é possível desativar sua própria conta', 400, correlationId);
         }
 
         const { data: userData } = await supabase
@@ -163,10 +167,10 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             .eq('id', user.id)
             .single();
 
-        if (!userData) return apiError('Usuário não encontrado', 404);
-        if (userData.role !== 'admin') return apiError('Apenas administradores podem desativar membros', 403);
+        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (userData.role !== 'admin') return apiError('Apenas administradores podem desativar membros', 403, correlationId);
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('team-management');
 
         const { data: targetMember } = await adminSupabase
             .from('users')
@@ -175,7 +179,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', userData.tenant_id)
             .single();
 
-        if (!targetMember) return apiError('Membro não encontrado', 404);
+        if (!targetMember) return apiError('Membro não encontrado', 404, correlationId);
 
         const { error: deactivateError } = await adminSupabase
             .from('users')

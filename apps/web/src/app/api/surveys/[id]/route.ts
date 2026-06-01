@@ -1,13 +1,14 @@
 // GET/PUT/DELETE /api/surveys/[id]
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams { params: { id: string } }
 
@@ -128,7 +129,7 @@ function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingF
 }
 
 async function getAuthContext() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (!user || error) return null;
     const { data: userData } = await supabase
@@ -138,14 +139,15 @@ async function getAuthContext() {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(_req.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getAuthContext();
-        if (!ctx) return apiError('Não autenticado', 401);
+        if (!ctx) return apiError('Não autenticado', 401, correlationId);
 
         // Usa o cliente de serviço para garantir que as tabelas filhas (survey_localities,
         // survey_premises, questions) sejam retornadas mesmo sem policies RLS explícitas.
         // A restrição de tenant é feita via .eq('tenant_id', ...) como controle de acesso.
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('survey-detail');
         const { data: survey, error } = await adminSupabase
             .from('surveys')
             .select(`
@@ -159,7 +161,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
             .is('deleted_at', null)
             .single();
 
-        if (error || !survey) return apiError('Pesquisa não encontrada', 404);
+        if (error || !survey) return apiError('Pesquisa não encontrada', 404, correlationId);
 
         return apiSuccess({ survey });
     } catch (error) {
@@ -171,13 +173,14 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getAuthContext();
-        if (!ctx) return apiError('Não autenticado', 401);
+        if (!ctx) return apiError('Não autenticado', 401, correlationId);
 
         const body = await request.json();
         const skipValidation = body.skip_validation ?? false;
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('survey-detail');
 
         // Verificar ownership
         const { data: existing } = await adminSupabase
@@ -185,10 +188,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .select('id, status, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code, geographic_scope, scope_country_name, scope_state_name, scope_city_name, specific_public_description, population_size')
             .eq('id', params.id)
             .eq('tenant_id', ctx.userData.tenant_id).single();
-        if (!existing) return apiError('Pesquisa não encontrada', 404);
+        if (!existing) return apiError('Pesquisa não encontrada', 404, correlationId);
 
         if (existing.status === 'published') {
-            return apiError('Pesquisa publicada está em coleta e não pode mais ser editada.', 400);
+            return apiError('Pesquisa publicada está em coleta e não pode mais ser editada.', 400, correlationId);
         }
 
         // Campos que pertencem a tabelas filhas ou que não existem na tabela surveys
@@ -201,7 +204,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 ...existing,
                 ...surveyFields,
             });
-            if (legalValidationError) return apiError(legalValidationError, 400);
+            if (legalValidationError) return apiError(legalValidationError, 400, correlationId);
 
             if ('contracting_entity_document' in surveyFields) {
                 surveyFields.contracting_entity_document = normalizeDocument(surveyFields.contracting_entity_document) || null;
@@ -235,7 +238,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 ...existing,
                 ...surveyFields,
             });
-            if (geographyValidationError) return apiError(geographyValidationError, 400);
+            if (geographyValidationError) return apiError(geographyValidationError, 400, correlationId);
 
             if ('scope_country_name' in surveyFields) {
                 surveyFields.scope_country_name = surveyFields.scope_country_name?.trim() || null;
@@ -251,11 +254,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             }
         }
 
+        const resolvedGeographicScope = surveyFields.geographic_scope ?? existing.geographic_scope;
+        const resolvedPopulationSize = surveyFields.population_size ?? existing.population_size;
+
         const normalizedSampling = normalizeSamplingByScope({
-            geographic_scope: (surveyFields.geographic_scope as SurveySamplingFields['geographic_scope'])
-                ?? (existing.geographic_scope as SurveySamplingFields['geographic_scope']),
-            population_size: (surveyFields.population_size as number | null | undefined)
-                ?? (existing.population_size as number | null | undefined),
+            ...(resolvedGeographicScope !== undefined ? { geographic_scope: resolvedGeographicScope } : {}),
+            ...(resolvedPopulationSize !== undefined ? { population_size: resolvedPopulationSize as number | null } : {}),
         });
 
         if (normalizedSampling.population_size === null) {
@@ -306,15 +310,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                     localities.map((loc: Record<string, unknown>) => ({
                         survey_id: params.id,
                         tenant_id: ctx.userData.tenant_id,
-                        name: String(loc.name ?? '').trim(),
-                        zone: (loc.zone as string) || 'urban',
-                        population: Number(loc.population ?? 0),
-                        population_type: (loc.population_type as string) || 'publico_geral',
-                        interviews_required: Number(loc.interviews_required ?? 0),
-                        interviews_weight: Number(loc.interviews_weight ?? 0),
-                        geo_level: (loc.geo_level as string) || 'locality',
-                        parent_state_name: (loc.parent_state_name as string) || null,
-                        parent_city_name: (loc.parent_city_name as string) || null,
+                        name: String(loc['name'] ?? '').trim(),
+                        zone: (loc['zone'] as string) || 'urban',
+                        population: Number(loc['population'] ?? 0),
+                        population_type: (loc['population_type'] as string) || 'publico_geral',
+                        interviews_required: Number(loc['interviews_required'] ?? 0),
+                        interviews_weight: Number(loc['interviews_weight'] ?? 0),
+                        geo_level: (loc['geo_level'] as string) || 'locality',
+                        parent_state_name: (loc['parent_state_name'] as string) || null,
+                        parent_city_name: (loc['parent_city_name'] as string) || null,
                     }))
                 );
             }
@@ -328,12 +332,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                     premises.map((p: Record<string, unknown>, i: number) => ({
                         survey_id: params.id,
                         tenant_id: ctx.userData.tenant_id,
-                        category: p.category,
-                        label: p.label,
-                        options: p.options ?? [],
-                        is_required: p.is_required ?? true,
-                        allow_multiple: p.allow_multiple ?? false,
-                        stratification_label: (p.stratification_label as string) ?? null,
+                        category: p['category'],
+                        label: p['label'],
+                        options: p['options'] ?? [],
+                        is_required: p['is_required'] ?? true,
+                        allow_multiple: p['allow_multiple'] ?? false,
+                        stratification_label: (p['stratification_label'] as string) ?? null,
                         order_index: i,
                     }))
                 );
@@ -348,12 +352,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                     questions.map((q: Record<string, unknown>, i: number) => ({
                         survey_id: params.id,
                         tenant_id: ctx.userData.tenant_id,
-                        question_text: q.question_text,
-                        question_type: q.question_type,
-                        is_required: q.is_required ?? false,
+                        question_text: q['question_text'],
+                        question_type: q['question_type'],
+                        is_required: q['is_required'] ?? false,
                         order_index: i,
-                        options: q.options ?? null,
-                        validation_rules: q.validation_rules ?? null,
+                        options: q['options'] ?? null,
+                        validation_rules: q['validation_rules'] ?? null,
                     }))
                 );
             }
@@ -369,12 +373,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(_req.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getAuthContext();
-        if (!ctx) return apiError('Não autenticado', 401);
-        if (ctx.userData.role !== 'admin') return apiError('Sem permissão', 403);
+        if (!ctx) return apiError('Não autenticado', 401, correlationId);
+        if (ctx.userData.role !== 'admin') return apiError('Sem permissão', 403, correlationId);
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('survey-detail');
         const { data: existingSurvey, error: surveyError } = await adminSupabase
             .from('surveys')
             .select('id, status')
@@ -384,7 +389,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
             .single();
 
         if (surveyError || !existingSurvey) {
-            return apiError('Pesquisa não encontrada', 404);
+            return apiError('Pesquisa não encontrada', 404, correlationId);
         }
 
         if (existingSurvey.status !== 'draft') {

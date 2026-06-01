@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getSurveyAuthContext, surveyBelongsToTenant } from '@/lib/surveys/auth-context';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
@@ -39,14 +40,15 @@ function splitEqually(total: number, count: number) {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getSurveyAuthContext();
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
-        if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada', 404, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('survey-distribution');
         const { data: rows, error } = await admin
             .from('survey_distribution_quotas')
             .select('interviewer_id, locality_id, zone, gender, age_group, quota_total, users!inner(id, full_name), survey_localities!inner(id, name)')
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', ctx.tenantId)
             .order('interviewer_id', { ascending: true });
 
-        if (error) return apiError(`Falha ao carregar distribuicao: ${error.message}`, 500);
+        if (error) return apiError(`Falha ao carregar distribuicao: ${error.message}`, 500, correlationId);
 
         return apiSuccess({ distribution: rows ?? [] });
     } catch (error) {
@@ -66,18 +68,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getSurveyAuthContext();
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
         const survey = await surveyBelongsToTenant(params.id, ctx.tenantId);
-        if (!survey) return apiError('Pesquisa nao encontrada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada', 404, correlationId);
         if (survey.status === 'published') {
-            return apiError('Pesquisa publicada esta em coleta e nao pode mais alterar distribuicao.', 400);
+            return apiError('Pesquisa publicada esta em coleta e nao pode mais alterar distribuicao.', 400, correlationId);
         }
 
         const body: DistributionInput = await request.json();
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('survey-distribution');
 
         const providedInterviewers = body.entrevistadores?.map((i) => i.usuario_id).filter(Boolean) ?? [];
 
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
 
         if (interviewerIds.length === 0) {
-            return apiError('Nao ha entrevistadores selecionados na etapa de equipe', 400);
+            return apiError('Nao ha entrevistadores selecionados na etapa de equipe', 400, correlationId);
         }
 
         const { data: localities } = await admin
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             .order('name', { ascending: true });
 
         if (!localities || localities.length === 0) {
-            return apiError('Nao ha localidades para distribuir', 400);
+            return apiError('Nao ha localidades para distribuir', 400, correlationId);
         }
 
         const { data: premises } = await admin
@@ -173,7 +176,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         if (rows.length > 0) {
             const { error: insertError } = await admin.from('survey_distribution_quotas').insert(rows);
             if (insertError) {
-                return apiError(`Falha ao salvar distribuicao: ${insertError.message}`, 500);
+                return apiError(`Falha ao salvar distribuicao: ${insertError.message}`, 500, correlationId);
             }
         }
 

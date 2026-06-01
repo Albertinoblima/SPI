@@ -8,8 +8,11 @@ import type { GeographicBaseSelection } from '@/components/planning/types';
 import type { GeoScope } from '@/lib/survey-decisions';
 
 interface Step2GeographicBaseProps {
-    initialData?: Record<string, any>;
-    onNext: (data: Record<string, any>) => void;
+    initialData?: {
+        geographicBase?: Partial<GeographicBaseSelection>;
+        researchType?: string;
+    };
+    onNext: (data: { geographicBase: any }) => void; // rich structure for downstream
     onBack: () => void;
 }
 
@@ -22,7 +25,7 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
 
     const handleNext = () => {
         const totalPopulation = geoData.municipalities.reduce((sum, m) => sum + (m.population || 0), 0) +
-                                (geoData.localities || []).reduce((sum, l) => sum + (l.population || 0), 0);
+            (geoData.localities || []).reduce((sum, l) => sum + (l.population || 0), 0);
 
         // Build a clean, rich structure for downstream steps (especially Step 4)
         const richBase = {
@@ -33,14 +36,14 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
                 localities: m.localities || [],
             })),
             // Flat list of all selected localities (most granular level)
-            selectedLocalities: (geoData.localities && geoData.localities.length > 0) 
-                ? geoData.localities 
+            selectedLocalities: (geoData.localities && geoData.localities.length > 0)
+                ? geoData.localities
                 : geoData.municipalities.flatMap(m => m.localities || []),
             metadata: {
                 research_type: initialData?.researchType,
                 total_population: totalPopulation,
-                has_specific_localities: (geoData.localities && geoData.localities.length > 0) || 
-                                        geoData.municipalities.some(m => m.localities && m.localities.length > 0),
+                has_specific_localities: (geoData.localities && geoData.localities.length > 0) ||
+                    geoData.municipalities.some(m => m.localities && m.localities.length > 0),
             }
         };
 
@@ -58,7 +61,7 @@ const Step2GeographicBase: React.FC<Step2GeographicBaseProps> = ({ initialData, 
                 <GeographicBaseSelector
                     value={geoData}
                     onChange={setGeoData}
-                    researchType={initialData?.researchType}
+                    {...(initialData?.researchType ? { researchType: initialData.researchType } : {})}
                 />
             </div>
 

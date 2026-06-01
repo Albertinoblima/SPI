@@ -80,11 +80,26 @@ export default function SurveyMonitorPage() {
             </div>
 
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-                {/* Badge em desenvolvimento */}
-                <div className="flex justify-center mb-8">
+                {/* Badge em desenvolvimento + Acesso rápido a Relatórios */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                     <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 border border-amber-200 px-4 py-2 rounded-full text-sm font-semibold">
                         <Construction className="w-4 h-4" />
                         Módulo em desenvolvimento
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={`/dashboard/surveys/${id}/dynamic-report`}
+                            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 transition"
+                        >
+                            📈 Dinâmico
+                        </Link>
+                        <Link
+                            href={`/dashboard/surveys/${id}/reports`}
+                            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-50 transition"
+                        >
+                            📊 Físicos
+                        </Link>
                     </div>
                 </div>
 
@@ -94,10 +109,10 @@ export default function SurveyMonitorPage() {
                         <HelpCircle className="w-4 h-4" />
                         Entenda como as cotas por entrevistador funcionam aqui
                     </div>
-                    <HelpAssistant 
-                        context="mobile-collection" 
-                        compact 
-                        onStillNeedHelp={() => {}} 
+                    <HelpAssistant
+                        context="mobile-collection"
+                        compact
+                        onStillNeedHelp={() => { }}
                         onTrackHelpful={(topic) => {
                             reportClientError({
                                 errorCode: 'HELP_TOPIC_MARKED_HELPFUL',

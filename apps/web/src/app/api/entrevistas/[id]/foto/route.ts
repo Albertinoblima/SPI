@@ -1,23 +1,25 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getMobileAuthContext(request);
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('entrevista-foto');
         const formData = await request.formData();
         const file = formData.get('foto');
 
         if (!(file instanceof File)) {
-            return apiError('Arquivo de foto nao informado', 400);
+            return apiError('Arquivo de foto nao informado', 400, correlationId);
         }
 
         const extension = file.name.split('.').pop() || 'jpg';
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             });
 
         if (uploadError) {
-            return apiError(`Falha no upload da foto: ${uploadError.message}`, 500);
+            return apiError(`Falha no upload da foto: ${uploadError.message}`, 500, correlationId);
         }
 
         const { error: updateError } = await admin
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             .eq('interviewer_id', ctx.userId);
 
         if (updateError) {
-            return apiError(`Falha ao vincular foto: ${updateError.message}`, 500);
+            return apiError(`Falha ao vincular foto: ${updateError.message}`, 500, correlationId);
         }
 
         return apiSuccess({ interview_id: params.id, photo_path: storagePath });

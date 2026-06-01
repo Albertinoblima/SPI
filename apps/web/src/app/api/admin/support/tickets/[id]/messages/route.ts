@@ -7,19 +7,21 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
-    if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401);
+    if (!auth.isAuthorized) return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
 
     try {
         const body = await request.json();
         const { message, status } = body;
 
-        if (!message?.trim()) return apiError('Mensagem é obrigatória', 400);
+        if (!message?.trim()) return apiError('Mensagem é obrigatória', 400, correlationId);
 
         const ticketId = params.id;
 
@@ -30,7 +32,7 @@ export async function POST(
             .eq('id', ticketId)
             .single();
 
-        if (!ticket) return apiError('Ticket não encontrado', 404);
+        if (!ticket) return apiError('Ticket não encontrado', 404, correlationId);
 
         // Inserir mensagem do admin
         const { data: newMsg, error: insertError } = await auth.supabase
@@ -55,13 +57,13 @@ export async function POST(
         // Atualizar status se informado, senão mudar para waiting_user
         const newStatus = status ?? 'waiting_user';
         const validStatuses = ['open', 'in_progress', 'waiting_user', 'resolved', 'closed'];
-        if (!validStatuses.includes(newStatus)) return apiError('Status inválido', 400);
+        if (!validStatuses.includes(newStatus)) return apiError('Status inválido', 400, correlationId);
 
         const updatePayload: Record<string, unknown> = {
             status: newStatus,
             assigned_to: auth.user.id,
         };
-        if (newStatus === 'resolved') updatePayload.resolved_at = new Date().toISOString();
+        if (newStatus === 'resolved') updatePayload['resolved_at'] = new Date().toISOString();
 
         await auth.supabase
             .from('support_tickets')

@@ -2,7 +2,7 @@
 // PUT /api/admin/tenants/[id] - Atualizar tenant (status, limites, etc)
 // DELETE /api/admin/tenants/[id] - Exclusao logica (soft delete) de tenant
 import { NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient, checkRateLimit, adminRateLimitKey } from '@political-research/shared-utils';
 import {
     requireSystemAdmin,
     apiError,
@@ -10,15 +10,17 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
@@ -33,7 +35,7 @@ export async function GET(
             .single();
 
         if (tenantError || !tenant) {
-            return apiError('Tenant não encontrado', 404);
+            return apiError('Tenant não encontrado', 404, correlationId);
         }
 
         // Buscar estatísticas
@@ -76,9 +78,9 @@ export async function GET(
             .gte('created_at', since24h);
 
         const health = {
-            critical_24h: (recentHealthErrors ?? []).filter((e: any) => e.severity === 'critical').length,
-            high_24h: (recentHealthErrors ?? []).filter((e: any) => e.severity === 'high').length,
-            medium_24h: (recentHealthErrors ?? []).filter((e: any) => e.severity === 'medium').length,
+            critical_24h: (recentHealthErrors ?? []).filter((e: { severity?: string }) => e.severity === 'critical').length,
+            high_24h: (recentHealthErrors ?? []).filter((e: { severity?: string }) => e.severity === 'high').length,
+            medium_24h: (recentHealthErrors ?? []).filter((e: { severity?: string }) => e.severity === 'medium').length,
             has_recent_issues: false,
         };
         health.has_recent_issues = health.critical_24h > 0 || health.high_24h > 0;
@@ -104,21 +106,22 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
     }
 
     try {
         const tenantId = params.id;
         const body = await request.json();
         const { status, max_users, max_surveys, storage_limit_mb, name } = body;
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('admin-tenants-delete');
 
         // Validar status
         if (status && !['active', 'suspended', 'trial'].includes(status)) {
-            return apiError('Status inválido', 400);
+            return apiError('Status inválido', 400, correlationId);
         }
 
         // Buscar tenant atual
@@ -130,16 +133,16 @@ export async function PUT(
             .single();
 
         if (!currentTenant) {
-            return apiError('Tenant não encontrado', 404);
+            return apiError('Tenant não encontrado', 404, correlationId);
         }
 
         // Construir update payload
-        const updatePayload: any = {};
-        if (status !== undefined) updatePayload.status = status;
-        if (max_users !== undefined) updatePayload.max_users = max_users;
-        if (max_surveys !== undefined) updatePayload.max_surveys = max_surveys;
-        if (storage_limit_mb !== undefined) updatePayload.storage_limit_mb = storage_limit_mb;
-        if (name !== undefined) updatePayload.name = name;
+        const updatePayload: Record<string, unknown> = {};
+        if (status !== undefined) updatePayload['status'] = status;
+        if (max_users !== undefined) updatePayload['max_users'] = max_users;
+        if (max_surveys !== undefined) updatePayload['max_surveys'] = max_surveys;
+        if (storage_limit_mb !== undefined) updatePayload['storage_limit_mb'] = storage_limit_mb;
+        if (name !== undefined) updatePayload['name'] = name;
 
         // Atualizar tenant
         const { data: updated, error: updateError } = await adminSupabase
@@ -196,15 +199,22 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401);
+        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
+    }
+
+    // Fase 2: Basic rate limiting for destructive admin operations
+    const rateKey = adminRateLimitKey(auth.user.id, 'delete-tenant');
+    if (!checkRateLimit(rateKey, { windowMs: 60_000, maxRequests: 5 })) {
+        return apiError('Muitas requisições. Tente novamente em alguns segundos.', 429, correlationId);
     }
 
     try {
         const tenantId = params.id;
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('admin-tenants-delete');
 
         const { data: currentTenant, error: tenantError } = await adminSupabase
             .from('tenants')
@@ -214,7 +224,7 @@ export async function DELETE(
             .single();
 
         if (tenantError || !currentTenant) {
-            return apiError('Tenant não encontrado', 404);
+            return apiError('Tenant não encontrado', 404, correlationId);
         }
 
         // Evita lockout acidental: system_admin nao pode excluir o proprio tenant.
@@ -225,7 +235,7 @@ export async function DELETE(
             .single();
 
         if (currentUserProfile?.tenant_id === tenantId) {
-            return apiError('Não é permitido excluir a própria empresa vinculada ao seu usuário administrador do sistema.', 400);
+            return apiError('Não é permitido excluir a própria empresa vinculada ao seu usuário administrador do sistema.', 400, correlationId);
         }
 
         const nowIso = new Date().toISOString();

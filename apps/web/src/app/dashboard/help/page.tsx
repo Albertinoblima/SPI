@@ -61,7 +61,10 @@ function HelpPageContent() {
         });
 
         if (!filteredTopics.some((topic) => topic.id === activeTopicId)) {
-            setActiveTopicId(filteredTopics[0].id);
+            const firstTopic = filteredTopics[0];
+            if (firstTopic) {
+                setActiveTopicId(firstTopic.id);
+            }
         }
 
         return () => observer.disconnect();

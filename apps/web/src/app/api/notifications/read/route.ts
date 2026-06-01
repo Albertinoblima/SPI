@@ -8,12 +8,13 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function createSupabase() {
     const cookieStore = cookies();
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
         {
             cookies: {
                 get(name: string) { return cookieStore.get(name)?.value; },
@@ -29,16 +30,17 @@ function createSupabase() {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return apiError('Não autorizado', 401);
+    if (authError || !user) return apiError('Não autorizado', 401, correlationId);
 
     try {
         const body = await request.json();
         const { ids } = body; // array de UUIDs ou null (marca todos)
 
         if (ids && !Array.isArray(ids)) {
-            return apiError('ids deve ser um array', 400);
+            return apiError('ids deve ser um array', 400, correlationId);
         }
 
         if (ids && ids.length > 0) {

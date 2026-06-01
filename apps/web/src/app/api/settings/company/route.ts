@@ -8,15 +8,17 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404);
+        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
 
         const { data: tenantWithTradeName, error: tenantError } = await supabase
             .from('tenants')
@@ -51,11 +53,11 @@ export async function GET(request: NextRequest) {
                 .eq('id', userData.tenant_id)
                 .single();
 
-            if (tenantLegacyError || !tenantLegacy) return apiError('Empresa não encontrada', 404);
+            if (tenantLegacyError || !tenantLegacy) return apiError('Empresa não encontrada', 404, correlationId);
             return apiSuccess({ tenant: { ...tenantLegacy, nome_fantasia: null } });
         }
 
-        if (tenantError || !tenantWithTradeName) return apiError('Empresa não encontrada', 404);
+        if (tenantError || !tenantWithTradeName) return apiError('Empresa não encontrada', 404, correlationId);
 
         return apiSuccess({ tenant: tenantWithTradeName });
     } catch (error) {
@@ -67,11 +69,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -79,9 +82,9 @@ export async function PUT(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404);
+        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para alterar dados da empresa', 403);
+            return apiError('Sem permissão para alterar dados da empresa', 403, correlationId);
         }
 
         const body = await request.json();
@@ -91,7 +94,7 @@ export async function PUT(request: NextRequest) {
             city, state, zip_code, responsavel_tecnico,
         } = body;
 
-        if (!name?.trim()) return apiError('Nome da empresa é obrigatório', 400);
+        if (!name?.trim()) return apiError('Nome da empresa é obrigatório', 400, correlationId);
 
         const payload = {
             name: name.trim(),

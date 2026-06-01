@@ -20,6 +20,7 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 import { normalizeGeoText, resolveStateCode } from '@/lib/geo/br-reference';
 import { getOrRefreshGeoCache } from '@/lib/geo/ibge-cache';
 
@@ -88,6 +89,7 @@ function inferZone(districName: string, cityName: string): 'urban' | 'rural' {
 }
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const qParam = request.nextUrl.searchParams.get('q')?.trim() ?? '';
     const limitParam = Number(request.nextUrl.searchParams.get('limit') ?? '50');
     const limit = Number.isFinite(limitParam) ? Math.min(Math.max(Math.trunc(limitParam), 1), 50) : 50;
@@ -144,8 +146,8 @@ export async function GET(request: NextRequest) {
         // Implementação completa de join pesado pode ser feita em momento posterior sem risco.
     }
 
-    if (!cityParam) return apiError('Informe o parametro city.', 400);
-    if (!stateParam) return apiError('Informe o parametro state.', 400);
+    if (!cityParam) return apiError('Informe o parametro city.', 400, correlationId);
+    if (!stateParam) return apiError('Informe o parametro state.', 400, correlationId);
 
     const stateCode = resolveStateCode(stateParam);
     if (!stateCode) {

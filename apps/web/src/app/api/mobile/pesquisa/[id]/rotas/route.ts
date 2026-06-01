@@ -1,18 +1,20 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface RouteParams {
     params: { id: string };
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getMobileAuthContext(request);
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('mobile-pesquisa-rotas');
 
         const { data: member } = await admin
             .from('survey_team_members')
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .eq('is_active', true)
             .single();
 
-        if (!member) return apiError('Usuario sem acesso a esta pesquisa', 403);
+        if (!member) return apiError('Usuario sem acesso a esta pesquisa', 403, correlationId);
 
         const { data: routes, error } = await admin
             .from('survey_routes')
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             .order('zone', { ascending: true })
             .order('route_number', { ascending: true });
 
-        if (error) return apiError(`Falha ao carregar rotas: ${error.message}`, 500);
+        if (error) return apiError(`Falha ao carregar rotas: ${error.message}`, 500, correlationId);
 
         return apiSuccess({ role: member.role, routes: routes ?? [] });
     } catch (error) {

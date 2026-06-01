@@ -125,7 +125,7 @@ export default function TeamPage() {
                     role: form.role,
                     is_active: form.is_active,
                 };
-                if (form.password) body.password = form.password;
+                if (form.password) body['password'] = form.password;
 
                 const res = await fetch(`/api/team/${editingMember.id}`, {
                     method: 'PUT',

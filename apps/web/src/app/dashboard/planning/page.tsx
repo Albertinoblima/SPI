@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useResearchPlans } from '@/hooks/useResearchPlans';
 import { Plus, FileText, ArrowRight } from 'lucide-react';
+import type { ResearchPlan } from '@/lib/supabase/researchPlans';
 
 const PlanningDashboardPage = () => {
     const { plans, fetchPlans, loading, error } = useResearchPlans();
@@ -90,7 +91,7 @@ const PlanningDashboardPage = () => {
 
                 {plans.length > 0 && (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {plans.map((plan: any) => (
+                        {plans.map((plan: ResearchPlan) => (
                             <div
                                 key={plan.id}
                                 className="border border-slate-700 bg-slate-900/60 rounded-2xl p-5 hover:border-slate-600 transition-colors"
@@ -131,7 +132,7 @@ const PlanningDashboardPage = () => {
                                                     planningData: plan.planning_data || {},
                                                 });
                                                 window.location.href = `/planning/new?editId=${newPlan.id}`;
-                                            } catch (e: any) {
+                                            } catch (e: unknown) {
                                                 console.error('Duplicate planning error', e);
                                                 alert('Erro ao duplicar planejamento. O incidente foi registrado.');
                                                 // Report to monitoring
@@ -143,10 +144,10 @@ const PlanningDashboardPage = () => {
                                                             errorCode: 'PLANNING_SAVE_FAILED',
                                                             errorMessage: 'Falha ao duplicar planejamento',
                                                             severity: 'high',
-                                                            metadata: { planId: plan.id, error: e?.message },
+                                                            metadata: { planId: plan.id, error: e instanceof Error ? e.message : String(e) },
                                                         }),
                                                     });
-                                                } catch {}
+                                                } catch { }
                                             }
                                         }}
                                         className="text-emerald-400 hover:text-emerald-300 font-medium"
