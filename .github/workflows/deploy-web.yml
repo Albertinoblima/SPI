@@ -1,4 +1,4 @@
-name: Deploy Web (Vercel)
+name: Deploy Web - Production
 
 on:
   push:
@@ -6,48 +6,52 @@ on:
     paths:
       - 'apps/web/**'
       - 'packages/**'
-      - 'vercel.json'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force production deploy'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  # Central hardened Quality Gates (Fase 5 - Excelência Operacional) are the source of truth for PRs.
-  # Explicit dependency documented: quality-gates.yml (lint/type/test/coverage/correlationId) runs on all PRs to main/develop.
-  # This lightweight check here acts as a final safety net before production deploy.
-  quality-gates:
-    name: Final Quality Gate (reuses central Fase 4 gates)
+  quality-gate:
+    name: Quality Gate (Web)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
-      - name: Install dependencies (monorepo)
-        run: npm ci
-      - name: Quick sanity (full gates run on PR via quality-gates.yml)
-        run: echo "Relying on central quality-gates.yml (lint/type/test/coverage). Running minimal here to protect main."
 
-  deploy:
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck - Web
+        run: npx turbo run typecheck --filter=web
+
+      - name: Lint - Web
+        run: npx turbo run lint --filter=web
+        continue-on-error: true   # Não bloqueia o deploy por enquanto
+
+  deploy-production:
     name: Deploy to Vercel (Production)
     runs-on: ubuntu-latest
-    needs: quality-gates
-    if: success()
+    needs: quality-gate
+    # Só executa em pushes na main ou quando forçado manualmente
+    if: github.event_name == 'push' || github.event.inputs.force == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Deploy to Vercel (Production)
+        uses: amondnet/vercel-action@v25
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
-
-      - name: Install dependencies (web only)
-        run: npm ci --workspace=apps/web
-
-      - name: Deploy to Vercel (production)
-        run: npx vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          # Não definimos working-directory aqui porque o Root Directory já está configurado no projeto da Vercel
