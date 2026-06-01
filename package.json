@@ -16,14 +16,25 @@
         "sql:fix": "sqlfluff fix supabase/",
         "sql:check": "sqlfluff fix supabase/ --check",
         "sql:lint:migrations": "sqlfluff lint supabase/migrations/",
-        "sql:fix:migrations": "sqlfluff fix supabase/migrations/"
+        "sql:fix:migrations": "sqlfluff fix supabase/migrations/",
+        "prepare": "node -e \"try { require('husky').install() } catch (e) { /* ignore */ }\" || true",
+        "test": "turbo run test",
+        "test:ci": "turbo run test:ci"
     },
     "devDependencies": {
+        "@commitlint/cli": "^19.3.0",
+        "@commitlint/config-conventional": "^19.2.2",
+        "husky": "^9.0.11",
+        "lint-staged": "^15.2.5",
         "turbo": "^2.0.0",
         "typescript": "^5.4.0"
     },
     "engines": {
         "node": ">=18"
     },
-    "packageManager": "npm@10.0.0"
+    "packageManager": "npm@10.0.0",
+    "lint-staged": {
+        "*.{ts,tsx,js,jsx}": "eslint --fix",
+        "supabase/migrations/*.sql": "npm run sql:fix -- --dialect postgres --check"
+    }
 }

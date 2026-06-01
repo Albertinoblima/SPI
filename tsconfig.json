@@ -1,21 +1,25 @@
 {
-    "compilerOptions": {
-        "target": "ES2020",
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "resolveJsonModule": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true
-    },
-    "exclude": [
-        "node_modules",
-        "apps/mobile",
-        "apps/web",
-        "supabase/functions"
-    ]
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Monorepo - iDialog SPI (Solution)",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./apps/mobile" },
+    { "path": "./packages/shared-types" },
+    { "path": "./packages/shared-utils" },
+    { "path": "./packages/shared-validations" }
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    ".expo",
+    "coverage",
+    "supabase/functions"
+  ]
 }

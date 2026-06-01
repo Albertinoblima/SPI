@@ -405,6 +405,15 @@ Consulte a pasta docs para detalhes aprofundados:
 - sqlfluff-setup.md
 - error_codes_idialog.md
 
+### Programa de Evolução para Nível Sênior
+
+O projeto segue o **Plano de Evolução para Nível Sênior e Profissional** (aprovado).
+
+- Todas as decisões arquiteturais relevantes são registradas em ADRs: `docs/adr/`
+- Quality Gates obrigatórios rodam em todo PR (lint + typecheck) via `.github/workflows/quality-gates.yml`
+- Hooks locais: Husky + lint-staged + commitlint (enforce qualidade no desenvolvedor local)
+- Consulte `PLANO_EVOLUCAO_NIVEL_SENIOR_PROFISSIONAL.md` (raiz) para o roadmap completo, fases e gates de qualidade.
+
 ## 17. Licenca e Uso
 
 Uso interno e operacional conforme diretrizes do projeto/organizacao mantenedora.

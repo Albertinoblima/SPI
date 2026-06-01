@@ -20,6 +20,8 @@ on:
           - all
 
 jobs:
+  # Fase 5: Explicit reference to central quality-gates.yml for lint/type/test before mobile build.
+  # Full gates enforced on PRs via quality-gates.yml (source of truth).
   build:
     runs-on: ubuntu-latest
     steps:
@@ -39,8 +41,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
+      - name: Lint (Turbo)
+        run: npm run lint -- --filter=mobile
+
+      - name: Typecheck (Turbo)
         run: npm run typecheck -- --filter=mobile
+      # Full senior Quality Gates (including tests/coverage) are enforced centrally in quality-gates.yml on every PR (Fase 4)
 
       - name: Build Android
         if: github.event.inputs.platform != 'ios'

@@ -65,3 +65,40 @@ yarn-error.log*
 # Testing
 coverage/
 .vercel
+
+# ============================================================================
+# MONOREPO HYGIENE - Fase 0 Refatoração (Anti-Retrabalho)
+# ============================================================================
+# Previne commit de artefatos gerados e backups de auditoria que poluem
+# o histórico do git e aumentam drasticamente o tamanho do repositório.
+
+# Backup e artefatos de auditoria/limpeza (nunca devem ser commitados)
+*_audit_*_backup_*.zip
+*_cleanup_backup_*.zip
+*_obsolete_scripts_backup_*.zip
+_audit_*.zip
+
+# Build caches e outputs específicos de apps (mesmo que .gitignore raiz cubra genéricos)
+apps/web/.next/
+apps/web/.turbo/
+apps/web/tsconfig.tsbuildinfo
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/.turbo/
+apps/mobile/tsconfig.tsbuildinfo
+packages/*/dist/
+packages/*/.turbo/
+packages/*/tsconfig.tsbuildinfo
+
+# Node modules locais dentro de apps (devem ser instalados apenas na raiz via workspaces)
+apps/*/node_modules/
+packages/*/node_modules/
+
+# Arquivos de lock inconsistentes em sub-apps (o lock principal fica na raiz)
+apps/*/package-lock.json
+packages/*/package-lock.json
+
+# Logs e caches específicos de ferramentas
+*.log
+.etl_cache/
+.supabase/

@@ -1,5 +1,24 @@
 {
     "extends": [
-        "next/core-web-vitals"
+        "next/core-web-vitals",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "rules": {
+        "@typescript-eslint/no-explicit-any": "error",  // Fase 3: Zero tolerance for new `any`. Legacy being removed progressively.
+        "@typescript-eslint/no-unused-vars": [
+            "warn",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
+        ]
+    },
+    "ignorePatterns": [
+        "node_modules/",
+        ".next/",
+        "coverage/"
     ]
 }

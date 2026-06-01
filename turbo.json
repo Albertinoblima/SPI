@@ -37,6 +37,23 @@
         },
         "clean": {
             "cache": false
+        },
+        "test": {
+            "dependsOn": [
+                "^build"
+            ],
+            "outputs": [
+                "coverage/**"
+            ],
+            "cache": false
+        },
+        "test:ci": {
+            "dependsOn": [
+                "^build"
+            ],
+            "outputs": [
+                "coverage/**"
+            ]
         }
     }
 }

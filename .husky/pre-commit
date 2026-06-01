@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running lint-staged (Fase 4 quality)..."
+npx lint-staged
+
+echo "🔎 Running fast typecheck on packages (Fase 4)..."
+npx tsc -p packages/shared-utils/tsconfig.json --noEmit --skipLibCheck || echo "⚠️ Type issues detected in shared packages (will be enforced in CI)"
+
+# Full senior gates (lint + typecheck + tests + coverage) run in CI via quality-gates.yml on every PR.
+# Pre-commit stays fast for developer experience; heavy verification is shift-left via CI.
