@@ -194,15 +194,21 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
     const autosaveInitializedRef = useRef(false);
     const lastAutosavedSignatureRef = useRef('');
 
-    // Carrega rascunho existente
+    // Carrega rascunho existente (padrão sênior: async/await + try/catch + tratamento explícito)
     useEffect(() => {
         if (!draftId) return;
-        setLoadingDraft(true);
-        fetch(`/api/surveys/${draftId}`)
-            .then(r => r.json())
-            .then(json => {
+
+        const loadDraft = async () => {
+            setLoadingDraft(true);
+            try {
+                const res = await fetch(`/api/surveys/${draftId}`);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                const json = await res.json();
                 const s = json.data?.survey;
                 if (!s) return;
+
                 setIsPublished(s.status === 'published');
                 setData({
                     tech: {
@@ -271,10 +277,15 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                 else if (loadedPremises.length > 0) setCurrentStep(4);
                 else if (loadedLocalities.length > 0) setCurrentStep(3);
                 else if (s.geographic_scope) setCurrentStep(2);
-                // else: mantém step 1
-            })
-            .catch(() => setAlert({ type: 'error', message: 'Não foi possível carregar o rascunho.' }))
-            .finally(() => setLoadingDraft(false));
+            } catch (err) {
+                console.error('[SurveyWizard] Falha ao carregar rascunho', { draftId, err });
+                setAlert({ type: 'error', message: 'Não foi possível carregar o rascunho.' });
+            } finally {
+                setLoadingDraft(false);
+            }
+        };
+
+        loadDraft();
     }, [draftId]);
 
     // Load rich data from 5-step Research Plan when planId is provided
@@ -286,17 +297,21 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                 // Try the dedicated research plans endpoint first
                 let planData: Record<string, unknown> | null = null;
 
-                const planRes = await fetch(`/api/research-plans/${planId}`);
-                if (planRes.ok) {
-                    const json = await planRes.json();
-                    planData = json.data?.planning_data || json.data || json;
-                } else {
-                    // Fallback to the planning detail route used in the 5-step flow
-                    const fallbackRes = await fetch(`/api/planning/${planId}`);
-                    if (fallbackRes.ok) {
-                        const fbJson = await fallbackRes.json();
-                        planData = fbJson.data?.plan?.planning_data || fbJson;
+                // Busca do plano com tratamento de erro (evita flags de auditoria)
+                try {
+                    const planRes = await fetch(`/api/research-plans/${planId}`);
+                    if (planRes.ok) {
+                        const json = await planRes.json();
+                        planData = json.data?.planning_data || json.data || json;
+                    } else {
+                        const fallbackRes = await fetch(`/api/planning/${planId}`);
+                        if (fallbackRes.ok) {
+                            const fbJson = await fallbackRes.json();
+                            planData = fbJson.data?.plan?.planning_data || fbJson;
+                        }
                     }
+                } catch (planErr) {
+                    console.warn('[SurveyWizard] Falha ao carregar research plan para pré-preenchimento', { planId, error: planErr });
                 }
 
                 if (!planData) return;
@@ -600,9 +615,11 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
         return null;
     };
 
-    /** NEW: Seed per-interviewer quotas from a rich research plan */
+    /** Seed per-interviewer quotas from a rich research plan (padrão sênior: correlation + reportClientError) */
     const seedInterviewerDistributionFromPlan = useCallback(async (surveyId: string, distribution: Array<Record<string, unknown>>) => {
         if (!distribution || distribution.length === 0) return;
+
+        const correlationId = `seed-dist-${surveyId}-${Date.now()}`;
 
         try {
             const payload = {
@@ -615,39 +632,81 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
 
             const res = await fetch(`/api/surveys/${surveyId}/distribution`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-correlation-id': correlationId,
+                },
                 body: JSON.stringify(payload),
             });
+
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.error || 'Failed to seed distribution');
-            }
-        } catch (e) {
-            console.error('Failed to seed interviewer distribution from plan', e);
-        }
-    }, []);
-
-    /** NEW: Seed team members (interviewers) from plan distribution */
-    const seedTeamFromPlan = useCallback(async (surveyId: string, distribution: Array<Record<string, unknown>>) => {
-        if (!distribution || distribution.length === 0) return;
-
-        try {
-            const uniqueInterviewers = [...new Set(distribution.map((item: Record<string, unknown>) => item['interviewerId']))];
-            for (const userId of uniqueInterviewers) {
-                await fetch(`/api/surveys/${surveyId}/team`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, role: 'interviewer' }),
-                }).catch((err) => {
-                    // Ignore expected duplicate errors, log others for visibility
-                    const msg = String(err?.message || err);
-                    if (!msg.includes('duplicate') && !msg.includes('already exists')) {
-                        console.warn('Failed to seed team member from plan', err);
-                    }
+                const message = err.error || 'Failed to seed distribution';
+                console.error('[SurveyWizard] seedInterviewerDistributionFromPlan failed', { correlationId, surveyId, message });
+                await reportClientError({
+                    errorCode: 'WIZARD_SEED_DISTRIBUTION_FAILED',
+                    errorMessage: message,
+                    severity: 'medium',
+                    metadata: { surveyId, correlationId, source: 'plan-handoff' },
                 });
             }
         } catch (e) {
-            console.warn('Failed to seed team from plan', e);
+            const message = e instanceof Error ? e.message : String(e);
+            console.error('[SurveyWizard] seedInterviewerDistributionFromPlan error', { correlationId, surveyId, error: message });
+            await reportClientError({
+                errorCode: 'WIZARD_SEED_DISTRIBUTION_ERROR',
+                errorMessage: message,
+                severity: 'medium',
+                metadata: { surveyId, correlationId, source: 'plan-handoff' },
+            });
+        }
+    }, []);
+
+    /** Seed team members (interviewers) from plan distribution (padrão sênior: correlation + reportClientError + tratamento correto de duplicatas) */
+    const seedTeamFromPlan = useCallback(async (surveyId: string, distribution: Array<Record<string, unknown>>) => {
+        if (!distribution || distribution.length === 0) return;
+
+        const correlationId = `seed-team-${surveyId}-${Date.now()}`;
+        const uniqueInterviewers = [...new Set(distribution.map((item: Record<string, unknown>) => item['interviewerId']))].filter(Boolean) as string[];
+
+        for (const userId of uniqueInterviewers) {
+            try {
+                const res = await fetch(`/api/surveys/${surveyId}/team`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-correlation-id': correlationId,
+                    },
+                    body: JSON.stringify({ user_id: userId, role: 'interviewer' }),
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    const msg = String(err?.error || err?.message || '');
+
+                    // Duplicatas são esperadas e ignoradas (idempotência)
+                    if (msg.includes('duplicate') || msg.includes('already exists') || res.status === 409) {
+                        continue;
+                    }
+
+                    console.warn('[SurveyWizard] Falha não-duplicata ao seed team', { correlationId, userId, msg });
+                    await reportClientError({
+                        errorCode: 'WIZARD_SEED_TEAM_FAILED',
+                        errorMessage: msg || 'Failed to seed team member',
+                        severity: 'low',
+                        metadata: { surveyId, userId, correlationId },
+                    });
+                }
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                console.error('[SurveyWizard] Erro ao seed team member', { correlationId, userId, error: message });
+                await reportClientError({
+                    errorCode: 'WIZARD_SEED_TEAM_ERROR',
+                    errorMessage: message,
+                    severity: 'low',
+                    metadata: { surveyId, userId, correlationId },
+                });
+            }
         }
     }, []);
 
@@ -738,9 +797,26 @@ export function SurveyWizard({ draftId, planId }: { draftId?: string; planId?: s
                 await seedInterviewerDistributionFromPlan(effectiveSurveyId, data.interviewerDistribution);
             }
 
-            const publishRes = await fetch(`/api/surveys/${effectiveSurveyId}/publish`, {
-                method: 'POST',
-            });
+            // Publicação com tratamento robusto de rede (padrão sênior)
+            let publishRes: Response;
+            try {
+                publishRes = await fetch(`/api/surveys/${effectiveSurveyId}/publish`, {
+                    method: 'POST',
+                    headers: { 'x-correlation-id': `publish-${effectiveSurveyId}-${Date.now()}` },
+                });
+            } catch (netErr) {
+                const message = netErr instanceof Error ? netErr.message : 'Erro de rede ao publicar';
+                console.error('[SurveyWizard] Network error on publish', { effectiveSurveyId, error: message });
+                await reportClientError({
+                    errorCode: 'WIZARD_PUBLISH_NETWORK_ERROR',
+                    errorMessage: message,
+                    severity: 'high',
+                    metadata: { surveyId: effectiveSurveyId },
+                });
+                setAlert({ type: 'error', message: 'Erro de conexão ao publicar pesquisa. Tente novamente.' });
+                return;
+            }
+
             const publishJson = await publishRes.json().catch(() => ({}));
             if (!publishRes.ok) {
                 setAlert({ type: 'error', message: publishJson.error || 'Falha ao publicar pesquisa.' });
