@@ -5,6 +5,7 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 import { normalizeGeoText, resolveStateCode, BR_STATES } from '@/lib/geo/br-reference';
 import {
     getTseVoterList,
@@ -21,17 +22,17 @@ function levenshteinDistance(a: string, b: string): number {
     const dp: number[][] = Array.from({ length: a.length + 1 }, () =>
         Array(b.length + 1).fill(0)
     );
-    for (let i = 0; i <= a.length; i += 1) dp[i][0] = i;
-    for (let j = 0; j <= b.length; j += 1) dp[0][j] = j;
+    for (let i = 0; i <= a.length; i += 1) dp[i]![0] = i;
+    for (let j = 0; j <= b.length; j += 1) dp[0]![j] = j;
     for (let i = 1; i <= a.length; i += 1) {
         for (let j = 1; j <= b.length; j += 1) {
-            dp[i][j] =
+            dp[i]![j] =
                 a[i - 1] === b[j - 1]
-                    ? dp[i - 1][j - 1]
-                    : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+                    ? dp[i - 1]![j - 1]
+                    : 1 + Math.min(dp[i - 1]![j], dp[i]![j - 1], dp[i - 1]![j - 1]);
         }
     }
-    return dp[a.length][b.length];
+    return dp[a.length]![b.length]!;
 }
 
 function similarityScore(input: string, candidate: string): number {
@@ -93,13 +94,14 @@ function resolveCity(uf: string, cityName: string): ResolveResult {
 // --------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const { searchParams } = new URL(request.url);
         const stateParam = searchParams.get('state')?.trim() ?? '';
         const cityParam = searchParams.get('city')?.trim() ?? '';
 
         if (!stateParam || !cityParam) {
-            return apiError('Parâmetros obrigatórios: state e city', 400);
+            return apiError('Parâmetros obrigatórios: state e city', 400, correlationId);
         }
 
         if (!hasTseData()) {
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest) {
         // Resolve UF
         const stateCode = resolveStateCode(stateParam);
         if (!stateCode) {
-            return apiError(`Estado não reconhecido: "${stateParam}"`, 400);
+            return apiError(`Estado não reconhecido: "${stateParam}"`, 400, correlationId);
         }
         const brState = BR_STATES.find((s) => s.code === stateCode);
         const uf = brState?.uf ?? stateParam.toUpperCase().slice(0, 2);

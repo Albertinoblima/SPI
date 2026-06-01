@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 type InterviewPayload = {
     survey_id: string;
@@ -24,16 +25,17 @@ function getDurationSeconds(start: string, end?: string | null) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getMobileAuthContext(request);
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
         const body = (await request.json()) as InterviewPayload;
         if (!body?.survey_id || !body?.horario_inicio) {
-            return apiError('survey_id e horario_inicio sao obrigatorios', 400);
+            return apiError('survey_id e horario_inicio sao obrigatorios', 400, correlationId);
         }
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('entrevistas');
 
         const { data: survey } = await admin
             .from('surveys')
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
             .eq('status', 'published')
             .single();
 
-        if (!survey) return apiError('Pesquisa nao encontrada ou nao publicada', 404);
+        if (!survey) return apiError('Pesquisa nao encontrada ou nao publicada', 404, correlationId);
 
         const { data: teamMember } = await admin
             .from('survey_team_members')
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
             .eq('is_active', true)
             .single();
 
-        if (!teamMember) return apiError('Usuario sem permissao para coletar nesta pesquisa', 403);
+        if (!teamMember) return apiError('Usuario sem permissao para coletar nesta pesquisa', 403, correlationId);
 
         const startedAt = body.horario_inicio;
         const endedAt = body.horario_fim ?? null;
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (interviewError || !interview) {
-            return apiError(`Falha ao criar entrevista: ${interviewError?.message ?? 'desconhecido'}`, 500);
+            return apiError(`Falha ao criar entrevista: ${interviewError?.message ?? 'desconhecido'}`, 500, correlationId);
         }
 
         if (Array.isArray(body.respostas) && body.respostas.length > 0) {
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
             if (answers.length > 0) {
                 const { error: answersError } = await admin.from('interview_answers').insert(answers);
                 if (answersError) {
-                    return apiError(`Falha ao salvar respostas: ${answersError.message}`, 500);
+                    return apiError(`Falha ao salvar respostas: ${answersError.message}`, 500, correlationId);
                 }
             }
         }

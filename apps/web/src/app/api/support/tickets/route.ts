@@ -9,16 +9,18 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function createSupabase() {
     const cookieStore = cookies();
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
         {
             cookies: {
                 get: (name: string) => cookieStore.get(name)?.value,
-                set: (name: string, value: string, options: any) => cookieStore.set(name, value, options),
+                // @ts-expect-error - Supabase SSR cookie adapter requires exact CookieOptions shape from next/headers; runtime compatible
+                set: (name: string, value: string, options?: object) => cookieStore.set(name, value, options),
                 remove: (name: string) => cookieStore.delete(name),
             },
         }
@@ -26,11 +28,12 @@ function createSupabase() {
 }
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createSupabase();
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const status = request.nextUrl.searchParams.get('status');
 
@@ -61,11 +64,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createSupabase();
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData } = await supabase
             .from('users')
@@ -73,18 +77,18 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (!userData?.tenant_id) return apiError('Usuário sem tenant', 403);
+        if (!userData?.tenant_id) return apiError('Usuário sem tenant', 403, correlationId);
 
         const body = await request.json();
         const { title, message, category = 'general', priority = 'medium' } = body;
 
-        if (!title?.trim()) return apiError('Título é obrigatório', 400);
-        if (!message?.trim()) return apiError('Mensagem é obrigatória', 400);
+        if (!title?.trim()) return apiError('Título é obrigatório', 400, correlationId);
+        if (!message?.trim()) return apiError('Mensagem é obrigatória', 400, correlationId);
 
         const validPriorities = ['low', 'medium', 'high', 'urgent'];
         const validCategories = ['general', 'technical', 'billing', 'feature', 'bug'];
-        if (!validPriorities.includes(priority)) return apiError('Prioridade inválida', 400);
-        if (!validCategories.includes(category)) return apiError('Categoria inválida', 400);
+        if (!validPriorities.includes(priority)) return apiError('Prioridade inválida', 400, correlationId);
+        if (!validCategories.includes(category)) return apiError('Categoria inválida', 400, correlationId);
 
         // Criar ticket
         const { data: ticket, error: ticketError } = await supabase

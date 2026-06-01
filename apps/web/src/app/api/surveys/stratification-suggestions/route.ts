@@ -11,6 +11,7 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
 import { createClient } from '@/lib/supabase/server';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 interface LocalityInput {
     id: string;
@@ -103,7 +104,7 @@ function mapEducation(escolaridade: Record<string, number>): Record<string, numb
  * Busca dados demográficos para uma localidade específica
  */
 async function getDemographicsForLocality(
-    supabase: any,
+    supabase: Record<string, unknown>,
     locality: LocalityInput,
     state: string,
     city: string,
@@ -285,13 +286,14 @@ function generateSuggestions(demographics: DemographicData[]): CotaSuggestion[] 
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const supabase = await createClient();
         const body = await request.json();
         const { localities } = body;
 
         if (!Array.isArray(localities) || localities.length === 0) {
-            return apiError('Forneça um array de localidades válido.', 400);
+            return apiError('Forneça um array de localidades válido.', 400, correlationId);
         }
 
         // Buscar dados demográficos para cada localidade

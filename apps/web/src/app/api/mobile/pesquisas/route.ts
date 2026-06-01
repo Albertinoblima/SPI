@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { getMobileAuthContext } from '@/lib/mobile/auth';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getMobileAuthContext(request);
-        if (!ctx) return apiError('Nao autenticado', 401);
+        if (!ctx) return apiError('Nao autenticado', 401, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('mobile-pesquisas');
         const { data: rows, error } = await admin
             .from('survey_team_members')
             .select('survey_id, role, surveys!inner(id, title, description, status, published_at, started_at, ended_at, updated_at)')
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest) {
             .eq('surveys.status', 'published')
             .order('created_at', { ascending: false });
 
-        if (error) return apiError(`Falha ao carregar pesquisas: ${error.message}`, 500);
+        if (error) return apiError(`Falha ao carregar pesquisas: ${error.message}`, 500, correlationId);
 
         const surveys = (rows ?? []).map((row) => {
             const surveyRaw = Array.isArray(row.surveys) ? row.surveys[0] : row.surveys;

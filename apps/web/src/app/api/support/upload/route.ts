@@ -9,6 +9,7 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -23,8 +24,8 @@ const ALLOWED_TYPES = [
 function createAuthClient() {
     const cookieStore = cookies();
     return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
         {
             cookies: {
                 get(name: string) { return cookieStore.get(name)?.value; },
@@ -40,24 +41,54 @@ function createAuthClient() {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const supabase = createAuthClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return apiError('Não autenticado', 401);
+    if (authError || !user) return apiError('Não autenticado', 401, correlationId);
 
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
         const ticketId = formData.get('ticket_id') as string | null;
 
-        if (!file) return apiError('Arquivo não informado', 400);
-        if (!ticketId) return apiError('ticket_id não informado', 400);
-        if (file.size > MAX_SIZE_BYTES) return apiError('Arquivo muito grande (máx 10MB)', 400);
-        if (!ALLOWED_TYPES.includes(file.type)) return apiError('Tipo de arquivo não permitido', 400);
+        if (!file) return apiError('Arquivo não informado', 400, correlationId);
+        if (!ticketId) return apiError('ticket_id não informado', 400, correlationId);
+        if (file.size > MAX_SIZE_BYTES) return apiError('Arquivo muito grande (máx 10MB)', 400, correlationId);
+        if (!ALLOWED_TYPES.includes(file.type)) return apiError('Tipo de arquivo não permitido', 400, correlationId);
+
+        const [{ data: userData }, { data: ticket }] = await Promise.all([
+            supabase
+                .from('users')
+                .select('tenant_id, role, is_system_admin')
+                .eq('id', user.id)
+                .single(),
+            supabase
+                .from('support_tickets')
+                .select('id, tenant_id, user_id')
+                .eq('id', ticketId)
+                .single(),
+        ]);
+
+        if (!ticket) {
+            return apiError('Ticket não encontrado', 404, correlationId);
+        }
+
+        const isOwner = ticket.user_id === user.id;
+        const isSystemAdmin = Boolean(userData?.is_system_admin);
+        const isTenantManager = Boolean(
+            userData?.tenant_id &&
+            ticket.tenant_id === userData.tenant_id &&
+            ['admin', 'manager'].includes(userData.role)
+        );
+
+        if (!isOwner && !isSystemAdmin && !isTenantManager) {
+            return apiError('Sem permissão para anexar arquivo neste ticket', 403, correlationId);
+        }
 
         // Usar service role para upload no storage
         const adminClient = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
+            process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+            process.env['SUPABASE_SERVICE_ROLE_KEY']!
         );
 
         const ext = file.name.split('.').pop() ?? 'bin';
@@ -81,16 +112,24 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Gerar URL pública (bucket público) ou signed URL (bucket privado)
-        const { data: urlData } = adminClient.storage
+        const { data: signedData, error: signedError } = await adminClient.storage
             .from('support-attachments')
-            .getPublicUrl(fileName);
+            .createSignedUrl(fileName, 60 * 60);
+
+        if (signedError || !signedData?.signedUrl) {
+            return trackedApiError(request, 'Erro ao gerar URL temporária do anexo', 500, {
+                errorCode: 'STORAGE_UPLOAD_FAILED',
+                userId: user.id,
+                metadata: { route: '/api/support/upload', ticketId, stage: 'signed_url' },
+            });
+        }
 
         return apiSuccess({
-            url: urlData.publicUrl,
+            url: signedData.signedUrl,
             name: file.name,
             type: file.type,
             size: file.size,
+            expires_in_seconds: 60 * 60,
         }, 201);
     } catch (error) {
         return handleApiUnhandledError(request, error, {

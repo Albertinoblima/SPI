@@ -2,13 +2,14 @@
 // GET  /api/surveys - Lista surveys do tenant
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 type SurveyLegalFields = {
     is_registered_research?: boolean;
@@ -105,17 +106,18 @@ function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingF
 }
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData } = await supabase
             .from('users')
             .select('tenant_id')
             .eq('id', user.id)
             .single();
-        if (!userData) return apiError('Usuário não encontrado', 404);
+        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
 
         const { data: surveys, error } = await supabase
             .from('surveys')
@@ -147,17 +149,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData } = await supabase
             .from('users')
             .select('tenant_id, role')
             .eq('id', user.id)
             .single();
-        if (!userData) return apiError('Usuário não encontrado', 404);
+        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
 
         const body = await request.json();
         const skipValidation = body.skip_validation ?? false;
@@ -178,7 +181,7 @@ export async function POST(request: NextRequest) {
             population_size,
         });
 
-        if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400);
+        if (!title?.trim()) return apiError('Título da pesquisa é obrigatório', 400, correlationId);
 
         if (!skipValidation) {
             const legalValidationError = validateLegalFields({
@@ -194,7 +197,7 @@ export async function POST(request: NextRequest) {
                 is_public_disclosure,
                 pesqele_registration_code,
             });
-            if (legalValidationError) return apiError(legalValidationError, 400);
+            if (legalValidationError) return apiError(legalValidationError, 400, correlationId);
         }
 
         // Validação geográfica só é exigida quando o escopo já foi informado
@@ -207,10 +210,10 @@ export async function POST(request: NextRequest) {
                 scope_city_name,
                 specific_public_description,
             });
-            if (geographyValidationError) return apiError(geographyValidationError, 400);
+            if (geographyValidationError) return apiError(geographyValidationError, 400, correlationId);
         }
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('surveys-crud');
 
         const { data: survey, error: surveyError } = await adminSupabase
             .from('surveys')

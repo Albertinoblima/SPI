@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
 import { getSurveyAuthContext } from '@/lib/surveys/auth-context';
 import { publicReportAccessService } from '@/lib/reports/PublicReportAccessService';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 /**
  * POST /api/reports/[surveyId]/shares
@@ -12,9 +13,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { surveyId: string } }
 ) {
+  const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
   try {
     const ctx = await getSurveyAuthContext(request, params.surveyId);
-    if (!ctx) return apiError('Não autorizado', 401);
+    if (!ctx) return apiError('Não autorizado', 401, correlationId);
 
     const body = await request.json();
 
@@ -38,7 +40,7 @@ export async function POST(
 
     return apiSuccess({
       share,
-      shareUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/reports/public/${share.share_token}`,
+      shareUrl: `${process.env['NEXT_PUBLIC_APP_URL'] || ''}/reports/public/${share.share_token}`,
       message: 'Link de relatório gerado com sucesso. Envie o link + credenciais ao contratante.',
     });
   } catch (error) {
@@ -56,9 +58,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { surveyId: string } }
 ) {
+  const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
   try {
     const ctx = await getSurveyAuthContext(request, params.surveyId);
-    if (!ctx) return apiError('Não autorizado', 401);
+    if (!ctx) return apiError('Não autorizado', 401, correlationId);
 
     const { data: shares, error } = await ctx.supabase
       .from('report_shares')
@@ -66,7 +69,7 @@ export async function GET(
       .eq('survey_id', params.surveyId)
       .order('created_at', { ascending: false });
 
-    if (error) return apiError(error.message, 500);
+    if (error) return apiError(error.message, 500, correlationId);
 
     return apiSuccess({ shares });
   } catch (error) {

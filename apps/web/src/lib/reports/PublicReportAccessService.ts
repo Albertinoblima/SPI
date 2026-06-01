@@ -9,11 +9,112 @@
  * - Mantém modelo híbrido: token + credenciais para protected
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import bcrypt from 'bcryptjs';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+
+const PUBLIC_REPORT_SESSION_TTL_SECONDS = 15 * 60;
+const SESSION_AUDIENCE = 'public-report-access';
+
+export const PUBLIC_REPORT_SESSION_COOKIE = 'pr_access';
+
+interface PublicAccessSessionPayload {
+  aud: string;
+  shareToken: string;
+  iat: number;
+  exp: number;
+  nonce: string;
+}
+
+function base64UrlEncode(value: string): string {
+  return Buffer.from(value, 'utf8').toString('base64url');
+}
+
+function base64UrlDecode(value: string): string {
+  return Buffer.from(value, 'base64url').toString('utf8');
+}
 
 export class PublicReportAccessService {
-  private supabase = createAdminClient();
+  private supabase = createAuditedSupabaseAdminClient('PublicReportAccessService');
+
+  private getSessionSecret(): string {
+    return process.env['PUBLIC_REPORT_SESSION_SECRET'] || process.env['SUPABASE_SERVICE_ROLE_KEY'] || '';
+  }
+
+  private signSessionPayload(payloadSegment: string): string {
+    const secret = this.getSessionSecret();
+    if (!secret) {
+      throw new Error('PUBLIC_REPORT_SESSION_SECRET não configurado');
+    }
+
+    return createHmac('sha256', secret)
+      .update(payloadSegment)
+      .digest('base64url');
+  }
+
+  private verifySessionSignature(payloadSegment: string, providedSignature: string): boolean {
+    const expectedSignature = this.signSessionPayload(payloadSegment);
+    const provided = Buffer.from(providedSignature);
+    const expected = Buffer.from(expectedSignature);
+
+    if (provided.length !== expected.length) {
+      return false;
+    }
+
+    return timingSafeEqual(provided, expected);
+  }
+
+  createPublicSessionToken(shareToken: string, ttlSeconds: number = PUBLIC_REPORT_SESSION_TTL_SECONDS): string {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const payload: PublicAccessSessionPayload = {
+      aud: SESSION_AUDIENCE,
+      shareToken,
+      iat: nowSeconds,
+      exp: nowSeconds + ttlSeconds,
+      nonce: randomBytes(8).toString('hex'),
+    };
+
+    const payloadSegment = base64UrlEncode(JSON.stringify(payload));
+    const signature = this.signSessionPayload(payloadSegment);
+
+    return `${payloadSegment}.${signature}`;
+  }
+
+  validatePublicSessionToken(token: string, expectedShareToken: string): { valid: boolean; reason?: string } {
+    if (!token || !token.includes('.')) {
+      return { valid: false, reason: 'Sessão inválida' };
+    }
+
+    const [payloadSegment, signature] = token.split('.');
+    if (!payloadSegment || !signature) {
+      return { valid: false, reason: 'Sessão inválida' };
+    }
+
+    if (!this.verifySessionSignature(payloadSegment, signature)) {
+      return { valid: false, reason: 'Sessão inválida' };
+    }
+
+    try {
+      const payload = JSON.parse(base64UrlDecode(payloadSegment)) as PublicAccessSessionPayload;
+      const nowSeconds = Math.floor(Date.now() / 1000);
+
+      if (payload.aud !== SESSION_AUDIENCE) {
+        return { valid: false, reason: 'Sessão inválida' };
+      }
+
+      if (payload.shareToken !== expectedShareToken) {
+        return { valid: false, reason: 'Sessão inválida' };
+      }
+
+      if (payload.exp <= nowSeconds) {
+        return { valid: false, reason: 'Sessão expirada' };
+      }
+
+      return { valid: true };
+    } catch {
+      return { valid: false, reason: 'Sessão inválida' };
+    }
+  }
 
   async validateAccess(shareToken: string, email?: string, password?: string) {
     const { data: share } = await this.supabase
@@ -25,6 +126,11 @@ export class PublicReportAccessService {
 
     if (!share) {
       return { valid: false, reason: 'Link de acesso inválido ou expirado' };
+    }
+
+    // Hard-block obrigatório: compartilhamento expirado não pode acessar dados.
+    if (share.expires_at && new Date(share.expires_at).getTime() <= Date.now()) {
+      return { valid: false, reason: 'Link expirado' };
     }
 
     // Se o share for "protected", exige credenciais que batem com as gravadas no próprio share
@@ -105,14 +211,7 @@ export class PublicReportAccessService {
   }
 
   private generateSecureToken(): string {
-    // Token simples mas seguro o suficiente para v1 (64 chars hex)
-    const array = new Uint8Array(32);
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      crypto.getRandomValues(array);
-    } else {
-      for (let i = 0; i < array.length; i++) array[i] = Math.floor(Math.random() * 256);
-    }
-    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+    return randomBytes(32).toString('hex');
   }
 }
 

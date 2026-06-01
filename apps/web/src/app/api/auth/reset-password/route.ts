@@ -9,6 +9,7 @@ import { normalizeAuthErrorMessage, resetPasswordSchema } from '@/lib/auth/login
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
 import { logAuthAuditEvent } from '@/lib/auth/audit';
 import { createRouteHandlerClient } from '@/lib/supabase/route';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function getRateLimitKey(request: NextRequest) {
     const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
@@ -18,12 +19,13 @@ function getRateLimitKey(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const body = await request.json();
         const parsedBody = resetPasswordSchema.safeParse(body);
 
         if (!parsedBody.success) {
-            return apiError(parsedBody.error.issues[0]?.message ?? 'Dados inválidos.', 400);
+            return apiError(parsedBody.error.issues[0]?.message ?? 'Dados inválidos.', 400, correlationId);
         }
 
         const rateLimit = consumeRateLimit({
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
                 },
             });
 
-            return applyCookies(apiError('Sessão de redefinição inválida ou expirada.', 401));
+            return applyCookies(apiError('Sessão de redefinição inválida ou expirada.', 401, correlationId));
         }
 
         const { error } = await supabase.auth.updateUser({
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
                 },
             });
 
-            return applyCookies(apiError(normalizeAuthErrorMessage(error.message), 400));
+            return applyCookies(apiError(normalizeAuthErrorMessage(error.message), 400, correlationId));
         }
 
         await logAuthAuditEvent({

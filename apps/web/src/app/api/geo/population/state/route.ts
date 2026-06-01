@@ -5,6 +5,7 @@ import {
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 import { BR_STATES, resolveStateCode } from '@/lib/geo/br-reference';
 import { getOrRefreshGeoCache } from '@/lib/geo/ibge-cache';
 
@@ -92,15 +93,16 @@ async function fetchStatePopulation(stateCode: number): Promise<PopulationExtrac
 }
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const stateParam = request.nextUrl.searchParams.get('state');
 
     if (!stateParam?.trim()) {
-        return apiError('Informe state para consultar a população estadual.', 400);
+        return apiError('Informe state para consultar a população estadual.', 400, correlationId);
     }
 
     const stateCode = resolveStateCode(stateParam);
     if (!stateCode) {
-        return apiError('Estado inválido para consulta de população estadual.', 400);
+        return apiError('Estado inválido para consulta de população estadual.', 400, correlationId);
     }
 
     const stateInfo = BR_STATES.find((item) => item.code === stateCode) ?? null;

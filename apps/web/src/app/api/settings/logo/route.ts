@@ -2,23 +2,25 @@
 import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import {
     apiError,
     apiSuccess,
     trackedApiError,
     handleApiUnhandledError,
 } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // aceita até 10MB para redimensionar
 const MAX_DIMENSION = 512; // px — redimensiona para caber em 512×512
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = createClient();
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401);
+        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -26,20 +28,20 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404);
+        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para alterar logomarca', 403);
+            return apiError('Sem permissão para alterar logomarca', 403, correlationId);
         }
 
         const formData = await request.formData();
         const file = formData.get('logo') as File | null;
 
-        if (!file) return apiError('Nenhum arquivo enviado', 400);
+        if (!file) return apiError('Nenhum arquivo enviado', 400, correlationId);
         if (!ALLOWED_TYPES.includes(file.type)) {
             return apiError('Formato inválido. Use JPEG, PNG, WebP ou SVG.', 400);
         }
         if (file.size > MAX_SIZE_BYTES) {
-            return apiError('Arquivo muito grande. Máximo 10MB.', 400);
+            return apiError('Arquivo muito grande. Máximo 10MB.', 400, correlationId);
         }
 
         const arrayBuffer = await file.arrayBuffer();
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
             finalExt = 'webp';
         }
 
-        const adminSupabase = createAdminClient();
+        const adminSupabase = createAuditedSupabaseAdminClient('logo-upload');
         const filePath = `logos/${userData.tenant_id}/logo.${finalExt}`;
 
         const { error: uploadError } = await adminSupabase.storage

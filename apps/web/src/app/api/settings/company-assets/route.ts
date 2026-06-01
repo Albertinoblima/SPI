@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAuditedSupabaseAdminClient } from '@political-research/shared-utils';
 import { apiError, apiSuccess, handleApiUnhandledError } from '@/lib/api-middleware';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
@@ -15,8 +16,19 @@ function isAssetType(value: string): value is AssetType {
     return ALLOWED_ASSET_TYPES.includes(value as AssetType);
 }
 
+function sanitizeSvg(svgBuffer: Buffer): Buffer {
+    const raw = svgBuffer.toString('utf8');
+    const sanitized = raw
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+        .replace(/<foreignObject[\s\S]*?>[\s\S]*?<\/foreignObject>/gi, '')
+        .replace(/\s+on[a-z]+\s*=\s*(["']).*?\1/gi, '')
+        .replace(/\s+xlink:href\s*=\s*(["'])javascript:.*?\1/gi, '');
+
+    return Buffer.from(sanitized, 'utf8');
+}
+
 async function getUserContext() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (!user || authError) return null;
 
@@ -36,18 +48,19 @@ async function getUserContext() {
 }
 
 export async function GET(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getUserContext();
-        if (!ctx) return apiError('Não autenticado', 401);
+        if (!ctx) return apiError('Não autenticado', 401, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('company-assets');
         const { data, error } = await admin
             .from('company_assets')
             .select('id, tenant_id, asset_type, file_url, storage_path, is_active, created_at, updated_at')
             .eq('tenant_id', ctx.tenantId)
             .order('created_at', { ascending: false });
 
-        if (error) return apiError(`Falha ao carregar assets: ${error.message}`, 500);
+        if (error) return apiError(`Falha ao carregar assets: ${error.message}`, 500, correlationId);
 
         return apiSuccess({ assets: data ?? [] });
     } catch (error) {
@@ -59,24 +72,25 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getUserContext();
-        if (!ctx) return apiError('Não autenticado', 401);
+        if (!ctx) return apiError('Não autenticado', 401, correlationId);
         if (!['admin', 'manager'].includes(ctx.role)) {
-            return apiError('Sem permissão para alterar assets da empresa', 403);
+            return apiError('Sem permissão para alterar assets da empresa', 403, correlationId);
         }
 
         const formData = await request.formData();
         const file = formData.get('file');
         const assetTypeRaw = String(formData.get('asset_type') ?? '').trim();
 
-        if (!(file instanceof File)) return apiError('Nenhum arquivo enviado', 400);
-        if (!isAssetType(assetTypeRaw)) return apiError('asset_type inválido', 400);
+        if (!(file instanceof File)) return apiError('Nenhum arquivo enviado', 400, correlationId);
+        if (!isAssetType(assetTypeRaw)) return apiError('asset_type inválido', 400, correlationId);
         if (!ALLOWED_TYPES.includes(file.type)) {
             return apiError('Formato inválido. Use JPEG, PNG, WebP ou SVG.', 400);
         }
         if (file.size > MAX_SIZE_BYTES) {
-            return apiError('Arquivo muito grande. Máximo 10MB.', 400);
+            return apiError('Arquivo muito grande. Máximo 10MB.', 400, correlationId);
         }
 
         const inputBuffer = Buffer.from(await file.arrayBuffer());
@@ -86,7 +100,7 @@ export async function POST(request: NextRequest) {
         let contentType: string;
 
         if (file.type === 'image/svg+xml') {
-            outputBuffer = inputBuffer;
+            outputBuffer = sanitizeSvg(inputBuffer);
             ext = 'svg';
             contentType = 'image/svg+xml';
         } else {
@@ -101,7 +115,7 @@ export async function POST(request: NextRequest) {
             contentType = 'image/webp';
         }
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('company-assets');
         const storagePath = `logos/${ctx.tenantId}/${assetTypeRaw}/${Date.now()}.${ext}`;
 
         const { error: uploadError } = await admin.storage
@@ -115,7 +129,7 @@ export async function POST(request: NextRequest) {
             if (uploadError.message?.toLowerCase().includes('bucket')) {
                 const { error: bucketError } = await admin.storage.createBucket('company-assets', { public: true });
                 if (bucketError && !bucketError.message?.toLowerCase().includes('already exists')) {
-                    return apiError(`Erro ao preparar bucket: ${bucketError.message}`, 500);
+                    return apiError(`Erro ao preparar bucket: ${bucketError.message}`, 500, correlationId);
                 }
 
                 const { error: retryError } = await admin.storage
@@ -123,10 +137,10 @@ export async function POST(request: NextRequest) {
                     .upload(storagePath, outputBuffer, { upsert: false, contentType });
 
                 if (retryError) {
-                    return apiError(`Falha no upload do asset: ${retryError.message}`, 500);
+                    return apiError(`Falha no upload do asset: ${retryError.message}`, 500, correlationId);
                 }
             } else {
-                return apiError(`Falha no upload do asset: ${uploadError.message}`, 500);
+                return apiError(`Falha no upload do asset: ${uploadError.message}`, 500, correlationId);
             }
         }
 
@@ -154,7 +168,7 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (insertError || !created) {
-            return apiError(`Falha ao registrar asset: ${insertError?.message ?? 'desconhecido'}`, 500);
+            return apiError(`Falha ao registrar asset: ${insertError?.message ?? 'desconhecido'}`, 500, correlationId);
         }
 
         return apiSuccess({ asset: created, message: 'Asset enviado com sucesso' });
@@ -167,17 +181,18 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const ctx = await getUserContext();
-        if (!ctx) return apiError('Não autenticado', 401);
+        if (!ctx) return apiError('Não autenticado', 401, correlationId);
         if (!['admin', 'manager'].includes(ctx.role)) {
-            return apiError('Sem permissão para excluir assets da empresa', 403);
+            return apiError('Sem permissão para excluir assets da empresa', 403, correlationId);
         }
 
         const assetId = request.nextUrl.searchParams.get('id');
-        if (!assetId) return apiError('Informe o id do asset', 400);
+        if (!assetId) return apiError('Informe o id do asset', 400, correlationId);
 
-        const admin = createAdminClient();
+        const admin = createAuditedSupabaseAdminClient('company-assets');
         const { data: existing, error: existingError } = await admin
             .from('company_assets')
             .select('id, tenant_id, storage_path')
@@ -185,7 +200,7 @@ export async function DELETE(request: NextRequest) {
             .eq('tenant_id', ctx.tenantId)
             .single();
 
-        if (existingError || !existing) return apiError('Asset não encontrado', 404);
+        if (existingError || !existing) return apiError('Asset não encontrado', 404, correlationId);
 
         await admin.storage.from('company-assets').remove([existing.storage_path]);
 
@@ -195,7 +210,7 @@ export async function DELETE(request: NextRequest) {
             .eq('id', assetId)
             .eq('tenant_id', ctx.tenantId);
 
-        if (deleteError) return apiError(`Falha ao remover asset: ${deleteError.message}`, 500);
+        if (deleteError) return apiError(`Falha ao remover asset: ${deleteError.message}`, 500, correlationId);
 
         return apiSuccess({ id: assetId, message: 'Asset removido com sucesso' });
     } catch (error) {

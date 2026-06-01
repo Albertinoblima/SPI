@@ -25,12 +25,12 @@ export default function PublicDynamicReportPage() {
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [error, setError] = useState('');
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   // Estado para cruzamento dinâmico real (mover para o topo)
   const [cross1, setCross1] = useState('');
   const [cross2, setCross2] = useState('');
-  const [crossResult, setCrossResult] = useState<any>(null);
+  const [crossResult, setCrossResult] = useState<Record<string, unknown> | null>(null);
   const [loadingCross, setLoadingCross] = useState(false);
 
   const handleLogin = async () => {
@@ -44,25 +44,27 @@ export default function PublicDynamicReportPage() {
 
     if (res.ok) {
       setAuthenticated(true);
-      // Após login bem-sucedido, buscar dados passando as credenciais (em memória)
-      fetchReportData(email, password);
+      // Após login, a sessão efêmera fica em cookie httpOnly; não trafegamos credenciais na URL.
+      fetchReportData();
     } else {
-      setError('Credenciais inválidas ou link expirado');
+      const payload = await res.json().catch(() => ({}));
+      if (res.status === 410) {
+        setError('Este link de relatório expirou. Solicite um novo compartilhamento.');
+        return;
+      }
+      setError((payload as { error?: string }).error || 'Credenciais inválidas ou acesso negado');
     }
   };
 
-  const fetchReportData = async (emailForFetch?: string, passwordForFetch?: string) => {
+  const fetchReportData = async () => {
     setLoadingData(true);
     try {
-      const e = emailForFetch || email;
-      const p = passwordForFetch || password;
-      // Passa credenciais na query apenas para esta chamada (SPA segura em memória). 
-      // Em produção ideal: emitir JWT de sessão curta para o contratante.
-      const query = e && p ? `?email=${encodeURIComponent(e)}&password=${encodeURIComponent(p)}` : '';
-      const res = await fetch(`/api/reports/public/${params.shareToken}/analytics${query}`);
+      const res = await fetch(`/api/reports/public/${params.shareToken}/analytics`);
       if (res.ok) {
         const data = await res.json();
         setReportData(data);
+      } else if (res.status === 410) {
+        setError('Este link de relatório expirou. Solicite um novo compartilhamento.');
       } else {
         setError('Falha ao carregar dados após autenticação');
       }
@@ -126,15 +128,13 @@ export default function PublicDynamicReportPage() {
     setLoadingCross(true);
     setCrossResult(null);
     try {
-      const e = email;
-      const p = password;
-      const query = e && p
-        ? `?email=${encodeURIComponent(e)}&password=${encodeURIComponent(p)}&cross1=${cross1}&cross2=${cross2}`
-        : `?cross1=${cross1}&cross2=${cross2}`;
+      const query = `?cross1=${cross1}&cross2=${cross2}`;
       const res = await fetch(`/api/reports/public/${params.shareToken}/analytics${query}`);
       if (res.ok) {
         const data = await res.json();
         setCrossResult(data);
+      } else if (res.status === 410) {
+        setCrossResult({ error: 'Link expirado. Solicite novo compartilhamento.' });
       } else {
         setCrossResult({ error: 'Não foi possível gerar o cruzamento (verifique se o share permite acesso)' });
       }
@@ -211,23 +211,25 @@ export default function PublicDynamicReportPage() {
 
             <div className="flex flex-wrap gap-3 mb-4">
               <select
+                aria-label="Primeira variável para cruzamento"
                 value={cross1}
                 onChange={(e) => setCross1(e.target.value)}
                 className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]"
               >
                 <option value="">Selecione a primeira variável...</option>
-                {availableQs.map((q: any) => (
+                {availableQs.map((q: Record<string, unknown>) => (
                   <option key={q.id} value={q.id}>{q.text}</option>
                 ))}
               </select>
 
               <select
+                aria-label="Segunda variável para cruzamento"
                 value={cross2}
                 onChange={(e) => setCross2(e.target.value)}
                 className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]"
               >
                 <option value="">Selecione a segunda variável...</option>
-                {availableQs.map((q: any) => (
+                {availableQs.map((q: Record<string, unknown>) => (
                   <option key={q.id} value={q.id}>{q.text}</option>
                 ))}
               </select>
@@ -284,7 +286,7 @@ export default function PublicDynamicReportPage() {
             <h3 className="font-semibold mb-3">Perguntas disponíveis para cruzamento</h3>
             {availableQs.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 text-sm">
-                {availableQs.slice(0, 8).map((q: any, idx: number) => (
+                {availableQs.slice(0, 8).map((q: Record<string, unknown>, idx: number) => (
                   <div key={idx} className="py-1 text-slate-700">• {q.text} <span className="text-slate-400">({q.type})</span></div>
                 ))}
               </div>

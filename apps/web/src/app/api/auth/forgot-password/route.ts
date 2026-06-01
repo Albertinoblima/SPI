@@ -9,6 +9,7 @@ import {
 import { forgotPasswordSchema } from '@/lib/auth/login';
 import { consumeRateLimit } from '@/lib/auth/rate-limit';
 import { getUserAuditContextByEmail, logAuthAuditEvent } from '@/lib/auth/audit';
+import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 
 function buildRecoveryRedirect(request: NextRequest) {
     const callbackUrl = new URL('/auth/callback', request.url);
@@ -25,12 +26,13 @@ function getRateLimitKey(request: NextRequest, email: string) {
 }
 
 export async function POST(request: NextRequest) {
+    const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
         const body = await request.json();
         const parsedBody = forgotPasswordSchema.safeParse(body);
 
         if (!parsedBody.success) {
-            return apiError(parsedBody.error.issues[0]?.message ?? 'Email inválido.', 400);
+            return apiError(parsedBody.error.issues[0]?.message ?? 'Email inválido.', 400, correlationId);
         }
 
         const normalizedEmail = parsedBody.data.email.trim().toLowerCase();
@@ -66,8 +68,8 @@ export async function POST(request: NextRequest) {
         }
 
         const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+            process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
             {
                 auth: {
                     autoRefreshToken: false,
