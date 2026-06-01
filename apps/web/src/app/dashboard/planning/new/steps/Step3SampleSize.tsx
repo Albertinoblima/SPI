@@ -1,7 +1,7 @@
 // Passo 3: Dimensionamento Amostral
 // Integra funções de cálculo de packages/shared-utils/src/sampling-utils.ts
 import React, { useState } from 'react';
-import { calcInterviews, getMethodologyHint } from '@political-research/shared-utils/src/sampling-utils';
+import { calcInterviews, getMethodologyHint } from '@political-research/shared-utils';
 
 interface Step3SampleSizeData {
     population?: number | string;
