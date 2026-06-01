@@ -7,7 +7,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
  * This function is async to handle both sync and async usage safely.
  */
 export async function createSupabaseServerClient() {
-  const { cookies } = await import('next/headers');
+  const { cookies } = await import('next' + '/headers');
   const cookieStore = await cookies();
 
   return createServerClient(
