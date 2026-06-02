@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     const auth = await requireTenantAdmin(request);
     if (!auth.isAuthorized) {
-        return (auth.applyCookies || ((r: any) => r))(apiError(auth.error ?? 'Não autorizado', auth.status ?? 401));
+        return (auth.applyCookies || ((r: unknown) => r))(apiError(auth.error ?? 'Não autorizado', auth.status ?? 401));
     }
 
     try {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
             data_quality_score: row['ingestoes_concluidas'] ?? 0,
         }));
 
-        return (auth.applyCookies || ((r:any)=>r) )(apiSuccess({
+        return (auth.applyCookies || ((r: unknown) => r))(apiSuccess({
             municipios: enrichedData,
             pagination: {
                 page,
