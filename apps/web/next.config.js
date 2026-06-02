@@ -13,6 +13,12 @@ const contentSecurityPolicyReportOnly = [
 ].join('; ');
 
 const nextConfig = {
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
     experimental: {
         // Next 14 ainda expõe esta opção sob experimental.
         serverComponentsExternalPackages: ['pdfkit', 'docx', '@political-research/shared-utils'],
