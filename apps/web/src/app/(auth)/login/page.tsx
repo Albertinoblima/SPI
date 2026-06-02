@@ -22,7 +22,7 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
-    const router = useRouter();
+    const _router = useRouter();
     const searchParams = useSearchParams();
     const isSupabaseConfigured =
         Boolean(process.env['NEXT_PUBLIC_SUPABASE_URL']) &&
