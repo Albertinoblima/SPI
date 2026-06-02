@@ -25,10 +25,29 @@ export async function createResearchPlan({
     linkedSurveyId?: string | null;
 }) {
     const supabase = createClient();
+
+    // Senior pattern: ensure multi-tenant context from authenticated user's profile.
+    // Prevents RLS violations (the table requires tenant_id + created_by NOT NULL, and policy enforces isolation).
+    // We fetch the profile (RLS allows users to see their own row) instead of relying on broken client insert or triggers.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado para criar planejamento');
+
+    const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError || !profile?.tenant_id) {
+        throw new Error('Não foi possível determinar o tenant do usuário para o planejamento. Verifique o perfil.');
+    }
+
     const { data, error } = await supabase
         .from('research_plans')
         .insert([
             {
+                tenant_id: profile.tenant_id,
+                created_by: user.id,
                 name,
                 planning_data: planningData,
                 status,
