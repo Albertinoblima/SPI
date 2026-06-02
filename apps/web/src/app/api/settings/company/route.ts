@@ -15,10 +15,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (userError || !userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
 
         const { data: tenantWithTradeName, error: tenantError } = await supabase
             .from('tenants')
@@ -53,13 +53,13 @@ export async function GET(request: NextRequest) {
                 .eq('id', userData.tenant_id)
                 .single();
 
-            if (tenantLegacyError || !tenantLegacy) return apiError('Empresa não encontrada', 404, correlationId);
-            return apiSuccess({ tenant: { ...tenantLegacy, nome_fantasia: null } });
+            if (tenantLegacyError || !tenantLegacy) return applyCookies(apiError('Empresa não encontrada', 404, correlationId));
+            return applyCookies(apiSuccess({ tenant: { ...tenantLegacy, nome_fantasia: null } }));
         }
 
-        if (tenantError || !tenantWithTradeName) return apiError('Empresa não encontrada', 404, correlationId);
+        if (tenantError || !tenantWithTradeName) return applyCookies(apiError('Empresa não encontrada', 404, correlationId));
 
-        return apiSuccess({ tenant: tenantWithTradeName });
+        return applyCookies(apiSuccess({ tenant: tenantWithTradeName }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -71,10 +71,10 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -82,9 +82,9 @@ export async function PUT(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (userError || !userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para alterar dados da empresa', 403, correlationId);
+            return applyCookies(apiError('Sem permissão para alterar dados da empresa', 403, correlationId));
         }
 
         const body = await request.json();
@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest) {
             city, state, zip_code, responsavel_tecnico,
         } = body;
 
-        if (!name?.trim()) return apiError('Nome da empresa é obrigatório', 400, correlationId);
+        if (!name?.trim()) return applyCookies(apiError('Nome da empresa é obrigatório', 400, correlationId));
 
         const payload = {
             name: name.trim(),
@@ -131,27 +131,27 @@ export async function PUT(request: NextRequest) {
                 .single();
 
             if (updateLegacyError || !updatedLegacy) {
-                return trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
+                return applyCookies(trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
                     errorCode: 'DB_WRITE_FAILED',
                     userId: user.id,
                     tenantId: userData.tenant_id,
                     metadata: { route: '/api/settings/company', operation: 'PUT', mode: 'legacy-fallback' },
-                });
+                }));
             }
 
-            return apiSuccess({ tenant: updatedLegacy, message: 'Dados atualizados com sucesso' });
+            return applyCookies(apiSuccess({ tenant: updatedLegacy, message: 'Dados atualizados com sucesso' }));
         }
 
         if (updateError) {
-            return trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
+            return applyCookies(trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
                 errorCode: 'DB_WRITE_FAILED',
                 userId: user.id,
                 tenantId: userData.tenant_id,
                 metadata: { route: '/api/settings/company', operation: 'PUT' },
-            });
+            }));
         }
 
-        return apiSuccess({ tenant: updated, message: 'Dados atualizados com sucesso' });
+        return applyCookies(apiSuccess({ tenant: updated, message: 'Dados atualizados com sucesso' }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

@@ -108,16 +108,16 @@ function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingF
 export async function GET(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData } = await supabase
             .from('users')
             .select('tenant_id')
             .eq('id', user.id)
             .single();
-        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (!userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
 
         const { data: surveys, error } = await supabase
             .from('surveys')
@@ -131,15 +131,15 @@ export async function GET(request: NextRequest) {
             .order('created_at', { ascending: false });
 
         if (error) {
-            return trackedApiError(request, 'Erro ao listar pesquisas', 500, {
+            return applyCookies(trackedApiError(request, 'Erro ao listar pesquisas', 500, {
                 errorCode: 'DB_QUERY_FAILED',
                 userId: user.id,
                 tenantId: userData.tenant_id,
                 metadata: { route: '/api/surveys', operation: 'GET' },
-            });
+            }));
         }
 
-        return apiSuccess({ surveys });
+        return applyCookies(apiSuccess({ surveys }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -151,16 +151,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData } = await supabase
             .from('users')
             .select('tenant_id, role')
             .eq('id', user.id)
             .single();
-        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (!userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
 
         const body = await request.json();
         const skipValidation = body.skip_validation ?? false;
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        return apiSuccess({ survey }, 201);
+        return applyCookies(apiSuccess({ survey }, 201));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

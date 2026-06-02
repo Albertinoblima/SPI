@@ -294,12 +294,12 @@ function generateSuggestions(demographics: DemographicData[]): CotaSuggestion[] 
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const body = await request.json();
         const { localities } = body;
 
         if (!Array.isArray(localities) || localities.length === 0) {
-            return apiError('Forneça um array de localidades válido.', 400, correlationId);
+            return applyCookies(apiError('Forneça um array de localidades válido.', 400, correlationId));
         }
 
         // Buscar dados demográficos para cada localidade
@@ -316,19 +316,19 @@ export async function POST(request: NextRequest) {
         const validDemographics = demographics.filter((d): d is DemographicData => d !== null);
 
         if (validDemographics.length === 0) {
-            return apiSuccess({
+            return applyCookies(apiSuccess({
                 suggestions: [],
                 warning: 'Nenhum dado demográfico encontrado para as localidades selecionadas. Verifique se os dados foram carregados (ETL Demográfico).',
-            });
+            }));
         }
 
         const suggestions = generateSuggestions(validDemographics);
 
-        return apiSuccess({
+        return applyCookies(apiSuccess({
             suggestions,
             demographics_count: validDemographics.length,
             message: 'Sugestões de cotas geradas com sucesso.',
-        });
+        }));
     } catch (error) {
         console.error('Erro ao gerar sugestões de estratificação:', error);
         return handleApiUnhandledError(request, error, {

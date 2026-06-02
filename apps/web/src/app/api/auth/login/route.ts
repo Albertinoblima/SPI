@@ -95,9 +95,11 @@ export async function POST(request: NextRequest) {
             return applyCookies(apiError(normalizeAuthErrorMessage(error?.message), 401, correlationId));
         }
 
+        // Use the *same* supabase client instance (which has the fresh session) to avoid
+        // cookie timing issues with a brand new client reading headers mid-request.
         const redirectTo = getSafeRedirectPath(
             parsedBody.data.redirect,
-            await getPostLoginRedirectUrl()
+            await getPostLoginRedirectUrl(supabase as any)
         );
 
         await logAuthAuditEvent({

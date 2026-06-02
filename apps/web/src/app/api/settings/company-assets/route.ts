@@ -34,7 +34,7 @@ function getClientIp(request: NextRequest): string {
 }
 
 async function getUserContext() {
-    const supabase = await createClient();
+    const { supabase } = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (!user || authError) return null;
 

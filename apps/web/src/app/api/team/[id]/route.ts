@@ -19,9 +19,9 @@ interface RouteParams {
 export async function GET(_request: NextRequest, { params }: RouteParams) {
     const correlationId = buildCorrelationId(_request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData } = await supabase
             .from('users')
@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             .eq('id', user.id)
             .single();
 
-        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (!userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
 
         const { data: member, error } = await supabase
             .from('users')
@@ -38,9 +38,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', userData.tenant_id)
             .single();
 
-        if (error || !member) return apiError('Membro não encontrado', 404, correlationId);
+        if (error || !member) return applyCookies(apiError('Membro não encontrado', 404, correlationId));
 
-        return apiSuccess({ member });
+        return applyCookies(apiSuccess({ member }));
     } catch (error) {
         return handleApiUnhandledError(_request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -52,9 +52,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData } = await supabase
             .from('users')
@@ -62,14 +62,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .eq('id', user.id)
             .single();
 
-        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (!userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para editar membros', 403, correlationId);
+            return applyCookies(apiError('Sem permissão para editar membros', 403, correlationId));
         }
 
         // Não permitir editar a si mesmo por aqui
         if (params.id === user.id) {
-            return apiError('Use as configurações de perfil para editar seus próprios dados', 400, correlationId);
+            return applyCookies(apiError('Use as configurações de perfil para editar seus próprios dados', 400, correlationId));
         }
 
         const body = await request.json();
@@ -87,7 +87,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             'fiscal',
         ];
         if (role && !validRoles.includes(role)) {
-            return apiError('Cargo inválido', 400, correlationId);
+            return applyCookies(apiError('Cargo inválido', 400, correlationId));
         }
 
         const adminSupabase = createAuditedSupabaseAdminClient('team-management');
@@ -100,7 +100,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', userData.tenant_id)
             .single();
 
-        if (!targetMember) return apiError('Membro não encontrado', 404, correlationId);
+        if (!targetMember) return applyCookies(apiError('Membro não encontrado', 404, correlationId));
 
         // Atualizar perfil
         const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         // Se nova senha for fornecida, atualizar no auth
         if (password) {
-            if (password.length < 8) return apiError('A senha deve ter no mínimo 8 caracteres', 400, correlationId);
+            if (password.length < 8) return applyCookies(apiError('A senha deve ter no mínimo 8 caracteres', 400, correlationId));
             const { error: pwError } = await adminSupabase.auth.admin.updateUserById(params.id, { password });
             if (pwError) {
                 await trackedApiError(request, 'Falha ao atualizar senha de membro', 500, {
@@ -137,11 +137,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                     metadata: { route: '/api/team/[id]', operation: 'PUT', memberId: params.id, stage: 'update_password' },
                 });
 
-                return apiError('Dados atualizados, mas houve erro ao atualizar senha', 207);
+                return applyCookies(apiError('Dados atualizados, mas houve erro ao atualizar senha', 207));
             }
         }
 
-        return apiSuccess({ member: updated, message: 'Membro atualizado com sucesso' });
+        return applyCookies(apiSuccess({ member: updated, message: 'Membro atualizado com sucesso' }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -153,12 +153,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     const correlationId = buildCorrelationId(_request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         if (params.id === user.id) {
-            return apiError('Não é possível desativar sua própria conta', 400, correlationId);
+            return applyCookies(apiError('Não é possível desativar sua própria conta', 400, correlationId));
         }
 
         const { data: userData } = await supabase
@@ -167,8 +167,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             .eq('id', user.id)
             .single();
 
-        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
-        if (userData.role !== 'admin') return apiError('Apenas administradores podem desativar membros', 403, correlationId);
+        if (!userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
+        if (userData.role !== 'admin') return applyCookies(apiError('Apenas administradores podem desativar membros', 403, correlationId));
 
         const adminSupabase = createAuditedSupabaseAdminClient('team-management');
 
@@ -179,7 +179,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             .eq('tenant_id', userData.tenant_id)
             .single();
 
-        if (!targetMember) return apiError('Membro não encontrado', 404, correlationId);
+        if (!targetMember) return applyCookies(apiError('Membro não encontrado', 404, correlationId));
 
         const { error: deactivateError } = await adminSupabase
             .from('users')
@@ -195,7 +195,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
             });
         }
 
-        return apiSuccess({ message: 'Membro desativado com sucesso' });
+        return applyCookies(apiSuccess({ message: 'Membro desativado com sucesso' }));
     } catch (error) {
         return handleApiUnhandledError(_request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

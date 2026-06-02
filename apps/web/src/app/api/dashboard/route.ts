@@ -15,16 +15,16 @@ export async function GET(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
 
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData } = await supabase
             .from('users')
             .select('tenant_id, role')
             .eq('id', user.id)
             .single();
-        if (!userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (!userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
 
         const tid = userData.tenant_id;
 
@@ -67,12 +67,12 @@ export async function GET(request: NextRequest) {
             tenant?.cnpj && tenant?.city
         );
 
-        return apiSuccess({
+        return applyCookies(apiSuccess({
             tenant,
             metrics,
             surveys,
             onboarding_complete: onboardingComplete,
-        });
+        }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

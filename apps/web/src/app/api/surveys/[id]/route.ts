@@ -129,20 +129,22 @@ function normalizeSamplingByScope(fields: SurveySamplingFields): SurveySamplingF
 }
 
 async function getAuthContext() {
-    const supabase = await createClient();
+    const { supabase, applyCookies } = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
-    if (!user || error) return null;
+    if (!user || error) return { ctx: null as null, applyCookies };
     const { data: userData } = await supabase
         .from('users').select('tenant_id, role').eq('id', user.id).single();
-    if (!userData) return null;
-    return { user, userData, supabase };
+    if (!userData) return { ctx: null as null, applyCookies };
+    return { user, userData, supabase, applyCookies };
 }
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
     const correlationId = buildCorrelationId(_req.headers.get('x-correlation-id') ?? undefined);
     try {
-        const ctx = await getAuthContext();
-        if (!ctx) return apiError('Não autenticado', 401, correlationId);
+        const auth = await getAuthContext();
+        const ctx = auth.user ? auth : null;
+        const applyCookies = auth.applyCookies || ((r: any) => r);
+        if (!ctx) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         // Usa o cliente de serviço para garantir que as tabelas filhas (survey_localities,
         // survey_premises, questions) sejam retornadas mesmo sem policies RLS explícitas.
@@ -161,9 +163,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
             .is('deleted_at', null)
             .single();
 
-        if (error || !survey) return apiError('Pesquisa não encontrada', 404, correlationId);
+        if (error || !survey) return applyCookies(apiError('Pesquisa não encontrada', 404, correlationId));
 
-        return apiSuccess({ survey });
+        return applyCookies(apiSuccess({ survey }));
     } catch (error) {
         return handleApiUnhandledError(_req, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -175,8 +177,10 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const ctx = await getAuthContext();
-        if (!ctx) return apiError('Não autenticado', 401, correlationId);
+        const auth = await getAuthContext();
+        const ctx = auth.user ? auth : null;
+        const applyCookies = auth.applyCookies || ((r: any) => r);
+        if (!ctx) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const body = await request.json();
         const skipValidation = body.skip_validation ?? false;
@@ -188,10 +192,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .select('id, status, is_registered_research, registered_responsible_name, registered_responsible_registry, registered_responsible_body, contracting_entity_name, contracting_entity_document, survey_total_value, invoice_reference, funding_source, is_public_disclosure, pesqele_registration_code, geographic_scope, scope_country_name, scope_state_name, scope_city_name, specific_public_description, population_size')
             .eq('id', params.id)
             .eq('tenant_id', ctx.userData.tenant_id).single();
-        if (!existing) return apiError('Pesquisa não encontrada', 404, correlationId);
+        if (!existing) return applyCookies(apiError('Pesquisa não encontrada', 404, correlationId));
 
         if (existing.status === 'published') {
-            return apiError('Pesquisa publicada está em coleta e não pode mais ser editada.', 400, correlationId);
+            return applyCookies(apiError('Pesquisa publicada está em coleta e não pode mais ser editada.', 400, correlationId));
         }
 
         // Campos que pertencem a tabelas filhas ou que não existem na tabela surveys
@@ -204,7 +208,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 ...existing,
                 ...surveyFields,
             });
-            if (legalValidationError) return apiError(legalValidationError, 400, correlationId);
+            if (legalValidationError) return applyCookies(apiError(legalValidationError, 400, correlationId));
 
             if ('contracting_entity_document' in surveyFields) {
                 surveyFields.contracting_entity_document = normalizeDocument(surveyFields.contracting_entity_document) || null;
@@ -238,7 +242,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 ...existing,
                 ...surveyFields,
             });
-            if (geographyValidationError) return apiError(geographyValidationError, 400, correlationId);
+            if (geographyValidationError) return applyCookies(apiError(geographyValidationError, 400, correlationId));
 
             if ('scope_country_name' in surveyFields) {
                 surveyFields.scope_country_name = surveyFields.scope_country_name?.trim() || null;
@@ -363,7 +367,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             }
         }
 
-        return apiSuccess({ survey: updated, message: 'Pesquisa atualizada com sucesso' });
+        return applyCookies(apiSuccess({ survey: updated, message: 'Pesquisa atualizada com sucesso' }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -375,9 +379,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     const correlationId = buildCorrelationId(_req.headers.get('x-correlation-id') ?? undefined);
     try {
-        const ctx = await getAuthContext();
-        if (!ctx) return apiError('Não autenticado', 401, correlationId);
-        if (ctx.userData.role !== 'admin') return apiError('Sem permissão', 403, correlationId);
+        const auth = await getAuthContext();
+        const ctx = auth.user ? auth : null;
+        const applyCookies = auth.applyCookies || ((r: any) => r);
+        if (!ctx) return applyCookies(apiError('Não autenticado', 401, correlationId));
+        if (ctx.userData.role !== 'admin') return applyCookies(apiError('Sem permissão', 403, correlationId));
 
         const adminSupabase = createAuditedSupabaseAdminClient('survey-detail');
         const { data: existingSurvey, error: surveyError } = await adminSupabase
@@ -389,11 +395,11 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
             .single();
 
         if (surveyError || !existingSurvey) {
-            return apiError('Pesquisa não encontrada', 404, correlationId);
+            return applyCookies(apiError('Pesquisa não encontrada', 404, correlationId));
         }
 
         if (existingSurvey.status !== 'draft') {
-            return apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400);
+            return applyCookies(apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400));
         }
 
         const nowIso = new Date().toISOString();
@@ -415,10 +421,10 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
             });
         }
         if (!deletedRows || deletedRows.length === 0) {
-            return apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400);
+            return applyCookies(apiError('Por segurança institucional, somente pesquisas em rascunho podem ser excluídas.', 400));
         }
 
-        return apiSuccess({ message: 'Pesquisa em rascunho removida com sucesso' });
+        return applyCookies(apiSuccess({ message: 'Pesquisa em rascunho removida com sucesso' }));
     } catch (error) {
         return handleApiUnhandledError(_req, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

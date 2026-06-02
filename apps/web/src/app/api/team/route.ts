@@ -14,9 +14,9 @@ import { buildCorrelationId } from '@/lib/monitoring/error-monitor';
 export async function GET(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (userError || !userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
 
         const { data: members, error: membersError } = await supabase
             .from('users')
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        return apiSuccess({ members });
+        return applyCookies(apiSuccess({ members }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     const correlationId = buildCorrelationId(request.headers.get('x-correlation-id') ?? undefined);
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (userError || !userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
         if (!['admin', 'manager'].includes(userData.role)) {
             return apiError('Sem permissão para gerenciar equipe', 403, correlationId);
         }
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        return apiSuccess({ member: newMember, message: 'Membro criado com sucesso' }, 201);
+        return applyCookies(apiSuccess({ member: newMember, message: 'Membro criado com sucesso' }, 201));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

@@ -2,32 +2,39 @@
 // ATENÇÃO: Só pode ser importada em Server Components ou Route Handlers
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Determina para qual página redirecionar após o login (Server Component)
  * baseado no role e is_system_admin do usuário
  */
-export async function getPostLoginRedirectUrl(): Promise<string> {
+export async function getPostLoginRedirectUrl(providedClient?: SupabaseClient): Promise<string> {
     try {
-        const cookieStore = cookies();
+        let supabase: SupabaseClient;
 
-        const supabase = createServerClient(
-            process.env['NEXT_PUBLIC_SUPABASE_URL']!,
-            process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value;
+        if (providedClient) {
+            supabase = providedClient;
+        } else {
+            const cookieStore = cookies();
+
+            supabase = createServerClient(
+                process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+                process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
+                {
+                    cookies: {
+                        get(name: string) {
+                            return cookieStore.get(name)?.value;
+                        },
+                        set(name: string, value: string, options: Record<string, unknown>) {
+                            cookieStore.set(name, value, options);
+                        },
+                        remove(name: string, options: Record<string, unknown>) {
+                            cookieStore.delete({ name, ...options });
+                        },
                     },
-                    set(name: string, value: string, options: Record<string, unknown>) {
-                        cookieStore.set(name, value, options);
-                    },
-                    remove(name: string, options: Record<string, unknown>) {
-                        cookieStore.delete({ name, ...options });
-                    },
-                },
-            }
-        );
+                }
+            );
+        }
 
         const { data: { user } } = await supabase.auth.getUser();
 

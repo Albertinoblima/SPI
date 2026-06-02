@@ -8,7 +8,7 @@ export interface SurveyAuthContext {
 }
 
 export async function getSurveyAuthContext(): Promise<SurveyAuthContext | null> {
-    const supabase = await createClient();
+    const { supabase } = await createClient();
     const {
         data: { user },
         error: authError,

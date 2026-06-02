@@ -13,6 +13,9 @@
         "test:ci": "jest --ci --coverage --maxWorkers=2"
     },
     "dependencies": {
+        "@supabase/ssr": "^0.3.0",
+        "@supabase/supabase-js": "^2.43.0",
+        "next": "^14.2.3",
         "server-only": "^0.0.1"
     },
     "devDependencies": {

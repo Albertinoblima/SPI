@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@political-research/shared-utils/src
 import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
 export async function requireSystemAdmin(request: NextRequest) {
-    const supabase = await createSupabaseServerClient();
+    const { supabase, applyCookies } = await createSupabaseServerClient();
 
     // Verificar autenticação
     const {
@@ -17,6 +17,7 @@ export async function requireSystemAdmin(request: NextRequest) {
             isAuthorized: false as const,
             error: 'Não autenticado',
             status: 401,
+            applyCookies,
         };
     }
 
@@ -32,6 +33,7 @@ export async function requireSystemAdmin(request: NextRequest) {
             isAuthorized: false as const,
             error: 'Acesso negado. Requer privilégios de administrador do sistema.',
             status: 403,
+            applyCookies,
         };
     }
 
@@ -39,11 +41,12 @@ export async function requireSystemAdmin(request: NextRequest) {
         isAuthorized: true as const,
         user,
         supabase,
+        applyCookies,
     };
 }
 
 export async function requireTenantAdmin(request: NextRequest) {
-    const supabase = await createSupabaseServerClient();
+    const { supabase, applyCookies } = await createSupabaseServerClient();
 
     const {
         data: { user },
@@ -55,6 +58,7 @@ export async function requireTenantAdmin(request: NextRequest) {
             isAuthorized: false as const,
             error: 'Não autenticado',
             status: 401,
+            applyCookies,
         };
     }
 
@@ -70,6 +74,7 @@ export async function requireTenantAdmin(request: NextRequest) {
             isAuthorized: false as const,
             error: 'Erro ao verificar permissões',
             status: 403,
+            applyCookies,
         };
     }
 
@@ -78,6 +83,7 @@ export async function requireTenantAdmin(request: NextRequest) {
             isAuthorized: false as const,
             error: 'Acesso negado. Requer privilégios de administrador.',
             status: 403,
+            applyCookies,
         };
     }
 
@@ -110,6 +116,7 @@ export async function requireTenantAdmin(request: NextRequest) {
             tenant_id: effectiveTenantId, // Tenant efetivo (pode ser o impersonated)
         },
         supabase,
+        applyCookies,
         isImpersonating: effectiveTenantId !== userData.tenant_id,
     };
 }

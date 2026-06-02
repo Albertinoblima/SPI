@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const supabase = await createClient();
+        const { supabase, applyCookies } = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!user || authError) return apiError('Não autenticado', 401, correlationId);
+        if (!user || authError) return applyCookies(apiError('Não autenticado', 401, correlationId));
 
         const { data: userData, error: userError } = await supabase
             .from('users')
@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (userError || !userData) return apiError('Usuário não encontrado', 404, correlationId);
+        if (userError || !userData) return applyCookies(apiError('Usuário não encontrado', 404, correlationId));
         if (!['admin', 'manager'].includes(userData.role)) {
-            return apiError('Sem permissão para alterar logomarca', 403, correlationId);
+            return applyCookies(apiError('Sem permissão para alterar logomarca', 403, correlationId));
         }
 
         const formData = await request.formData();
