@@ -25,7 +25,7 @@ export class ConflictResolver {
     /**
      * For responses, local always wins since they are new data
      */
-    resolveResponse(localData: Record<string, unknown>, remoteData: Record<string, unknown>): ConflictResult {
+    resolveResponse(localData: Record<string, unknown>, _remoteData: Record<string, unknown>): ConflictResult {
         return { resolved: true, winner: 'local', mergedData: localData };
     }
 }

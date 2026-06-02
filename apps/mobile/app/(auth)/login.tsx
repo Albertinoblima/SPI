@@ -35,8 +35,8 @@ export default function LoginScreen() {
         try {
             await signIn(parsedCredentials.data.email, parsedCredentials.data.password);
             router.replace('/(tabs)/home');
-        } catch (error: any) {
-            const message = error?.message ?? 'Não foi possível fazer login';
+        } catch (error: unknown) {
+            const message = (error as Error)?.message ?? 'Não foi possível fazer login';
             setError(message);
         } finally {
             setLoading(false);

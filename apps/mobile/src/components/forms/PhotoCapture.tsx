@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as _ImageManipulator from 'expo-image-manipulator';
 
 interface PhotoCaptureProps {
     onCapture: (uri: string) => void;
 }
 
-export function PhotoCapture({ onCapture }: PhotoCaptureProps) {
-    const [photoUri, setPhotoUri] = useState<string | null>(null);
+export function PhotoCapture({ _onCapture }: PhotoCaptureProps) {
+    const [photoUri, _setPhotoUri] = useState<string | null>(null);
 
     const handleCapture = async () => {
         // TODO: Implement camera capture with expo-camera

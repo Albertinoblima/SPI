@@ -34,9 +34,16 @@ export default function SurveyDetailScreen() {
     }
 
     // Cotas atribuídas a este entrevistador (vindas do backend via fetchSurveyBundle)
-    const myQuotas: any[] = (survey as any).quotas || [];
+    interface MyQuota {
+        quota_total?: number;
+        collected_count?: number;
+        locality_id?: string;
+        survey_localities?: { name?: string };
+    }
+    const surveyData = survey as { quotas?: unknown } | null;
+    const myQuotas: MyQuota[] = (surveyData?.quotas as MyQuota[]) || [];
 
-    const totalMyQuota = myQuotas.reduce((sum: number, q: any) => sum + (q.quota_total || 0), 0);
+    const totalMyQuota = myQuotas.reduce((sum: number, q: MyQuota) => sum + (q.quota_total || 0), 0);
 
     return (
         <ScrollView style={styles.container}>
@@ -53,7 +60,7 @@ export default function SurveyDetailScreen() {
                     <Text style={styles.quotaHint}>Entrevistas atribuídas a você. Colete apenas dentro destas cotas.</Text>
 
                     <View style={{ marginTop: 14 }}>
-                        {myQuotas.slice(0, 5).map((q: any, idx: number) => {
+                        {myQuotas.slice(0, 5).map((q: MyQuota, idx: number) => {
                             const planned = q.quota_total || 0;
                             // Real backend count (interviews table) + session optimism handled in response screen
                             const collected = q.collected_count ?? 0;

@@ -23,8 +23,6 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     syncAll: async () => {
         set({ syncing: true });
         try {
-            const { syncQueue } = get();
-
             const result = await syncEngine.triggerSync();
             if (result.uploaded && result.uploaded > 0) {
                 set({ lastSyncAt: new Date().toISOString() });

@@ -23,16 +23,28 @@ export default function ResponseScreen() {
         }
     }, [surveyId, fetchSurveyById]);
 
-    const questions: Question[] = (currentSurvey as any)?.questions || [];
-    const myQuotas: any[] = (currentSurvey as any)?.quotas || [];
+    interface SurveyWithExtras {
+        questions?: Question[];
+        quotas?: MyQuota[];
+    }
+    interface MyQuota {
+        quota_total?: number;
+        collected_count?: number;
+        locality_id?: string;
+        survey_localities?: { name?: string };
+    }
 
-    const totalAssigned = myQuotas.reduce((sum: number, q: any) => sum + (q.quota_total || 0), 0);
+    const current = currentSurvey as SurveyWithExtras | null;
+    const questions: Question[] = current?.questions || [];
+    const myQuotas: MyQuota[] = current?.quotas || [];
+
+    const totalAssigned = myQuotas.reduce((sum: number, q: MyQuota) => sum + (q.quota_total || 0), 0);
 
     // Hybrid tracking: backend authoritative (interviews collected) + this-device session (optimistic before sync)
     const [selectedLocality, setSelectedLocality] = useState<string>('');
     const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
 
-    const availableLocalities = myQuotas.map((q: any) => ({
+    const availableLocalities = myQuotas.map((q: MyQuota) => ({
         key: q.locality_id || q.survey_localities?.name || 'Geral',
         name: q.survey_localities?.name || q.locality_id || 'Geral',
         quota: q.quota_total || 0,

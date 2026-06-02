@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, _FlatList, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useSyncStatus } from '@/hooks/useSyncStatus';

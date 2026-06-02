@@ -2,7 +2,7 @@
 import { supabase } from '../supabase';
 import { ImageCompressor } from '../compression/imageCompressor';
 import { syncQueueRepository } from '@/database/queries/sync-queue';
-import { responseRepository } from '@/database/queries/responses';
+import { responseRepository as _responseRepository } from '@/database/queries/responses';
 import NetInfo from '@react-native-community/netinfo';
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';

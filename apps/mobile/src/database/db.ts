@@ -8,7 +8,7 @@
 
 import * as SQLite from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
+import { _migrate } from 'drizzle-orm/expo-sqlite/migrator';
 
 import * as schema from './schema';
 
@@ -48,7 +48,7 @@ export async function initializeDatabase(): Promise<void> {
   await ensureTablesExist(db);
 }
 
-async function ensureTablesExist(db: unknown) {
+async function ensureTablesExist(_db: unknown) {
   // In a real implementation, we would have proper migrations.
   // For now, we assume the schema in schema.ts is the source of truth
   // and tables are created via app startup scripts or previous migrations.

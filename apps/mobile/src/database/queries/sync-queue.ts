@@ -1,5 +1,5 @@
 // Sync Queue Management - Production Implementation with Drizzle
-import { eq, and, lt, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { getDatabase } from '../db';
 import { sync_queue } from '../schema';
 import { generateLocalId } from '@political-research/shared-utils';
@@ -85,7 +85,7 @@ export class SQLiteSyncQueueRepository implements SyncQueueRepository {
     }
 
     async getNextBatch(batchSize: number, entityType?: 'response' | 'media'): Promise<SyncQueueItem[]> {
-        let baseQuery = this.db
+        const baseQuery = this.db
             .select()
             .from(sync_queue)
             .where(eq(sync_queue.status, 'pending'))

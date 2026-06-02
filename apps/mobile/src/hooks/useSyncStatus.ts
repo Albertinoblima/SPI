@@ -1,5 +1,4 @@
 // Sync Status Hook
-import { useState, useEffect } from 'react';
 import { useSyncStore } from '@/store/syncStore';
 
 export function useSyncStatus() {

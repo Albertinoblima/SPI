@@ -45,7 +45,7 @@ interface UseGeolocationOptions {
 export function useGeolocation(options: UseGeolocationOptions = {}) {
     const {
         enableHighAccuracy = true,
-        timeout = 15000,
+        _timeout = 15000,
         maximumAge = 10000,
         distanceInterval = 10, // meters
         enableBackgroundUpdates = false,
