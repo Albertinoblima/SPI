@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest) {
                 .single();
 
             if (updateLegacyError || !updatedLegacy) {
-                return applyCookies(trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
+                return applyCookies(await trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
                     errorCode: 'DB_WRITE_FAILED',
                     userId: user.id,
                     tenantId: userData.tenant_id,
@@ -143,7 +143,7 @@ export async function PUT(request: NextRequest) {
         }
 
         if (updateError) {
-            return applyCookies(trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
+            return applyCookies(await trackedApiError(request, 'Erro ao atualizar dados da empresa', 500, {
                 errorCode: 'DB_WRITE_FAILED',
                 userId: user.id,
                 tenantId: userData.tenant_id,

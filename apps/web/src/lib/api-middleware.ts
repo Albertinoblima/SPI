@@ -1,10 +1,10 @@
 // Middleware para verificar se usuário é system_admin
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@political-research/shared-utils/src/supabase/server-client';
+import { createClient } from '@/lib/supabase/server';
 import { captureSystemError } from '@/lib/monitoring/error-monitor';
 
 export async function requireSystemAdmin(request: NextRequest) {
-    const { supabase, applyCookies } = await createSupabaseServerClient();
+    const { supabase, applyCookies } = await createClient();
 
     // Verificar autenticação
     const {
@@ -46,7 +46,7 @@ export async function requireSystemAdmin(request: NextRequest) {
 }
 
 export async function requireTenantAdmin(request: NextRequest) {
-    const { supabase, applyCookies } = await createSupabaseServerClient();
+    const { supabase, applyCookies } = await createClient();
 
     const {
         data: { user },

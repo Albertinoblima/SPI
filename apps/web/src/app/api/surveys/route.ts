@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
             .order('created_at', { ascending: false });
 
         if (error) {
-            return applyCookies(trackedApiError(request, 'Erro ao listar pesquisas', 500, {
+            return applyCookies(await trackedApiError(request, 'Erro ao listar pesquisas', 500, {
                 errorCode: 'DB_QUERY_FAILED',
                 userId: user.id,
                 tenantId: userData.tenant_id,
