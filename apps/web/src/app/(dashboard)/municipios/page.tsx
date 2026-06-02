@@ -123,6 +123,14 @@ export default function MunicipiosPage() {
     const [page, setPage] = useState(1);
 
     const fetchMunicipios = useCallback(async () => {
+        // Evita buscas amplas que causam timeout no DB (view pesada + ilike %q%)
+        // Padrão sênior: validação no cliente + backend, UX com feedback
+        if (q && q.length < 2 && !uf && !regiao) {
+            setMunicipios([]);
+            setPagination(null);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError('');
         try {
@@ -132,7 +140,10 @@ export default function MunicipiosPage() {
             if (regiao) params.set('regiao', regiao);
 
             const res = await fetch(`/api/geo/municipios?${params}`);
-            if (!res.ok) throw new Error('Erro ao buscar municípios');
+            if (!res.ok) {
+                const errJson = await res.json().catch(() => ({}));
+                throw new Error(errJson.error || 'Erro ao buscar municípios');
+            }
             const json = await res.json();
             setMunicipios(json.data?.municipios ?? []);
             setPagination(json.data?.pagination ?? null);

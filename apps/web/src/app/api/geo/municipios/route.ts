@@ -18,9 +18,13 @@ export async function GET(request: NextRequest) {
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
         const offset = (page - 1) * limit;
 
-        // Filtro obrigatório para evitar consultas pesadas sem filtro
-        if (!q && !uf) {
-            return apiError('É obrigatório informar pelo menos um filtro: UF ou busca por nome (q)', 400, correlationId);
+        // Filtro obrigatório + proteção contra queries pesadas (evita timeout no DB para buscas muito amplas como "A")
+        // Padrão sênior: validação precoce, mensagens claras, evita carga desnecessária no Postgres (view complexa com múltiplos joins)
+        if (!q && !uf && !regiao) {
+            return (auth.applyCookies || ((r: unknown) => r))(apiError('É obrigatório informar pelo menos um filtro: UF, Região ou busca por nome (q)', 400, correlationId));
+        }
+        if (q && q.length < 2 && !uf && !regiao) {
+            return (auth.applyCookies || ((r: unknown) => r))(apiError('Busca por nome (q) deve ter pelo menos 2 caracteres quando UF/Região não forem informados (para evitar timeouts em consultas amplas na view)', 400, correlationId));
         }
 
         let query = auth.supabase
@@ -46,11 +50,12 @@ export async function GET(request: NextRequest) {
         const { data, error, count } = await query;
 
         if (error) {
-            return handleApiUnhandledError(request, error, {
+            const resp = await handleApiUnhandledError(request, error, {
                 errorCode: 'DB_QUERY_FAILED',
                 userId: auth.user.id,
                 metadata: { route: '/api/geo/municipios' },
             });
+            return (auth.applyCookies || ((r: unknown) => r))(resp);
         }
 
         // Fase 1 - Enriquecimento: expomos flags de qualidade que já existem na view
@@ -72,10 +77,11 @@ export async function GET(request: NextRequest) {
             },
         }));
     } catch (error) {
-        return handleApiUnhandledError(request, error, {
+        const resp = await handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
             userId: auth.user.id,
             metadata: { route: '/api/geo/municipios' },
         });
+        return (auth.applyCookies || ((r: unknown) => r))(resp);
     }
 }
