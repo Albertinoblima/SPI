@@ -17,13 +17,13 @@ export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
+        return (auth.applyCookies || ((r: any) => r))(apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId));
     }
 
     try {
         const { data: admins, error } = await auth.supabase
             .from('users')
-            .select('id, full_name, email, created_at, last_sign_in_at')
+            .select('id, full_name, email, created_at')
             .eq('is_system_admin', true)
             .order('created_at', { ascending: false });
 
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        return apiSuccess({ admins: admins ?? [] });
+        return auth.applyCookies(apiSuccess({ admins: admins ?? [] }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId);
+        return (auth.applyCookies || ((r: any) => r))(apiError(auth.error ?? 'Não autorizado', auth.status ?? 401, correlationId));
     }
 
     try {
@@ -90,10 +90,10 @@ export async function POST(request: NextRequest) {
             is_critical: true,
         });
 
-        return apiSuccess({
+        return auth.applyCookies(apiSuccess({
             success: true,
             message: `Usuário ${isSystemAdmin ? 'promovido a' : 'rebaixado de'} system_admin com sucesso`,
-        });
+        }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',

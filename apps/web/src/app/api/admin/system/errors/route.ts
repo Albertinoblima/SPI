@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
+        return (auth.applyCookies || ((r: any) => r))(apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId));
     }
 
     try {
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
             criticalQuery,
         ]);
 
-        return apiSuccess({
+        return auth.applyCookies(apiSuccess({
             errors,
             summary: {
                 openCount: openCount ?? 0,
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
                 total: count,
                 totalPages: Math.ceil((count || 0) / pageSize),
             },
-        });
+        }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
+        return (auth.applyCookies || ((r: any) => r))(apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId));
     }
 
     try {
@@ -150,7 +150,7 @@ export async function PUT(request: NextRequest) {
             p_is_critical: false,
         });
 
-        return apiSuccess({ error: updated[0] });
+        return auth.applyCookies(apiSuccess({ error: updated[0] }));
     } catch (error) {
         return handleApiUnhandledError(request, error, {
             errorCode: 'API_UNHANDLED_EXCEPTION',
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     const auth = await requireSystemAdmin(request);
 
     if (!auth.isAuthorized) {
-        return apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId);
+        return (auth.applyCookies || ((r: any) => r))(apiError(auth.error ?? 'Nao autorizado', auth.status ?? 401, correlationId));
     }
 
     try {
@@ -237,12 +237,12 @@ export async function POST(request: NextRequest) {
 
             await auth.supabase.from('audit_log').insert(auditEntries);
 
-            return apiSuccess({
+            return auth.applyCookies(apiSuccess({
                 success: true,
                 affected: errorIds.length,
                 resolved,
                 message: `${errorIds.length} erro(s) ${resolved ? 'marcado(s) como resolvido(s)' : 'reaberto(s)'} com sucesso`,
-            });
+            }));
         }
 
         return apiError(`Ação não suportada: ${action}`, 400, correlationId);

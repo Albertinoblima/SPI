@@ -58,6 +58,11 @@ export default function ErrorsPage() {
     const [openCount, setOpenCount] = useState(0);
     const [criticalOpenCount, setCriticalOpenCount] = useState(0);
 
+    // Bulk selection state (moved up for senior closure hygiene and readability)
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+
     // Filtro por tenant (vindo da lista de empresas com badge de Saúde)
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -99,7 +104,7 @@ export default function ErrorsPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, severityFilter, resolvedFilter, searchTerm]);
+    }, [page, severityFilter, resolvedFilter, searchTerm, tenantFilter]);
 
     useEffect(() => {
         fetchErrors();
@@ -171,10 +176,7 @@ export default function ErrorsPage() {
         }
     };
 
-    // === Ações em Massa para Erros (Fase 1 God Mode) ===
-    const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [bulkLoading, setBulkLoading] = useState(false);
-    const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+    // === Ações em Massa para Erros (Fase 1 God Mode) === (states hoisted above)
 
     const allVisibleSelected = errors.length > 0 && errors.every((e) => selected.has(e.id));
     const someVisibleSelected = errors.some((e) => selected.has(e.id));
